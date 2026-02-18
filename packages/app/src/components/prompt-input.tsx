@@ -338,6 +338,23 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     if (!isFocused()) closePopover()
   })
 
+  createEffect(() => {
+    const handleTranscription = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return
+      const detail = event.detail as { text?: string; isFinal?: boolean } | undefined
+      if (!detail?.text) return
+      if (detail.isFinal === false) return
+      if (!editorRef) return
+
+      editorRef.focus()
+      setCursorPosition(editorRef, promptLength(prompt.current()))
+      addPart({ type: "text", content: detail.text, start: 0, end: 0 })
+    }
+
+    window.addEventListener("opencode:transcription", handleTranscription)
+    onCleanup(() => window.removeEventListener("opencode:transcription", handleTranscription))
+  })
+
   // Safety: reset composing state on focus change to prevent stuck state
   // This handles edge cases where compositionend event may not fire
   createEffect(() => {
@@ -1185,6 +1202,19 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     aria-label={language.t("prompt.action.attachFile")}
                   >
                     <Icon name="photo" class="size-4.5" />
+                  </Button>
+                </Tooltip>
+              </Show>
+              <Show when={platform.platform === "ios" && platform.startVoiceInput}>
+                <Tooltip placement="top" value="Voice input">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    class="size-6 px-1"
+                    onClick={() => platform.startVoiceInput?.()}
+                    aria-label="Voice input"
+                  >
+                    <Icon name="speech-bubble" class="size-4.5" />
                   </Button>
                 </Tooltip>
               </Show>
