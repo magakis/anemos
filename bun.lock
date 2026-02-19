@@ -258,6 +258,22 @@
         "typescript": "catalog:",
       },
     },
+    "packages/ios": {
+      "name": "@opencode-ai/ios",
+      "version": "1.2.4",
+      "dependencies": {
+        "@opencode-ai/app": "workspace:*",
+        "@opencode-ai/ui": "workspace:*",
+        "@solid-primitives/storage": "catalog:",
+        "solid-js": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "@typescript/native-preview": "catalog:",
+        "typescript": "catalog:",
+        "vite": "catalog:",
+      },
+    },
     "packages/opencode": {
       "name": "opencode",
       "version": "1.2.4",
@@ -1278,6 +1294,8 @@
     "@opencode-ai/enterprise": ["@opencode-ai/enterprise@workspace:packages/enterprise"],
 
     "@opencode-ai/function": ["@opencode-ai/function@workspace:packages/function"],
+
+    "@opencode-ai/ios": ["@opencode-ai/ios@workspace:packages/ios"],
 
     "@opencode-ai/plugin": ["@opencode-ai/plugin@workspace:packages/plugin"],
 

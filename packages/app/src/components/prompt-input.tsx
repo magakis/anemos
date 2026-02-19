@@ -1214,7 +1214,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     onClick={() => platform.startVoiceInput?.()}
                     aria-label="Voice input"
                   >
-                    <Icon name="speech-bubble" class="size-4.5" />
+                    <Icon name="microphone" class="size-4.5" />
                   </Button>
                 </Tooltip>
               </Show>
