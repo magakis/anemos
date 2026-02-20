@@ -537,6 +537,12 @@ export function DialogSelectServer() {
           >
             {store.addServer.adding ? language.t("dialog.server.add.checking") : language.t("dialog.server.add.button")}
           </Button>
+          <Show when={platform.platform === "ios"}>
+            <p class="text-text-dimmed text-12-regular mt-2">
+              Don't see your server? Make sure you're serving with CORS:{" "}
+              <code class="bg-surface-raised-base text-text-secondary-base px-1.5 py-0.5 rounded-sm break-all">opencode serve --hostname 0.0.0.0 --cors app-local://localhost</code>
+            </p>
+          </Show>
         </div>
       </div>
     </Dialog>

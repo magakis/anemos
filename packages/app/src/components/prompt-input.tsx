@@ -1162,7 +1162,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 e.currentTarget.value = ""
               }}
             />
-<<<<<<< HEAD
 
             <div
               aria-hidden={store.mode !== "normal"}
