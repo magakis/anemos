@@ -65,6 +65,17 @@ export default function Page() {
   const workspaceTabs = createMemo(() => layout.tabs(workspaceKey))
   const tabs = createMemo(() => layout.tabs(sessionKey))
   const view = createMemo(() => layout.view(sessionKey))
+  const RESUME_SYNC_COOLDOWN_MS = 1000
+  let lastResumeSync = 0
+
+  const refreshActiveSession = () => {
+    const id = params.id
+    if (!id) return
+    const now = Date.now()
+    if (now - lastResumeSync < RESUME_SYNC_COOLDOWN_MS) return
+    lastResumeSync = now
+    void sync.session.sync(id, { force: true })
+  }
 
   createEffect(
     on(
@@ -982,7 +993,29 @@ export default function Page() {
   })
 
   onMount(() => {
+    const onResume = () => {
+      if (document.visibilityState === "hidden") return
+      refreshActiveSession()
+    }
+    const onVisibility = () => {
+      if (document.visibilityState !== "visible") return
+      onResume()
+    }
+
     document.addEventListener("keydown", handleKeyDown)
+    window.addEventListener("focus", onResume)
+    window.addEventListener("pageshow", onResume)
+    window.addEventListener("online", onResume)
+    window.addEventListener("opencode:resume", onResume)
+    document.addEventListener("visibilitychange", onVisibility)
+
+    onCleanup(() => {
+      window.removeEventListener("focus", onResume)
+      window.removeEventListener("pageshow", onResume)
+      window.removeEventListener("online", onResume)
+      window.removeEventListener("opencode:resume", onResume)
+      document.removeEventListener("visibilitychange", onVisibility)
+    })
   })
 
   onCleanup(() => {

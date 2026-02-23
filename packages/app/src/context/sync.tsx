@@ -224,11 +224,12 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             parts: input.parts,
           })
         },
-        async sync(sessionID: string) {
+        async sync(sessionID: string, opts?: { force?: boolean }) {
           const directory = sdk.directory
           const client = sdk.client
           const [store, setStore] = globalSync.child(directory)
           const key = keyFor(directory, sessionID)
+          const force = opts?.force === true
           const hasSession = (() => {
             const match = Binary.search(store.session, sessionID, (s) => s.id)
             return match.found
@@ -236,12 +237,16 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
 
           const hasMessages = store.message[sessionID] !== undefined
           const hydrated = meta.limit[key] !== undefined
-          if (hasSession && hasMessages && hydrated) return
+          if (!force && hasSession && hasMessages && hydrated) return
 
           const count = store.message[sessionID]?.length ?? 0
-          const limit = hydrated ? (meta.limit[key] ?? messagePageSize) : limitFor(count)
+          const limit = force
+            ? Math.max(meta.limit[key] ?? messagePageSize, limitFor(count))
+            : hydrated
+              ? (meta.limit[key] ?? messagePageSize)
+              : limitFor(count)
 
-          const sessionReq = hasSession
+          const sessionReq = !force && hasSession
             ? Promise.resolve()
             : retry(() => client.session.get({ sessionID })).then((session) => {
                 const data = session.data
@@ -260,7 +265,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
               })
 
           const messagesReq =
-            hasMessages && hydrated
+            !force && hasMessages && hydrated
               ? Promise.resolve()
               : loadMessages({
                   directory,
