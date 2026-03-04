@@ -31,6 +31,8 @@ import { SessionPromptDock } from "@/pages/session/session-prompt-dock"
 import { SessionMobileTabs } from "@/pages/session/session-mobile-tabs"
 import { SessionSidePanel } from "@/pages/session/session-side-panel"
 import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
+import { usePlatform } from "@/context/platform"
 
 export default function Page() {
   const layout = useLayout()
@@ -295,6 +297,23 @@ export default function Page() {
   let dockHeight = 0
   let scroller: HTMLDivElement | undefined
   let content: HTMLDivElement | undefined
+
+  const platform = usePlatform()
+  const pullToRefresh = usePullToRefresh({
+    scrollElement: () => scroller,
+    onRefresh: async () => {
+      await platform.restart()
+    },
+    onHaptic: () => platform.haptic?.("light"),
+    isNestedScrollable: (target) => {
+      const el = target instanceof Element ? target : undefined
+      const nested = el?.closest("[data-scrollable]")
+      if (!nested || !scroller) return false
+      if (nested === scroller) return false
+      if (!(nested instanceof HTMLElement)) return false
+      return nested.scrollTop > 0
+    },
+  })
 
   const scrollGestureWindowMs = 250
 
@@ -1028,7 +1047,7 @@ export default function Page() {
   return (
     <div class="relative bg-background-base size-full overflow-hidden flex flex-col">
       <SessionHeader />
-      <div class="flex-1 min-h-0 flex flex-col md:flex-row">
+      <div ref={pullToRefresh.setRef} class="flex-1 min-h-0 flex flex-col md:flex-row">
         <SessionMobileTabs
           open={!isDesktop() && !!params.id}
           mobileTab={store.mobileTab}
@@ -1098,6 +1117,12 @@ export default function Page() {
                     onRegisterMessage={scrollSpy.register}
                     onUnregisterMessage={scrollSpy.unregister}
                     lastUserMessageID={lastUserMessage()?.id}
+                    pullToRefresh={{
+                      pulling: pullToRefresh.pulling(),
+                      progress: pullToRefresh.progress(),
+                      refreshing: pullToRefresh.refreshing(),
+                      pullDistance: pullToRefresh.pullDistance(),
+                    }}
                   />
                 </Show>
               </Match>

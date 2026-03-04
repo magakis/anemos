@@ -12,6 +12,7 @@ import type { UserMessage } from "@opencode-ai/sdk/v2"
 import { showToast } from "@opencode-ai/ui/toast"
 import { shouldMarkBoundaryGesture, normalizeWheelDelta } from "@/pages/session/message-gesture"
 import { SessionContextUsage } from "@/components/session-context-usage"
+import { PullToRefreshIndicator } from "@/components/pull-to-refresh-indicator"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
 import { useSDK } from "@/context/sdk"
@@ -73,6 +74,12 @@ export function MessageTimeline(props: {
   onRegisterMessage: (el: HTMLDivElement, id: string) => void
   onUnregisterMessage: (id: string) => void
   lastUserMessageID?: string
+  pullToRefresh: {
+    pulling: boolean
+    progress: number
+    refreshing: boolean
+    pullDistance: number
+  }
 }) {
   let touchGesture: number | undefined
 
@@ -366,7 +373,7 @@ export function MessageTimeline(props: {
           }}
           onClick={props.onAutoScrollInteraction}
           class="relative min-w-0 w-full h-full overflow-y-auto session-scroller"
-          style={{ "--session-title-height": showHeader() ? "40px" : "0px" }}
+          style={{ "--session-title-height": showHeader() ? "40px" : "0px", "overscroll-behavior-y": "contain" }}
         >
           <Show when={showHeader()}>
             <div
@@ -481,6 +488,12 @@ export function MessageTimeline(props: {
             </div>
           </Show>
 
+          <PullToRefreshIndicator
+            pulling={props.pullToRefresh.pulling}
+            progress={props.pullToRefresh.progress}
+            refreshing={props.pullToRefresh.refreshing}
+            pullDistance={props.pullToRefresh.pullDistance}
+          />
           <div
             ref={props.setContentRef}
             role="log"
