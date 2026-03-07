@@ -27,3 +27,5 @@ target
 opencode-dev
 logs/
 *.bun-build
+packages/android/src-tauri/**/build/
+packages/android/src-tauri/gen/
