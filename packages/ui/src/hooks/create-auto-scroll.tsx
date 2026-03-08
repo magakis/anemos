@@ -9,6 +9,7 @@ export interface AutoScrollOptions {
   onUserInteracted?: () => void
   overflowAnchor?: "none" | "auto" | "dynamic"
   bottomThreshold?: number
+  reverseScrollTop?: boolean
 }
 
 const SETTLE_MS = 500
@@ -35,6 +36,7 @@ export function createAutoScroll(options: AutoScrollOptions) {
     | undefined
 
   const threshold = () => options.bottomThreshold ?? 10
+  const reverseScrollTop = () => options.reverseScrollTop !== false
 
   const [store, setStore] = createStore({
     contentRef: undefined as HTMLElement | undefined,
@@ -44,8 +46,12 @@ export function createAutoScroll(options: AutoScrollOptions) {
   const active = () => options.working() || settling
 
   const distanceFromBottom = (el: HTMLElement) => {
-    // With column-reverse, scrollTop=0 is at the bottom, negative = scrolled up
-    return Math.abs(el.scrollTop)
+    if (reverseScrollTop()) {
+      // With column-reverse, scrollTop=0 is at the bottom, negative = scrolled up
+      return Math.abs(el.scrollTop)
+    }
+    // Normal scrollTop: 0 is at top, max is at bottom
+    return el.scrollHeight - el.clientHeight - el.scrollTop
   }
 
   const canScroll = (el: HTMLElement) => {
@@ -152,13 +158,13 @@ export function createAutoScroll(options: AutoScrollOptions) {
     if (scrollAnim) cancelSmooth()
     if (!force && store.userScrolled) return
 
-    // With column-reverse, scrollTop=0 is at the bottom
-    if (Math.abs(el.scrollTop) <= AUTO_SCROLL_EPSILON) {
+    const bottomTarget = reverseScrollTop() ? 0 : el.scrollHeight - el.clientHeight
+    if (Math.abs(el.scrollTop - bottomTarget) <= AUTO_SCROLL_EPSILON) {
       markProgrammatic()
       return
     }
 
-    el.scrollTop = 0
+    el.scrollTop = bottomTarget
     markProgrammatic()
   }
 
@@ -176,13 +182,13 @@ export function createAutoScroll(options: AutoScrollOptions) {
     cancelSmooth()
     if (store.userScrolled) setStore("userScrolled", false)
 
-    // With column-reverse, scrollTop=0 is at the bottom
-    if (Math.abs(el.scrollTop) <= AUTO_SCROLL_EPSILON) {
+    const bottomTarget = reverseScrollTop() ? 0 : el.scrollHeight - el.clientHeight
+    if (Math.abs(el.scrollTop - bottomTarget) <= AUTO_SCROLL_EPSILON) {
       markProgrammatic()
       return
     }
 
-    scrollAnim = animate(el.scrollTop, 0, {
+    scrollAnim = animate(el.scrollTop, bottomTarget, {
       ...FAST_SPRING,
       onUpdate: (v) => {
         markProgrammatic()
@@ -353,6 +359,9 @@ export function createAutoScroll(options: AutoScrollOptions) {
         return
       }
 
+      if (!reverseScrollTop()) {
+        el.scrollTop = el.scrollHeight - el.clientHeight
+      }
       markProgrammatic()
       updateOverflowAnchor(el)
       el.addEventListener("wheel", handleWheel, { passive: true })
@@ -372,8 +381,7 @@ export function createAutoScroll(options: AutoScrollOptions) {
       const el = scroll
       if (!el) return
       if (store.userScrolled) setStore("userScrolled", false)
-      // With column-reverse, scrollTop=0 is at the bottom
-      el.scrollTop = 0
+      el.scrollTop = reverseScrollTop() ? 0 : el.scrollHeight - el.clientHeight
       markProgrammatic()
     },
     userScrolled: () => store.userScrolled,

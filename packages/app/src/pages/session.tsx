@@ -1111,9 +1111,12 @@ export default function Page() {
     ),
   )
 
+  const isIOS = platform.platform === "ios"
+
   const autoScroll = createAutoScroll({
     working: () => true,
     overflowAnchor: "dynamic",
+    reverseScrollTop: !isIOS,
   })
 
   let scrollStateFrame: number | undefined
