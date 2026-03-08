@@ -38,7 +38,10 @@ export function ScrollView(props: ScrollViewProps) {
   const [showThumb, setShowThumb] = createSignal(false)
 
   const reverse = () => local.reverse === true
-  const isIOSReverse = () => reverse() && document.documentElement.dataset.platform === "ios"
+  const mobile = () => {
+    const value = document.documentElement.dataset.platform
+    return value === "ios" || value === "android"
+  }
 
   const updateThumb = () => {
     if (!viewportRef) return
@@ -63,7 +66,7 @@ export function ScrollView(props: ScrollViewProps) {
 
     const top = (() => {
       if (maxScrollTop <= 0) return 0
-      if (!reverse() || isIOSReverse()) return (scrollTop / maxScrollTop) * maxThumbTop
+      if (!reverse() || mobile()) return (scrollTop / maxScrollTop) * maxThumbTop
       return ((maxScrollTop + scrollTop) / maxScrollTop) * maxThumbTop
     })()
 
@@ -140,7 +143,7 @@ export function ScrollView(props: ScrollViewProps) {
 
   const limit = (top: number) => {
     const max = viewportRef.scrollHeight - viewportRef.clientHeight
-    if (reverse() && !isIOSReverse()) return Math.max(-max, Math.min(0, top))
+    if (reverse() && !mobile()) return Math.max(-max, Math.min(0, top))
     return Math.max(0, Math.min(max, top))
   }
 
@@ -181,11 +184,11 @@ export function ScrollView(props: ScrollViewProps) {
         break
       case "Home":
         e.preventDefault()
-        glide(reverse() && !isIOSReverse() ? -(viewportRef.scrollHeight - viewportRef.clientHeight) : 0)
+        glide(reverse() && !mobile() ? -(viewportRef.scrollHeight - viewportRef.clientHeight) : 0)
         break
       case "End":
         e.preventDefault()
-        glide(reverse() && !isIOSReverse() ? 0 : viewportRef.scrollHeight - viewportRef.clientHeight)
+        glide(reverse() && !mobile() ? 0 : viewportRef.scrollHeight - viewportRef.clientHeight)
         break
       case "ArrowUp":
         e.preventDefault()
