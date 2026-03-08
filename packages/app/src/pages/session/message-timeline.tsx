@@ -255,6 +255,7 @@ export function MessageTimeline(props: {
 
   const params = useParams()
   const platform = usePlatform()
+  const mobile = platform.platform === "ios" || platform.platform === "android"
   const sync = useSync()
   const settings = useSettings()
   const language = useLanguage()
@@ -421,7 +422,7 @@ export function MessageTimeline(props: {
           }}
         >
           <div>
-            <Show when={platform.platform === "ios"}>
+            <Show when={mobile}>
               <PullToRefreshIndicator
                 pulling={props.pullToRefresh.pulling}
                 progress={props.pullToRefresh.progress}
@@ -550,14 +551,14 @@ export function MessageTimeline(props: {
                 }}
               </For>
             </div>
-          <Show when={platform.platform !== "ios"}>
-            <PullToRefreshIndicator
-              pulling={props.pullToRefresh.pulling}
-              progress={props.pullToRefresh.progress}
-              refreshing={props.pullToRefresh.refreshing}
-              pullDistance={props.pullToRefresh.pullDistance}
-            />
-          </Show>
+            <Show when={!mobile}>
+              <PullToRefreshIndicator
+                pulling={props.pullToRefresh.pulling}
+                progress={props.pullToRefresh.progress}
+                refreshing={props.pullToRefresh.refreshing}
+                pullDistance={props.pullToRefresh.pullDistance}
+              />
+            </Show>
           </div>
         </ScrollView>
       </div>

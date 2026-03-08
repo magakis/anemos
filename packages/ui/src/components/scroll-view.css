@@ -18,7 +18,8 @@
   flex-direction: column-reverse;
 }
 
-:root[data-platform="ios"] .scroll-view__viewport[data-reverse="true"] {
+:root[data-platform="ios"] .scroll-view__viewport[data-reverse="true"],
+:root[data-platform="android"] .scroll-view__viewport[data-reverse="true"] {
   display: block;
   flex-direction: unset;
 }
