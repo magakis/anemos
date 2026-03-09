@@ -255,6 +255,13 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
 
           return runInflight(inflight, key, () => Promise.all([sessionReq, messagesReq]).then(() => {}))
         },
+        async status() {
+          const client = sdk.client
+          const [, setStore] = globalSync.child(sdk.directory)
+          return retry(() => client.session.status()).then((x) => {
+            setStore("session_status", reconcile(x.data ?? {}))
+          })
+        },
         async diff(sessionID: string) {
           const directory = sdk.directory
           const client = sdk.client

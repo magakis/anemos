@@ -194,13 +194,22 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
       if (Date.now() - lastEventAt < HEARTBEAT_TIMEOUT_MS) return
       attempt?.abort()
     }
+    const onResume = () => {
+      attempt?.abort()
+    }
     if (typeof document !== "undefined") {
       document.addEventListener("visibilitychange", onVisibility)
+    }
+    if (typeof window !== "undefined") {
+      window.addEventListener("opencode:resume", onResume)
     }
 
     onCleanup(() => {
       if (typeof document !== "undefined") {
         document.removeEventListener("visibilitychange", onVisibility)
+      }
+      if (typeof window !== "undefined") {
+        window.removeEventListener("opencode:resume", onResume)
       }
       abort.abort()
       flush()

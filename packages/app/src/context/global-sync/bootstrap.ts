@@ -151,7 +151,13 @@ export async function bootstrapDirectory(input: {
   Promise.all([
     input.sdk.path.get().then((x) => input.setStore("path", x.data!)),
     input.sdk.command.list().then((x) => input.setStore("command", x.data ?? [])),
-    input.sdk.session.status().then((x) => input.setStore("session_status", x.data!)),
+    retry(() => input.sdk.session.status())
+      .then((x) => {
+        input.setStore("session_status", reconcile(x.data ?? {}))
+      })
+      .catch((err) => {
+        console.error("Failed to load session status", err)
+      }),
     input.loadSessions(input.directory),
     input.sdk.mcp.status().then((x) => input.setStore("mcp", x.data!)),
     input.sdk.lsp.status().then((x) => input.setStore("lsp", x.data!)),
