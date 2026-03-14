@@ -167,7 +167,8 @@ const createPlatform = (): Platform => {
       window.api.relaunch()
     },
 
-    notify: async (title, description, href) => {
+    notify: async (title, description, href, opts) => {
+      void opts
       const focused = await window.api.getWindowFocused().catch(() => document.hasFocus())
       if (focused) return
 

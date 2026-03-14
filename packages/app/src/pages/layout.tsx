@@ -25,7 +25,7 @@ import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { getFilename } from "@opencode-ai/util/path"
 import { Session, type Message } from "@opencode-ai/sdk/v2/client"
-import { usePlatform } from "@/context/platform"
+import { usePlatform, type PushPrefs } from "@/context/platform"
 import { useSettings } from "@/context/settings"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCenter } from "@thisbeyond/solid-dnd"
@@ -40,7 +40,7 @@ import { Binary } from "@opencode-ai/util/binary"
 import { retry } from "@opencode-ai/util/retry"
 import { playSound, soundSrc } from "@/utils/sound"
 import { createAim } from "@/utils/aim"
-import { setNavigate } from "@/utils/notification-click"
+import { setNavigate, setNotificationOpen, stashNotificationOpen, type PushOpen } from "@/utils/notification-click"
 import { Worktree as WorktreeState } from "@/utils/worktree"
 import { setSessionHandoff } from "@/pages/session/handoff"
 
@@ -81,6 +81,7 @@ import {
 import { workspaceOpenState } from "./layout/sidebar-workspace-helpers"
 import { ProjectDragOverlay, SortableProject, type ProjectSidebarContext } from "./layout/sidebar-project"
 import { SidebarContent } from "./layout/sidebar-shell"
+import { ServerConnection } from "@/context/server"
 
 export default function Layout(props: ParentProps) {
   const [store, setStore, , ready] = persisted(
@@ -94,6 +95,12 @@ export default function Layout(props: ParentProps) {
       workspaceBranchName: {} as Record<string, Record<string, string>>,
       workspaceExpanded: {} as Record<string, boolean>,
       gettingStartedDismissed: false,
+    }),
+  )
+  const [route, setRoute] = persisted(
+    Persist.global("push.route", ["push.route.v1"]),
+    createStore({
+      channel: {} as Record<string, ServerConnection.Key>,
     }),
   )
 
@@ -112,7 +119,6 @@ export default function Layout(props: ParentProps) {
   const notification = useNotification()
   const permission = usePermission()
   const navigate = useNavigate()
-  setNavigate(navigate)
   const providers = useProviders()
   const dialog = useDialog()
   const command = useCommand()
@@ -128,6 +134,91 @@ export default function Layout(props: ParentProps) {
   }
   const colorSchemeLabel = (scheme: ColorScheme) => language.t(colorSchemeKey[scheme])
   const currentDir = createMemo(() => decode64(params.dir) ?? "")
+  const pushPrefs = createMemo<PushPrefs>(() => ({
+    complete: settings.notifications.agent(),
+    approval: settings.notifications.permissions(),
+    question: settings.notifications.agent(),
+    error: settings.notifications.errors(),
+  }))
+  let prefsSig: string | undefined
+
+  createEffect(() => {
+    const syncPrefs = platform.setPushPreferences
+    const paired = platform.pushState?.()?.paired === true
+    const value = pushPrefs()
+    if (!syncPrefs || !paired) {
+      prefsSig = undefined
+      return
+    }
+    const next = JSON.stringify(value)
+    if (next === prefsSig) return
+    prefsSig = next
+    void syncPrefs(value).catch(() => undefined)
+  })
+
+  createEffect(() => {
+    if (platform.platform !== "ios") return
+    const channel = platform.pushState?.()?.channel
+    const key = server.key
+    if (!channel || !key) return
+    setRoute("channel", channel, key)
+  })
+
+  async function openPush(value: PushOpen) {
+    const mapped = value.channel ? route.channel[value.channel] : undefined
+    if (mapped && mapped !== server.key) {
+      const known = server.list.some((item) => ServerConnection.key(item) === mapped)
+      if (known) {
+        stashNotificationOpen(value)
+        server.setActive(mapped)
+        return
+      }
+    }
+
+    if (value.channel && !mapped) {
+      navigateWithSidebarReset("/")
+      showToast({
+        title: language.t("notification.push.route.title"),
+        description: language.t("notification.push.route.server"),
+      })
+      return
+    }
+
+    if (value.href) {
+      navigateWithSidebarReset(value.href)
+      return
+    }
+
+    if (value.session) {
+      const session = await globalSDK.client.session
+        .get({ sessionID: value.session })
+        .then((x) => x.data)
+        .catch(() => undefined)
+      if (session?.directory) {
+        layout.projects.open(session.directory)
+        server.projects.touch(session.directory)
+        navigateWithSidebarReset(`/${base64Encode(session.directory)}/session/${session.id}`)
+        return
+      }
+    }
+
+    navigateWithSidebarReset("/")
+    showToast({
+      title: language.t("notification.push.route.title"),
+      description: language.t("notification.push.route.session"),
+    })
+  }
+
+  onMount(() => {
+    setNavigate(navigate)
+    setNotificationOpen((value) => {
+      void openPush(value)
+    })
+    onCleanup(() => {
+      setNavigate(undefined as any)
+      setNotificationOpen(undefined)
+    })
+  })
 
   const [state, setState] = createStore({
     autoselect: !initialDirectory,
@@ -455,13 +546,13 @@ export default function Layout(props: ParentProps) {
             playSound(soundSrc(settings.sounds.permissions()))
           }
           if (settings.notifications.permissions()) {
-            void platform.notify(title, description, href)
+            void platform.notify(title, description, href, { kind: "approval" })
           }
         }
 
         if (e.details.type === "question.asked") {
           if (settings.notifications.agent()) {
-            void platform.notify(title, description, href)
+            void platform.notify(title, description, href, { kind: "question" })
           }
         }
 
