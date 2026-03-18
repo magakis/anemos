@@ -460,8 +460,8 @@
       },
     },
     "packages/push": {
-      "name": "@whispercode/opencode-push",
-      "version": "0.1.0",
+      "name": "@whisperopencode/push",
+      "version": "0.2.0",
       "bin": {
         "opencode-push": "./src/cli.ts",
       },
@@ -2264,9 +2264,9 @@
 
     "@webgpu/types": ["@webgpu/types@0.1.54", "", {}, "sha512-81oaalC8LFrXjhsczomEQ0u3jG+TqE6V9QHLA8GNZq/Rnot0KDugu3LhSYSlie8tSdooAN1Hov05asrUUp9qgg=="],
 
-    "@whispercode/opencode-push": ["@whispercode/opencode-push@workspace:packages/push"],
-
     "@whispercode/push-relay": ["@whispercode/push-relay@workspace:packages/push-relay"],
+
+    "@whisperopencode/push": ["@whisperopencode/push@workspace:packages/push"],
 
     "@xmldom/xmldom": ["@xmldom/xmldom@0.8.11", "", {}, "sha512-cQzWCtO6C8TQiYl1ruKNn2U6Ao4o4WBBcbL61yJl84x+j5sOWWFU9X7DpND8XZG3daDppSsigMdfAIl2upQBRw=="],
 

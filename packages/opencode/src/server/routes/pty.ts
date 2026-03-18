@@ -81,6 +81,33 @@ export const PtyRoutes = lazy(() =>
         return c.json(info)
       },
     )
+    .get(
+      "/:ptyID/result",
+      describeRoute({
+        summary: "Get PTY result",
+        description: "Retrieve the running or exited result for a pseudo-terminal (PTY) session.",
+        operationId: "pty.result",
+        responses: {
+          200: {
+            description: "PTY result",
+            content: {
+              "application/json": {
+                schema: resolver(Pty.Result),
+              },
+            },
+          },
+          ...errors(404),
+        },
+      }),
+      validator("param", z.object({ ptyID: z.string() })),
+      async (c) => {
+        const result = Pty.result(c.req.valid("param").ptyID)
+        if (!result) {
+          throw new NotFoundError({ message: "Session not found" })
+        }
+        return c.json(result)
+      },
+    )
     .put(
       "/:ptyID",
       describeRoute({

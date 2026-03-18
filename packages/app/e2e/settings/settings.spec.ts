@@ -20,6 +20,9 @@ test("smoke settings dialog opens, switches tabs, closes", async ({ page, gotoSe
 
   const dialog = await openSettings(page)
 
+  await dialog.getByRole("tab", { name: "Mobile notifications" }).click()
+  await expect(dialog.getByRole("heading", { level: 2, name: "Mobile notifications" })).toBeVisible()
+
   await dialog.getByRole("tab", { name: "Shortcuts" }).click()
   await expect(dialog.getByRole("button", { name: "Reset to defaults" })).toBeVisible()
   await expect(dialog.getByPlaceholder("Search shortcuts")).toBeVisible()

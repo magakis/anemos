@@ -113,6 +113,7 @@ export const dict = {
   "dialog.model.empty": "Nema rezultata za modele",
   "dialog.model.manage": "Upravljaj modelima",
   "dialog.model.manage.description": "Prilagodi koji se modeli prikazuju u izborniku modela.",
+  "dialog.model.manage.provider.toggle": "Uključi/isključi sve {{provider}} modele",
 
   "dialog.model.unpaid.freeModels.title": "Besplatni modeli koje obezbjeđuje OpenCode",
   "dialog.model.unpaid.addMore.title": "Dodaj još modela od popularnih provajdera",
@@ -315,6 +316,11 @@ export const dict = {
   "dialog.server.add.error": "Nije moguće povezati se na server",
   "dialog.server.add.checking": "Provjera...",
   "dialog.server.add.button": "Dodaj server",
+  "dialog.server.add.name": "Naziv servera (opcionalno)",
+  "dialog.server.add.namePlaceholder": "Localhost",
+  "dialog.server.add.username": "Korisničko ime (opcionalno)",
+  "dialog.server.add.password": "Lozinka (opcionalno)",
+  "dialog.server.edit.title": "Uredi server",
   "dialog.server.default.title": "Podrazumijevani server",
   "dialog.server.default.description":
     "Poveži se na ovaj server pri pokretanju aplikacije umjesto pokretanja lokalnog servera. Potreban je restart.",
@@ -393,6 +399,7 @@ export const dict = {
   "language.br": "Português (Brasil)",
   "language.bs": "Bosanski",
   "language.th": "ไทย",
+  "language.tr": "Türkçe",
 
   "toast.language.title": "Jezik",
   "toast.language.description": "Prebačeno na {{language}}",
@@ -498,10 +505,13 @@ export const dict = {
   "session.review.change.other": "Izmjene",
   "session.review.loadingChanges": "Učitavanje izmjena...",
   "session.review.empty": "Još nema izmjena u ovoj sesiji",
+  "session.review.noVcs": "Git sistem za kontrolu verzija nije detektovan, izmjene se ne prikazuju",
+  "session.review.noSnapshot": "Praćenje snimaka je onemogućeno u konfiguraciji, pa izmjene sesije nisu dostupne",
   "session.review.noChanges": "Nema izmjena",
 
   "session.files.selectToOpen": "Odaberi datoteku za otvaranje",
   "session.files.all": "Sve datoteke",
+  "session.files.empty": "Nema datoteka",
   "session.files.binaryContent": "Binarna datoteka (sadržaj se ne može prikazati)",
 
   "session.messages.renderEarlier": "Prikaži ranije poruke",
@@ -592,8 +602,10 @@ export const dict = {
 
   "settings.section.desktop": "Desktop",
   "settings.section.server": "Server",
+  "settings.section.whispercode": "WhisperCode",
   "settings.tab.general": "Opšte",
   "settings.tab.shortcuts": "Prečice",
+  "settings.tab.phone": "Telefon",
   "settings.desktop.section.wsl": "WSL",
   "settings.desktop.wsl.title": "WSL integracija",
   "settings.desktop.wsl.description": "Pokreni OpenCode server unutar WSL-a na Windowsu.",
@@ -620,6 +632,8 @@ export const dict = {
   "settings.general.row.editToolPartsExpanded.title": "Proširi dijelove alata za uređivanje",
   "settings.general.row.editToolPartsExpanded.description":
     "Prikaži dijelove alata za uređivanje, pisanje i patch podrazumijevano proširene na vremenskoj traci",
+  "settings.general.row.reasoningSummaries.title": "Prikaži sažetke rasuđivanja",
+  "settings.general.row.reasoningSummaries.description": "Prikaži sažetke rasuđivanja modela na vremenskoj traci",
   "settings.general.row.wayland.title": "Koristi nativni Wayland",
   "settings.general.row.wayland.description": "Onemogući X11 fallback na Waylandu. Zahtijeva restart.",
   "settings.general.row.wayland.tooltip":
@@ -703,6 +717,104 @@ export const dict = {
   "settings.general.notifications.permissions.description": "Prikaži sistemsku obavijest kada je potrebna dozvola",
   "settings.general.notifications.errors.title": "Greške",
   "settings.general.notifications.errors.description": "Prikaži sistemsku obavijest kada dođe do greške",
+  "settings.general.notifications.push.permission.title": "Push dozvola",
+  "settings.general.notifications.push.permission.pending":
+    "Provjeravanje da li WhisperCode može prikazivati obavijesti na ovom iPhone-u",
+  "settings.general.notifications.push.permission.notDetermined":
+    "Omogući generička upozorenja za odgovore, odobrenja, pitanja i greške",
+  "settings.general.notifications.push.permission.denied": "Uključi obavijesti za WhisperCode u iPhone Postavkama",
+  "settings.general.notifications.push.permission.registering":
+    "Dozvola je odobrena. WhisperCode završava registraciju kod Apple-a.",
+  "settings.general.notifications.push.permission.authorized": "Spremno za generička upozorenja na ovom iPhone-u",
+  "settings.general.notifications.push.permission.provisional": "Spremno za tiha generička upozorenja na ovom iPhone-u",
+  "settings.general.notifications.push.permission.ephemeral":
+    "Spremno za privremena generička upozorenja na ovom iPhone-u",
+  "settings.general.notifications.push.permission.unsupported": "Obavijesti nisu dostupne na ovom uređaju",
+  "settings.general.notifications.push.generic.title": "Privatnost",
+  "settings.general.notifications.push.generic.description":
+    "Upozorenja su podrazumijevano generička. Tekst upita, tekst odgovora, putanje datoteka i naslovi sesija ostaju na uređaju.",
+  "settings.general.notifications.push.generic.value": "Samo generičko",
+  "settings.general.notifications.push.test.title": "Pošalji probnu obavijest",
+  "settings.general.notifications.push.test.description":
+    "Pošalji upozorenje putem releja sa povezanog OpenCode hosta i provjeri da li te dodirivanje vraća u WhisperCode",
+  "settings.general.notifications.push.relay.title": "Push relej",
+  "settings.general.notifications.push.relay.description.custom":
+    "Koristi se prilagođeni URL releja za uparivanje i pozadinsku isporuku push obavijesti: {url}",
+  "settings.general.notifications.push.relay.description.guess":
+    "Podrazumijevano koristi host povezanog servera na portu 8787: {url}",
+  "settings.general.notifications.push.relay.description.empty":
+    "Prvo se poveži na server ili unesi prilagođeni URL releja za uparivanje i pozadinsku isporuku push obavijesti.",
+  "settings.general.notifications.push.relay.action.auto": "Koristi podrazumijevano",
+  "settings.general.notifications.push.pairing.title": "Uparivanje telefona",
+  "settings.general.notifications.push.pairing.pending": "Provjeravanje da li je ovaj iPhone uparen sa push kanalom.",
+  "settings.general.notifications.push.pairing.server":
+    "Prvo se poveži na OpenCode server kako bi WhisperCode mogao završiti uparivanje.",
+  "settings.general.notifications.push.pairing.unpaired":
+    "Dodirni Postavi jednom i WhisperCode će zatražiti dozvolu, instalirati integraciju hosta i automatski upariti ovaj iPhone.",
+  "settings.general.notifications.push.pairing.paired":
+    "Ovaj iPhone je uparen sa tvojim OpenCode hostom. WhisperCode će automatski popraviti vezu ako se izgubi.",
+  "settings.general.notifications.push.pairing.retry":
+    "WhisperCode završava uparivanje hosta za ovaj iPhone i nastavit će pokušavati dok ne uspije.",
+  "settings.general.notifications.push.pairing.step.permission": "Traži dozvolu za obavijesti od iPhone Postavki.",
+  "settings.general.notifications.push.pairing.step.register": "Čekanje da Apple push registracija završi.",
+  "settings.general.notifications.push.pairing.step.begin": "Priprema sigurnog zahtjeva za uparivanje za ovaj iPhone.",
+  "settings.general.notifications.push.pairing.step.claim": "Povezivanje ovog iPhone-a sa OpenCode hostom.",
+  "settings.general.notifications.push.pairing.step.finish": "Završavanje uparivanja na ovom iPhone-u.",
+  "settings.general.notifications.push.pairing.action.setup": "Postavi",
+  "settings.general.notifications.push.pairing.action.finish": "Završi postavljanje",
+  "settings.general.notifications.push.pairing.action.repair": "Popravi",
+  "settings.general.notifications.push.pairing.action.pairing": "Uparivanje...",
+  "settings.general.notifications.push.pairing.action.clear": "Ukloni uparivanje",
+  "settings.general.notifications.push.pairing.action.clearing": "Uklanjanje...",
+  "settings.general.notifications.push.pairing.toast.cleared.title": "Uparivanje uklonjeno",
+  "settings.general.notifications.push.pairing.toast.cleared.description":
+    "Pohranjeni kredencijali push kanala su uklonjeni sa ovog iPhone-a.",
+  "settings.general.notifications.push.pairing.toast.paired.title": "iPhone uparen",
+  "settings.general.notifications.push.pairing.toast.paired.description":
+    "WhisperCode sada može održavati vezu ovog iPhone-a sa OpenCode hostom za isporuku push obavijesti.",
+  "settings.general.notifications.push.action.enable": "Omogući",
+  "settings.general.notifications.push.action.openSettings": "Otvori Postavke",
+  "settings.general.notifications.push.action.enabled": "Omogućeno",
+  "settings.general.notifications.push.action.unavailable": "Nedostupno",
+  "settings.general.notifications.push.action.checking": "Provjera...",
+  "settings.general.notifications.push.action.test": "Pošalji test",
+  "settings.general.notifications.push.action.sending": "Slanje...",
+  "settings.general.notifications.push.host.title": "Integracija hosta",
+  "settings.general.notifications.push.host.description.missing":
+    "Instaliraj community plugin na povezanom OpenCode hostu kako bi se generički push događaji mogli proslijediti.",
+  "settings.general.notifications.push.host.description.installed":
+    "Community plugin je naveden u OpenCode globalnoj konfiguraciji za ovaj host.",
+  "settings.general.notifications.push.host.description.updating":
+    "Ažuriranje OpenCode globalne konfiguracije za host plugin.",
+  "settings.general.notifications.push.host.action.install": "Dodaj u konfiguraciju",
+  "settings.general.notifications.push.host.action.installing": "Instaliranje...",
+  "settings.general.notifications.push.host.action.copy": "Kopiraj komandu",
+  "settings.general.notifications.push.host.action.copying": "Kopiranje...",
+  "settings.general.notifications.push.host.action.remove": "Ukloni",
+  "settings.general.notifications.push.host.action.removing": "Uklanjanje...",
+  "settings.general.notifications.push.host.toast.installed.title": "Host plugin dodan",
+  "settings.general.notifications.push.host.toast.installed.description":
+    "OpenCode globalna konfiguracija sada uključuje WhisperCode push plugin.",
+  "settings.general.notifications.push.host.toast.removed.title": "Host plugin uklonjen",
+  "settings.general.notifications.push.host.toast.removed.description":
+    "OpenCode globalna konfiguracija više ne uključuje WhisperCode push plugin.",
+  "settings.general.notifications.push.host.toast.copied.title": "Komanda za instalaciju kopirana",
+  "settings.general.notifications.push.host.toast.copied.description":
+    "Pokreni kopiranu komandu na mašini koja hostira OpenCode.",
+  "settings.general.notifications.push.host.toast.copyFailed.title": "Nije moguće kopirati komandu za instalaciju",
+  "settings.general.notifications.push.host.toast.copyFailed.description":
+    "Kopiraj komandu ručno iz WhisperCode-a i pokreni je na OpenCode hostu.",
+  "settings.general.notifications.push.toast.sent.title": "Probna obavijest zakazana",
+  "settings.general.notifications.push.toast.sent.description":
+    "Zaključaj iPhone ili ostavi aplikaciju otvorenu da provjeriš baner i tok dodirivanja.",
+  "settings.general.notifications.push.toast.failed.title": "Nije moguće poslati probnu obavijest",
+  "settings.general.notifications.push.toast.failed.description":
+    "Omogući iPhone obavijesti za WhisperCode i pokušaj ponovo.",
+  "notification.push.route.title": "OpenCode obavijest",
+  "notification.push.route.server": "WhisperCode još nije mogao povezati ovu obavijest sa povezanim serverom.",
+  "notification.push.route.session":
+    "WhisperCode još nije mogao vratiti tu sesiju, pa je otvorio početnu stranicu servera.",
+  "settings.whispercode.mobile.unavailable": "Ova kartica je dostupna na WhisperCode mobilnim verzijama.",
 
   "settings.general.sounds.agent.title": "Agent",
   "settings.general.sounds.agent.description": "Pusti zvuk kada agent završi ili zahtijeva pažnju",

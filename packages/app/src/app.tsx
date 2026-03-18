@@ -20,6 +20,7 @@ import { LayoutProvider } from "@/context/layout"
 import { ModelsProvider } from "@/context/models"
 import { NotificationProvider } from "@/context/notification"
 import { PermissionProvider } from "@/context/permission"
+import { PushPairProvider } from "@/context/push-pair"
 import { usePlatform } from "@/context/platform"
 import { PushRelayProvider } from "@/context/push-relay"
 import { PromptProvider } from "@/context/prompt"
@@ -76,17 +77,19 @@ function AppShellProviders(props: ParentProps) {
     <SettingsProvider>
       <PermissionProvider>
         <PushRelayProvider>
-          <LayoutProvider>
-            <NotificationProvider>
-              <ModelsProvider>
-                <CommandProvider>
-                  <HighlightsProvider>
-                    <Layout>{props.children}</Layout>
-                  </HighlightsProvider>
-                </CommandProvider>
-              </ModelsProvider>
-            </NotificationProvider>
-          </LayoutProvider>
+          <PushPairProvider>
+            <LayoutProvider>
+              <NotificationProvider>
+                <ModelsProvider>
+                  <CommandProvider>
+                    <HighlightsProvider>
+                      <Layout>{props.children}</Layout>
+                    </HighlightsProvider>
+                  </CommandProvider>
+                </ModelsProvider>
+              </NotificationProvider>
+            </LayoutProvider>
+          </PushPairProvider>
         </PushRelayProvider>
       </PermissionProvider>
     </SettingsProvider>

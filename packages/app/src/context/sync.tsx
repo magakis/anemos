@@ -227,23 +227,24 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
 
           const limit = meta.limit[key] ?? messagePageSize
 
-          const sessionReq = !force && hasSession
-            ? Promise.resolve()
-            : retry(() => client.session.get({ sessionID })).then((session) => {
-                const data = session.data
-                if (!data) return
-                setStore(
-                  "session",
-                  produce((draft) => {
-                    const match = Binary.search(draft, sessionID, (s) => s.id)
-                    if (match.found) {
-                      draft[match.index] = data
-                      return
-                    }
-                    draft.splice(match.index, 0, data)
-                  }),
-                )
-              })
+          const sessionReq =
+            !force && hasSession
+              ? Promise.resolve()
+              : retry(() => client.session.get({ sessionID })).then((session) => {
+                  const data = session.data
+                  if (!data) return
+                  setStore(
+                    "session",
+                    produce((draft) => {
+                      const match = Binary.search(draft, sessionID, (s) => s.id)
+                      if (match.found) {
+                        draft[match.index] = data
+                        return
+                      }
+                      draft.splice(match.index, 0, data)
+                    }),
+                  )
+                })
 
           const messagesReq = loadMessages({
             directory,
