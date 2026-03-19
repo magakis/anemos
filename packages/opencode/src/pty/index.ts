@@ -14,8 +14,6 @@ export namespace Pty {
 
   const BUFFER_LIMIT = 1024 * 1024 * 2
   const BUFFER_CHUNK = 64 * 1024
-  const RESULT_LIMIT = 16 * 1024
-  const RESULT_TTL = 5 * 60_000
   const encoder = new TextEncoder()
 
   type Socket = {
@@ -53,21 +51,6 @@ export namespace Pty {
     .meta({ ref: "Pty" })
 
   export type Info = z.infer<typeof Info>
-
-  export const Result = z
-    .union([
-      z.object({
-        status: z.literal("running"),
-      }),
-      z.object({
-        status: z.literal("exited"),
-        exitCode: z.number(),
-        output: z.string(),
-      }),
-    ])
-    .meta({ ref: "PtyResult" })
-
-  export type Result = z.infer<typeof Result>
 
   export const CreateInput = z.object({
     command: z.string().optional(),
@@ -107,52 +90,31 @@ export namespace Pty {
     subscribers: Map<unknown, Socket>
   }
 
-  interface DoneSession {
-    result: Result
-    timer: ReturnType<typeof setTimeout>
-  }
-
-  interface Store {
-    live: Map<string, ActiveSession>
-    done: Map<string, DoneSession>
-  }
-
   const state = Instance.state(
-    (): Store => ({
-      live: new Map<string, ActiveSession>(),
-      done: new Map<string, DoneSession>(),
-    }),
-    async (store) => {
-      for (const session of store.live.values()) {
+    () => new Map<string, ActiveSession>(),
+    async (sessions) => {
+      for (const session of sessions.values()) {
         try {
           session.process.kill()
         } catch {}
-        close(session)
+        for (const [key, ws] of session.subscribers.entries()) {
+          try {
+            if (ws.data === key) ws.close()
+          } catch {
+            // ignore
+          }
+        }
       }
-      for (const item of store.done.values()) {
-        clearTimeout(item.timer)
-      }
-      store.live.clear()
-      store.done.clear()
+      sessions.clear()
     },
   )
 
   export function list() {
-    return Array.from(state().live.values()).map((s) => s.info)
+    return Array.from(state().values()).map((s) => s.info)
   }
 
   export function get(id: string) {
-    return state().live.get(id)?.info
-  }
-
-  export function result(id: string) {
-    const item = state().live.get(id)
-    if (item) {
-      return {
-        status: "running",
-      } satisfies Result
-    }
-    return state().done.get(id)?.result
+    return state().get(id)?.info
   }
 
   export async function create(input: CreateInput) {
@@ -204,7 +166,7 @@ export namespace Pty {
       cursor: 0,
       subscribers: new Map(),
     }
-    state().live.set(id, session)
+    state().set(id, session)
     ptyProcess.onData((chunk) => {
       session.cursor += chunk.length
 
@@ -236,19 +198,15 @@ export namespace Pty {
       if (session.info.status === "exited") return
       log.info("session exited", { id, exitCode })
       session.info.status = "exited"
-      remember(id, session, exitCode)
       Bus.publish(Event.Exited, { id, exitCode })
-      if (state().live.delete(id)) {
-        close(session)
-        Bus.publish(Event.Deleted, { id })
-      }
+      remove(id)
     })
     Bus.publish(Event.Created, { info })
     return info
   }
 
   export async function update(id: string, input: UpdateInput) {
-    const session = state().live.get(id)
+    const session = state().get(id)
     if (!session) return
     if (input.title) {
       session.info.title = input.title
@@ -261,34 +219,40 @@ export namespace Pty {
   }
 
   export async function remove(id: string) {
-    forget(id)
-    const session = state().live.get(id)
+    const session = state().get(id)
     if (!session) return
-    state().live.delete(id)
+    state().delete(id)
     log.info("removing session", { id })
     try {
       session.process.kill()
     } catch {}
-    close(session)
+    for (const [key, ws] of session.subscribers.entries()) {
+      try {
+        if (ws.data === key) ws.close()
+      } catch {
+        // ignore
+      }
+    }
+    session.subscribers.clear()
     Bus.publish(Event.Deleted, { id })
   }
 
   export function resize(id: string, cols: number, rows: number) {
-    const session = state().live.get(id)
+    const session = state().get(id)
     if (session && session.info.status === "running") {
       session.process.resize(cols, rows)
     }
   }
 
   export function write(id: string, data: string) {
-    const session = state().live.get(id)
+    const session = state().get(id)
     if (session && session.info.status === "running") {
       session.process.write(data)
     }
   }
 
   export function connect(id: string, ws: Socket, cursor?: number) {
-    const session = state().live.get(id)
+    const session = state().get(id)
     if (!session) {
       ws.close()
       return
@@ -349,44 +313,5 @@ export namespace Pty {
         cleanup()
       },
     }
-  }
-
-  function close(session: ActiveSession) {
-    for (const [key, ws] of session.subscribers.entries()) {
-      try {
-        if (ws.data === key) ws.close()
-      } catch {
-        // ignore
-      }
-    }
-    session.subscribers.clear()
-  }
-
-  function forget(id: string) {
-    const item = state().done.get(id)
-    if (!item) return
-    clearTimeout(item.timer)
-    state().done.delete(id)
-  }
-
-  function remember(id: string, session: ActiveSession, exitCode: number) {
-    forget(id)
-    const timer = setTimeout(() => {
-      state().done.delete(id)
-    }, RESULT_TTL)
-    timer.unref?.()
-    state().done.set(id, {
-      result: {
-        status: "exited",
-        exitCode,
-        output: trim(session.buffer),
-      },
-      timer,
-    })
-  }
-
-  function trim(text: string) {
-    if (text.length <= RESULT_LIMIT) return text
-    return text.slice(-RESULT_LIMIT)
   }
 }

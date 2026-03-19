@@ -19,52 +19,6 @@ const pick = (log: Array<{ type: "created" | "exited" | "deleted"; id: string }>
 }
 
 describe("pty", () => {
-  test("returns running result for live sessions", async () => {
-    if (process.platform === "win32") return
-
-    await using dir = await tmpdir({ git: true })
-
-    await Instance.provide({
-      directory: dir.path,
-      fn: async () => {
-        let id = ""
-        try {
-          const info = await Pty.create({ command: "/bin/sh", title: "sh" })
-          id = info.id
-
-          expect(Pty.result(id)).toEqual({ status: "running" })
-        } finally {
-          if (id) await Pty.remove(id)
-        }
-      },
-    })
-  })
-
-  test("keeps exited result with exit code and output", async () => {
-    if (process.platform === "win32") return
-
-    await using dir = await tmpdir({ git: true })
-
-    await Instance.provide({
-      directory: dir.path,
-      fn: async () => {
-        const info = await Pty.create({
-          command: "/usr/bin/env",
-          args: ["sh", "-c", "printf done; exit 7"],
-          title: "env",
-        })
-
-        await wait(() => Pty.result(info.id)?.status === "exited")
-
-        expect(Pty.result(info.id)).toEqual({
-          status: "exited",
-          exitCode: 7,
-          output: "done",
-        })
-      },
-    })
-  })
-
   test("publishes created, exited, deleted in order for /bin/ls + remove", async () => {
     if (process.platform === "win32") return
 

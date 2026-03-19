@@ -9,7 +9,6 @@ import { Lock } from "../util/lock"
 import { PackageRegistry } from "./registry"
 import { proxied } from "@/util/proxied"
 import { Process } from "../util/process"
-import { pathToFileURL } from "node:url"
 
 export namespace BunProc {
   const log = Log.create({ service: "bun" })
@@ -74,10 +73,10 @@ export namespace BunProc {
     if (!modExists || !cachedVersion) {
       // continue to install
     } else if (version !== "latest" && cachedVersion === version) {
-      return entry(mod)
+      return mod
     } else if (version === "latest") {
       const isOutdated = await PackageRegistry.isOutdated(pkg, cachedVersion, Global.Path.cache)
-      if (!isOutdated) return entry(mod)
+      if (!isOutdated) return mod
       log.info("Cached version is outdated, proceeding with install", { pkg, cachedVersion })
     }
 
@@ -127,33 +126,6 @@ export namespace BunProc {
 
     parsed.dependencies[pkg] = resolvedVersion
     await Filesystem.writeJson(pkgjsonPath, parsed)
-    return entry(mod)
-  }
-
-  async function entry(dir: string) {
-    const pkg = await Filesystem.readJson<{
-      exports?: string | Record<string, unknown>
-      main?: string
-      module?: string
-    }>(path.join(dir, "package.json"))
-    const pick = from(pkg.exports) ?? pkg.module ?? pkg.main ?? "index.js"
-    return pathToFileURL(path.join(dir, pick)).href
-  }
-
-  function from(value: unknown): string | undefined {
-    if (typeof value === "string") return value
-    if (!value || typeof value !== "object") return
-    if ("." in value) {
-      const root = from((value as Record<string, unknown>)["."])
-      if (root) return root
-    }
-    if ("import" in value) {
-      const root = from((value as Record<string, unknown>).import)
-      if (root) return root
-    }
-    if ("default" in value) {
-      const root = from((value as Record<string, unknown>).default)
-      if (root) return root
-    }
+    return mod
   }
 }

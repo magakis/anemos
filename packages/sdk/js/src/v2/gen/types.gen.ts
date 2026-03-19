@@ -1536,16 +1536,6 @@ export type NotFoundError = {
   }
 }
 
-export type PtyResult =
-  | {
-      status: "running"
-    }
-  | {
-      status: "exited"
-      exitCode: number
-      output: string
-    }
-
 export type Model = {
   id: string
   providerID: string
@@ -2313,36 +2303,6 @@ export type PtyUpdateResponses = {
 }
 
 export type PtyUpdateResponse = PtyUpdateResponses[keyof PtyUpdateResponses]
-
-export type PtyResultData = {
-  body?: never
-  path: {
-    ptyID: string
-  }
-  query?: {
-    directory?: string
-    workspace?: string
-  }
-  url: "/pty/{ptyID}/result"
-}
-
-export type PtyResultErrors = {
-  /**
-   * Not found
-   */
-  404: NotFoundError
-}
-
-export type PtyResultError = PtyResultErrors[keyof PtyResultErrors]
-
-export type PtyResultResponses = {
-  /**
-   * PTY result
-   */
-  200: PtyResult
-}
-
-export type PtyResultResponse = PtyResultResponses[keyof PtyResultResponses]
 
 export type PtyConnectData = {
   body?: never

@@ -96,8 +96,6 @@ import type {
   PtyListResponses,
   PtyRemoveErrors,
   PtyRemoveResponses,
-  PtyResultErrors,
-  PtyResultResponses,
   PtyUpdateErrors,
   PtyUpdateResponses,
   QuestionAnswer,
@@ -694,38 +692,6 @@ export class Pty extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
-    })
-  }
-
-  /**
-   * Get PTY result
-   *
-   * Retrieve the running or exited result for a pseudo-terminal (PTY) session.
-   */
-  public result<ThrowOnError extends boolean = false>(
-    parameters: {
-      ptyID: string
-      directory?: string
-      workspace?: string
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams(
-      [parameters],
-      [
-        {
-          args: [
-            { in: "path", key: "ptyID" },
-            { in: "query", key: "directory" },
-            { in: "query", key: "workspace" },
-          ],
-        },
-      ],
-    )
-    return (options?.client ?? this.client).get<PtyResultResponses, PtyResultErrors, ThrowOnError>({
-      url: "/pty/{ptyID}/result",
-      ...options,
-      ...params,
     })
   }
 
