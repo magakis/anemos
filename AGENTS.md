@@ -1,8 +1,10 @@
 # AGENTS.md
+
 This is the root operating guide for agentic coding assistants in this repository.
 Scope: entire repo unless a deeper `AGENTS.md` exists in a subdirectory.
 
 ## Quick Rules (Read First)
+
 - Use Bun 1.3.x (`packageManager` is `bun@1.3.9`).
 - Run commands from repo root with `bun run --cwd <package> ...` when possible.
 - ALWAYS USE PARALLEL TOOLS WHEN APPLICABLE.
@@ -14,6 +16,7 @@ Scope: entire repo unless a deeper `AGENTS.md` exists in a subdirectory.
 - If API/SDK surface changes, run `./script/generate.ts`.
 
 ## Repo Map
+
 - `packages/opencode`: core CLI, runtime, server, and TUI.
 - `packages/app`: SolidJS app and unit/e2e tests.
 - `packages/desktop`: Tauri desktop wrapper.
@@ -26,6 +29,7 @@ Scope: entire repo unless a deeper `AGENTS.md` exists in a subdirectory.
 - `sdks/vscode`: VS Code extension.
 
 ## Setup And Dev
+
 ```bash
 bun install
 bun dev
@@ -34,10 +38,12 @@ bun dev serve --port 4096
 bun run --cwd packages/app dev
 bun run --cwd packages/desktop tauri dev
 ```
+
 - `bun dev` is the local equivalent of `opencode`.
 - For CLI/TUI work: `bun dev <directory>` or `bun dev .`.
 
 ## Build, Typecheck, Lint
+
 ```bash
 # repo-wide typecheck
 bun run typecheck
@@ -59,6 +65,7 @@ bun run --cwd packages/opencode lint
 bun run --cwd sdks/vscode lint
 bun run --cwd sdks/vscode check-types
 ```
+
 - There is no single repo-wide `lint` script at root.
 - Root formatting defaults: no semicolons, `printWidth: 120`, 2-space indent, LF endings.
 - Format ad hoc with `bunx prettier --write <paths>`.
@@ -81,9 +88,11 @@ function journal(dir: string) {}
 ```
 
 ## Test Commands (Including Single-Test Runs)
+
 - Never run tests from repo root; use package `--cwd`.
 
 ### `packages/opencode` (Bun tests)
+
 ```bash
 bun run --cwd packages/opencode test
 bun run --cwd packages/opencode test -- test/tool/bash.test.ts
@@ -91,6 +100,7 @@ bun run --cwd packages/opencode test -- test/tool/bash.test.ts -t "times out"
 ```
 
 ### `packages/app` unit tests (Bun + Happy DOM)
+
 ```bash
 bun run --cwd packages/app test
 bun run --cwd packages/app test:unit
@@ -101,6 +111,7 @@ bun test --preload ./happydom.ts ./src/components/prompt-input/submit.test.ts
 ```
 
 ### `packages/app` e2e tests (Playwright)
+
 ```bash
 bun run --cwd packages/app test:e2e
 bun run --cwd packages/app test:e2e -- e2e/app/home.spec.ts
@@ -110,29 +121,35 @@ bun run --cwd packages/app test:e2e:report
 ```
 
 ### `sdks/vscode` tests
+
 ```bash
 bun run --cwd sdks/vscode test
 ```
 
 ## Code Style Guidelines
+
 ### Imports
+
 - Keep imports at top of file.
 - Prefer explicit type imports (`import type { Foo } from "..."`) when possible.
 - Use configured aliases where available (`@/*`, `@tui/*`) instead of deep relative paths.
 - In `packages/app/e2e`, import `test`/`expect` from `../fixtures`, not `@playwright/test`.
 
 ### Formatting
+
 - Follow Prettier and existing file formatting; do not hand-format inconsistently.
 - No semicolons; 2 spaces; LF; UTF-8; keep lines readable (Prettier width 120).
 - Minimize non-essential comments; prefer clear naming and structure.
 
 ### Types
+
 - Avoid `any`; prefer precise types or inference.
 - Add explicit annotations at exported/public boundaries.
 - Use type guards in narrowing/filter paths to preserve downstream inference.
 - Prefer Bun APIs when they are a natural fit (`Bun.file()`, etc.).
 
 ### Naming And Structure
+
 - Prefer concise names; single-word identifiers are preferred when still clear.
 - Use `camelCase` for vars/functions, `PascalCase` for types/components, `SCREAMING_SNAKE_CASE` for constants.
 - Prefer `const` over `let`.
@@ -141,11 +158,13 @@ bun run --cwd sdks/vscode test
 - Keep logic in one function unless splitting improves reuse/composition.
 
 ### Error Handling
+
 - Avoid `try/catch` when a clearer pattern exists.
 - Prefer explicit checks, early exits, and `.catch(...)` where it improves clarity.
 - Return/throw errors with useful context for debugging.
 
 ### Testing Style
+
 - Prefer testing real behavior over heavy mocks.
 - Keep tests focused and avoid duplicating implementation logic in assertions.
 - Use reusable fixtures/helpers.
@@ -153,20 +172,27 @@ bun run --cwd sdks/vscode test
 - In e2e, prefer `data-component`/`data-action` selectors or semantic roles.
 
 ### Database Style (`packages/opencode`)
+
 - Drizzle schema files: `src/**/*.sql.ts`.
 - Naming: snake_case for tables/columns; join keys `<entity>_id`.
 - Index naming: `<table>_<column>_idx`.
 - Generate migrations with `bun run db generate --name <slug>`.
 
 ## Package-Specific Rules
+
 - `packages/app`: NEVER restart the app/server process manually during debugging.
 - `packages/app`: for local UI changes, run both:
   - Backend: `bun run --cwd packages/opencode --conditions=browser ./src/index.ts serve --port 4096`
   - App: `bun run --cwd packages/app dev -- --port 4444`
 - `packages/app`: prefer `createStore` over many `createSignal` calls.
 - `packages/desktop`: never call Tauri `invoke` directly; use `packages/desktop/src/bindings.ts`.
+- `packages/ios`: if a user asks to push, release, or upload a new iOS build, assume they usually want the existing private TestFlight Fastlane flow unless they explicitly ask for an App Store production release.
+- `packages/ios`: run `bun run --cwd packages/ios beam` from repo root for that flow.
+- `packages/ios`: `packages/ios/script/beam` auto-loads App Store Connect credentials from `packages/ios/.beam.env`, then runs the `beam` lane in `packages/ios/fastlane/Fastfile`.
+- `packages/ios`: this flow builds the app and uploads a private TestFlight build; it does not submit to the public App Store.
 
 ## Cursor/Copilot Rules
+
 - No `.cursorrules` file found.
 - No `.cursor/rules/` directory found.
 - No `.github/copilot-instructions.md` found.
@@ -190,15 +216,15 @@ This repo is a mobile (iOS/Android) fork of [sst/opencode](https://github.com/ss
 
 ### Fork-Only Files (no upstream equivalent — auto-merge cleanly)
 
-| File | Purpose |
-|------|---------|
-| `packages/ios/` | Entire iOS Tauri wrapper package |
-| `packages/android/` | Entire Android Tauri wrapper package |
-| `packages/app/src/hooks/use-pull-to-refresh.ts` | Touch gesture hook for pull-to-refresh (155 lines) |
-| `packages/app/src/components/pull-to-refresh-indicator.tsx` | Pull-to-refresh spinner/arrow UI component |
-| `packages/app/src/pages/session/session-mobile-tabs.tsx` | Mobile "Session"/"Changes" tab navigation |
-| `ANDROID_BUILD.md` | Android release build documentation |
-| `whispercode-logo-*.png` | Fork branding assets |
+| File                                                        | Purpose                                            |
+| ----------------------------------------------------------- | -------------------------------------------------- |
+| `packages/ios/`                                             | Entire iOS Tauri wrapper package                   |
+| `packages/android/`                                         | Entire Android Tauri wrapper package               |
+| `packages/app/src/hooks/use-pull-to-refresh.ts`             | Touch gesture hook for pull-to-refresh (155 lines) |
+| `packages/app/src/components/pull-to-refresh-indicator.tsx` | Pull-to-refresh spinner/arrow UI component         |
+| `packages/app/src/pages/session/session-mobile-tabs.tsx`    | Mobile "Session"/"Changes" tab navigation          |
+| `ANDROID_BUILD.md`                                          | Android release build documentation                |
+| `whispercode-logo-*.png`                                    | Fork branding assets                               |
 
 ### Files Modified from Upstream (conflict risk on merge)
 
@@ -254,9 +280,10 @@ Fork adds a mobile help text block after the form submit button:
 ```tsx
 <Show when={platform.platform === "ios" || platform.platform === "android"}>
   <p class="text-text-dimmed text-12-regular mt-2">
-    Can't find your server? Make sure you're serving with:{" "}
-    <code class="...">opencode web --hostname 0.0.0.0</code>
-    {" "}<a class="..." href="https://github.com/DNGriffin/whispercode?...">Quick Start Guide</a>
+    Can't find your server? Make sure you're serving with: <code class="...">opencode web --hostname 0.0.0.0</code>{" "}
+    <a class="..." href="https://github.com/DNGriffin/whispercode?...">
+      Quick Start Guide
+    </a>
   </p>
 </Show>
 ```
@@ -268,9 +295,13 @@ Also imports and uses `usePlatform`.
 Fork adds a mobile help text link below the main content:
 
 ```tsx
-{(platform.platform === "ios" || platform.platform === "android") && (
-  <p class="...">Need help connecting? <a href="...">Quick Start Guide</a></p>
-)}
+{
+  ;(platform.platform === "ios" || platform.platform === "android") && (
+    <p class="...">
+      Need help connecting? <a href="...">Quick Start Guide</a>
+    </p>
+  )
+}
 ```
 
 Also imports and uses `usePlatform`.
@@ -300,9 +331,9 @@ Fork uses `platform.storage` for async storage on mobile:
 
 ### Root Config Deviations
 
-| File | Fork change |
-|------|-------------|
-| `README.md` | Fully rewritten for WhisperCode branding — always keep ours |
-| `.gitignore` | 3 Android lines at bottom: `packages/android/src-tauri/**/build/`, `packages/android/src-tauri/gen/`, `packages/android/release.keystore` |
-| `README.*.md` translations | All deleted — keep deleted when upstream modifies them |
-| `AGENTS.md` | Fork additions: `packages/android`/`packages/ios` in Repo Map, their build commands, Test Commands section, this Mobile Deviations section |
+| File                       | Fork change                                                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `README.md`                | Fully rewritten for WhisperCode branding — always keep ours                                                                                |
+| `.gitignore`               | 3 Android lines at bottom: `packages/android/src-tauri/**/build/`, `packages/android/src-tauri/gen/`, `packages/android/release.keystore`  |
+| `README.*.md` translations | All deleted — keep deleted when upstream modifies them                                                                                     |
+| `AGENTS.md`                | Fork additions: `packages/android`/`packages/ios` in Repo Map, their build commands, Test Commands section, this Mobile Deviations section |

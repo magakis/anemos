@@ -48,7 +48,6 @@ export const SettingsGeneral: Component = () => {
   })
 
   const linux = createMemo(() => platform.platform === "desktop" && platform.os === "linux")
-
   const check = () => {
     if (!platform.checkUpdate) return
     setStore("checking", true)

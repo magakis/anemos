@@ -303,7 +303,8 @@ const createPlatform = (): Platform => {
       await relaunch()
     },
 
-    notify: async (title, description, href) => {
+    notify: async (title, description, href, opts) => {
+      void opts
       const granted = await isPermissionGranted().catch(() => false)
       const permission = granted ? "granted" : await requestPermission().catch(() => "denied")
       if (permission !== "granted") return
