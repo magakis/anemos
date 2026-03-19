@@ -43,7 +43,6 @@ import { SessionSidePanel } from "@/pages/session/session-side-panel"
 import { TerminalPanel } from "@/pages/session/terminal-panel"
 import { useSessionCommands } from "@/pages/session/use-session-commands"
 import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
-import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { usePlatform } from "@/context/platform"
 import { same } from "@/utils/same"
 import { formatServerError } from "@/utils/server-errors"
@@ -307,6 +306,7 @@ export default function Page() {
     if (now - lastResumeSync < RESUME_SYNC_COOLDOWN_MS) return
     lastResumeSync = now
     void sync.session.sync(id, { force: true })
+    void sync.session.todo(id, { force: true })
     void sync.session.status()
   }
 
@@ -566,21 +566,6 @@ export default function Page() {
   let content: HTMLDivElement | undefined
 
   const platform = usePlatform()
-  const pullToRefresh = usePullToRefresh({
-    scrollElement: () => scroller,
-    onRefresh: async () => {
-      await platform.restart()
-    },
-    onHaptic: () => platform.haptic?.("light"),
-    isNestedScrollable: (target) => {
-      const el = target instanceof Element ? target : undefined
-      const nested = el?.closest("[data-scrollable]")
-      if (!nested || !scroller) return false
-      if (nested === scroller) return false
-      if (!(nested instanceof HTMLElement)) return false
-      return nested.scrollTop > 0
-    },
-  })
 
   const scrollGestureWindowMs = 250
 
@@ -1287,7 +1272,7 @@ export default function Page() {
   return (
     <div class="relative bg-background-base size-full overflow-hidden flex flex-col">
       <SessionHeader />
-      <div ref={pullToRefresh.setRef} class="flex-1 min-h-0 flex flex-col md:flex-row">
+      <div class="flex-1 min-h-0 flex flex-col md:flex-row">
         <SessionMobileTabs
           open={!isDesktop() && !!params.id}
           mobileTab={store.mobileTab}
@@ -1354,12 +1339,6 @@ export default function Page() {
                     anchor={anchor}
                     onRegisterMessage={scrollSpy.register}
                     onUnregisterMessage={scrollSpy.unregister}
-                    pullToRefresh={{
-                      pulling: pullToRefresh.pulling(),
-                      progress: pullToRefresh.progress(),
-                      refreshing: pullToRefresh.refreshing(),
-                      pullDistance: pullToRefresh.pullDistance(),
-                    }}
                   />
                 </Show>
               </Match>

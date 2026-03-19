@@ -249,6 +249,7 @@ export function SessionHeader() {
   const sessionKey = createMemo(() => `${params.dir}${params.id ? "/" + params.id : ""}`)
   const view = createMemo(() => layout.view(sessionKey))
   const os = createMemo(() => detectOS(platform))
+  const mobile = createMemo(() => platform.platform === "ios" || platform.platform === "android")
 
   const [exists, setExists] = createStore<Partial<Record<OpenApp, boolean>>>({
     finder: true,
@@ -355,6 +356,10 @@ export function SessionHeader() {
     projectDirectory,
     platform,
   })
+  const refresh = () => {
+    platform.haptic?.("light")
+    void platform.restart()
+  }
 
   const centerMount = createMemo(() => document.getElementById("opencode-titlebar-center"))
   const rightMount = createMemo(() => document.getElementById("opencode-titlebar-right"))
@@ -398,6 +403,16 @@ export function SessionHeader() {
         {(mount) => (
           <Portal mount={mount()}>
             <div class="flex items-center gap-2">
+              <Show when={mobile()}>
+                <IconButton
+                  icon="refresh"
+                  variant="ghost"
+                  class="titlebar-icon w-6 h-6 p-0 box-border shrink-0"
+                  onClick={refresh}
+                  aria-label={language.t("session.header.refresh")}
+                  data-action="session-refresh"
+                />
+              </Show>
               <StatusPopover />
               <Show when={projectDirectory()}>
                 <div class="hidden xl:flex items-center">

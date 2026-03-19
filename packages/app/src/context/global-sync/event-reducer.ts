@@ -13,6 +13,7 @@ import type {
 } from "@opencode-ai/sdk/v2/client"
 import type { State, VcsCache } from "./types"
 import { trimSessions } from "./session-trim"
+import { copyTodos } from "../todo-store"
 
 export function applyGlobalEvent(input: {
   event: { type: string; properties?: unknown }
@@ -155,7 +156,7 @@ export function applyDirectoryEvent(input: {
     }
     case "todo.updated": {
       const props = event.properties as { sessionID: string; todos: Todo[] }
-      input.setStore("todo", props.sessionID, reconcile(props.todos, { key: "id" }))
+      input.setStore("todo", props.sessionID, copyTodos(props.todos))
       input.setSessionTodo?.(props.sessionID, props.todos)
       break
     }

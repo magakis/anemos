@@ -35,6 +35,7 @@ import type { ProjectMeta } from "./global-sync/types"
 import { SESSION_RECENT_LIMIT } from "./global-sync/types"
 import { sanitizeProject } from "./global-sync/utils"
 import { formatServerError } from "@/utils/server-errors"
+import { copyTodos } from "./todo-store"
 
 type GlobalStore = {
   ready: boolean
@@ -139,7 +140,7 @@ function createGlobalSync() {
       )
       return
     }
-    setGlobalStore("session_todo", sessionID, reconcile(todos, { key: "id" }))
+    setGlobalStore("session_todo", sessionID, copyTodos(todos))
   }
 
   const paused = () => untrack(() => globalStore.reload) !== undefined
