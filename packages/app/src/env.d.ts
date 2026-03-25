@@ -3,6 +3,8 @@ import "solid-js"
 interface ImportMetaEnv {
   readonly VITE_OPENCODE_SERVER_HOST: string
   readonly VITE_OPENCODE_SERVER_PORT: string
+  readonly VITE_WHISPEROPENCODE_PUSH_SPEC: string
+  readonly VITE_WHISPEROPENCODE_PUSH_PLUGIN: string
 }
 
 interface ImportMeta {
