@@ -32,6 +32,10 @@ import Layout from "@/pages/layout"
 import { ErrorPage } from "./pages/error"
 import { Dynamic } from "solid-js/web"
 
+// UPSTREAM-DIVERGENCE-FILE: This shared app entrypoint carries the fork-only mobile push providers
+// added after upstream sync 6b9ce5e63. Future upstream merges must preserve these providers around
+// Layout so iOS/Android builds keep relay configuration and pairing state.
+
 const Home = lazy(() => import("@/pages/home"))
 const Session = lazy(() => import("@/pages/session"))
 const Loading = () => <div class="size-full" />
@@ -76,6 +80,8 @@ function AppShellProviders(props: ParentProps) {
   return (
     <SettingsProvider>
       <PermissionProvider>
+        {/* UPSTREAM-DIVERGENCE: WhisperCode inserts push relay/pair providers ahead of Layout so the
+            shared app package can serve iOS/Android pairing flows without forking the route tree. */}
         <PushRelayProvider>
           <PushPairProvider>
             <LayoutProvider>

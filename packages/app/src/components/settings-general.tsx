@@ -13,6 +13,9 @@ import { useSettings, monoFontFamily } from "@/context/settings"
 import { playSound, SOUND_OPTIONS } from "@/utils/sound"
 import { Link } from "./link"
 
+// UPSTREAM-DIVERGENCE-FILE: General settings stays focused on shared desktop/server options after
+// upstream sync 6b9ce5e63 because the fork moved phone notification setup into its own tab.
+
 let demoSoundState = {
   cleanup: undefined as (() => void) | undefined,
   timeout: undefined as NodeJS.Timeout | undefined,

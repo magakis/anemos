@@ -37,6 +37,9 @@ import { sanitizeProject } from "./global-sync/utils"
 import { formatServerError } from "@/utils/server-errors"
 import { copyTodos } from "./todo-store"
 
+// UPSTREAM-DIVERGENCE-FILE: Global sync keeps fork-only todo copies and resume refresh behavior added
+// after upstream sync 6b9ce5e63. Preserve these paths when merging upstream store updates.
+
 type GlobalStore = {
   ready: boolean
   error?: InitError
@@ -140,6 +143,8 @@ function createGlobalSync() {
       )
       return
     }
+    // UPSTREAM-DIVERGENCE: Copy todo arrays before caching them globally so resume-triggered syncs do
+    // not share mutable references between child stores and the fork's session_todo cache.
     setGlobalStore("session_todo", sessionID, copyTodos(todos))
   }
 
@@ -190,6 +195,8 @@ function createGlobalSync() {
     const now = Date.now()
     if (now - lastResumeRefresh < RESUME_REFRESH_COOLDOWN_MS) return
     lastResumeRefresh = now
+    // UPSTREAM-DIVERGENCE: Native resume events trigger an eager queue refresh because mobile apps can
+    // miss a burst of updates while suspended even if upstream web tabs stay connected.
     queue.refresh()
     queueDirectories(true)
   }

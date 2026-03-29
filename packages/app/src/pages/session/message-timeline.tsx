@@ -27,6 +27,9 @@ import { useSync } from "@/context/sync"
 import { parseCommentNote, readCommentMetadata } from "@/utils/comment-note"
 import { SessionTimelineHeader } from "@/pages/session/session-timeline-header"
 
+// UPSTREAM-DIVERGENCE-FILE: This timeline dropped the fork's earlier pull-to-refresh indicator after
+// upstream sync 6b9ce5e63. Preserve that removal when upstream revisits scroll container behavior.
+
 type MessageComment = {
   path: string
   comment: string

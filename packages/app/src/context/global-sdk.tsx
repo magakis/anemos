@@ -7,6 +7,9 @@ import { createSdkForServer } from "@/utils/server"
 import { usePlatform } from "./platform"
 import { useServer } from "./server"
 
+// UPSTREAM-DIVERGENCE-FILE: The global event stream listens for fork-only mobile resume events added
+// after upstream sync 6b9ce5e63 so backgrounded iOS/Android apps can force a clean reconnect.
+
 const abortError = z.object({
   name: z.literal("AbortError"),
 })
@@ -194,6 +197,8 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
       if (Date.now() - lastEventAt < HEARTBEAT_TIMEOUT_MS) return
       attempt?.abort()
     }
+    // UPSTREAM-DIVERGENCE: Native mobile wrappers dispatch opencode:resume when the app foregrounds so
+    // the shared event stream can drop stale SSE state immediately instead of waiting for heartbeat.
     const onResume = () => {
       attempt?.abort()
     }

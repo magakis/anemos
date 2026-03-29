@@ -47,6 +47,9 @@ import { usePlatform } from "@/context/platform"
 import { same } from "@/utils/same"
 import { formatServerError } from "@/utils/server-errors"
 
+// UPSTREAM-DIVERGENCE-FILE: The session page carries fork-only mobile resume and scroll behavior added
+// after upstream sync 6b9ce5e63. Preserve these paths when reconciling upstream timeline changes.
+
 const emptyUserMessages: UserMessage[] = []
 
 type SessionHistoryWindowInput = {
@@ -305,6 +308,8 @@ export default function Page() {
     const now = Date.now()
     if (now - lastResumeSync < RESUME_SYNC_COOLDOWN_MS) return
     lastResumeSync = now
+    // UPSTREAM-DIVERGENCE: Mobile resume refreshes session info, todos, and status together because
+    // iOS/Android can suspend the app while the host keeps streaming background work.
     void sync.session.sync(id, { force: true })
     void sync.session.todo(id, { force: true })
     void sync.session.status()
@@ -566,6 +571,8 @@ export default function Page() {
   let content: HTMLDivElement | undefined
 
   const platform = usePlatform()
+  // UPSTREAM-DIVERGENCE: The fork removed its earlier pull-to-refresh hook in favor of the titlebar
+  // refresh button, but still tracks scroll gestures to protect nested mobile scrolling behavior.
 
   const scrollGestureWindowMs = 250
 
@@ -1102,6 +1109,8 @@ export default function Page() {
   const autoScroll = createAutoScroll({
     working: () => true,
     overflowAnchor: "dynamic",
+    // UPSTREAM-DIVERGENCE: Mobile webviews report scrollTop with the opposite sign from desktop in this
+    // layout, so preserve the fork's reverseScrollTop flag when upstream tweaks timeline scrolling.
     reverseScrollTop: !mobile,
   })
 
@@ -1238,6 +1247,8 @@ export default function Page() {
   })
 
   onMount(() => {
+    // UPSTREAM-DIVERGENCE: Listen for native resume hooks in addition to browser focus events so the
+    // shared session page can recover after iOS/Android background suspension.
     const onResume = () => {
       if (document.visibilityState === "hidden") return
       refreshActiveSession()

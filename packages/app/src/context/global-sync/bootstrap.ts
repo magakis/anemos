@@ -151,6 +151,8 @@ export async function bootstrapDirectory(input: {
   Promise.all([
     input.sdk.path.get().then((x) => input.setStore("path", x.data!)),
     input.sdk.command.list().then((x) => input.setStore("command", x.data ?? [])),
+    // UPSTREAM-DIVERGENCE: Fork mobile resume paths depend on bootstrap being tolerant of transient
+    // session-status failures instead of aborting the rest of the shared directory refresh.
     retry(() => input.sdk.session.status())
       .then((x) => {
         input.setStore("session_status", reconcile(x.data ?? {}))

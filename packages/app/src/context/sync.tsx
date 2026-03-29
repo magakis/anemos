@@ -8,6 +8,9 @@ import { useSDK } from "./sdk"
 import type { Message, Part } from "@opencode-ai/sdk/v2/client"
 import { copyTodos, todoMode } from "./todo-store"
 
+// UPSTREAM-DIVERGENCE-FILE: Session sync carries fork-only resume/todo recovery semantics introduced
+// after upstream sync 6b9ce5e63. Preserve these cache rules when merging upstream sync behavior.
+
 function sortParts(parts: Part[]) {
   return parts.filter((part) => !!part?.id).sort((a, b) => cmp(a.id, b.id))
 }
@@ -258,6 +261,8 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           return runInflight(inflight, key, () => Promise.all([sessionReq, messagesReq]).then(() => {}))
         },
         async status() {
+          // UPSTREAM-DIVERGENCE: Mobile resume paths refresh aggregate session status separately because
+          // the app may have been backgrounded long enough for status-only updates to be missed.
           const client = sdk.client
           const [, setStore] = globalSync.child(sdk.directory)
           return retry(() => client.session.status()).then((x) => {
@@ -289,6 +294,8 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             cache: cached,
           })
 
+          // UPSTREAM-DIVERGENCE: Fork mobile builds choose between store, cache, and forced reload to
+          // avoid stale todo state after suspend/resume without clobbering optimistic updates.
           if (mode === "store") {
             if (cached === undefined) {
               globalSync.todo.set(sessionID, existing)
@@ -303,6 +310,8 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           const key = keyFor(directory, sessionID)
           return runInflight(inflightTodo, key, () =>
             retry(() => client.session.todo({ sessionID })).then((todo) => {
+              // UPSTREAM-DIVERGENCE: copyTodos returns detached arrays so resume-triggered refreshes do
+              // not reuse reconciled references that drift between store and session_todo cache.
               const list = copyTodos(todo.data ?? [])
               setStore("todo", sessionID, list)
               globalSync.todo.set(sessionID, list)
