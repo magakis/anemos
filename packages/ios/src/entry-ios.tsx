@@ -48,6 +48,7 @@ const emptyPush: PushState = {
   generic: true,
 }
 
+const BRIDGE_MS = 20_000
 const credentialStorage = createBridgeStorage("opencode.settings.dat")
 
 const normalizeServerUrl = (input: string) => {
@@ -203,6 +204,18 @@ const App = () => {
     }
   }
 
+  const call = async <T,>(method: string, params?: unknown, ms = BRIDGE_MS): Promise<T | null> => {
+    const abort = new AbortController()
+    const timer = globalThis.setTimeout(() => {
+      abort.abort(new Error(`${method} timed out`))
+    }, ms)
+    try {
+      return await bridge.sendAsync<T>(method, params, { signal: abort.signal })
+    } finally {
+      globalThis.clearTimeout(timer)
+    }
+  }
+
   const refreshVoice = async () => {
     const result = await bridge.sendAsync<VoiceStatus>("isWhisperReady")
     const status = normalizeStatus(result)
@@ -211,7 +224,7 @@ const App = () => {
   }
 
   const refreshPush = async () => {
-    const result = await bridge.sendAsync<PushState>("getPushState")
+    const result = await call<PushState>("getPushState")
     const next = normalizePush(result)
     if (!next) return push() ?? emptyPush
     setPush(next)
@@ -271,19 +284,19 @@ const App = () => {
     pushState: push,
     getPushState: async () => refreshPush(),
     requestPushPermission: async () => {
-      const result = await bridge.sendAsync<PushState>("requestPushPermission")
+      const result = await call<PushState>("requestPushPermission", undefined, 30_000)
       const next = normalizePush(result) ?? push() ?? emptyPush
       setPush(next)
       return next
     },
     beginPushPairing: async () => {
-      const result = await bridge.sendAsync<PairInfo>("beginPushPairing", { version: pkg.version })
+      const result = await call<PairInfo>("beginPushPairing", { version: pkg.version })
       const next = normalizePair(result)
       if (!next) throw new Error("Push pairing unavailable")
       return next
     },
     getPushPairing: async () => {
-      const result = await bridge.sendAsync<PairInfo>("getPushPairing")
+      const result = await call<PairInfo>("getPushPairing")
       return normalizePair(result) ?? undefined
     },
     setPushPreferences: async (prefs: PushPrefs) => {
@@ -296,17 +309,17 @@ const App = () => {
       await bridge.sendAsync("openSystemSettings")
     },
     testPush: async (href?: string) => {
-      const result = await bridge.sendAsync<boolean>("testPush", { href })
+      const result = await call<boolean>("testPush", { href })
       return result ?? false
     },
     setPushCredentials: async (input: PushCred) => {
-      const result = await bridge.sendAsync<PushState>("setPushCredentials", input)
+      const result = await call<PushState>("setPushCredentials", input)
       const next = normalizePush(result) ?? push() ?? emptyPush
       setPush(next)
       return next
     },
     clearPushPairing: async () => {
-      const result = await bridge.sendAsync<PushState>("clearPushPairing")
+      const result = await call<PushState>("clearPushPairing")
       const next = normalizePush(result) ?? push() ?? emptyPush
       setPush(next)
       return next
@@ -405,6 +418,7 @@ const App = () => {
             ? (payload as { state?: unknown }).state
             : undefined
       if (state !== "active") return
+      void refreshPush()
       emitResume()
     })
 

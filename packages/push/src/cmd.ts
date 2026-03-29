@@ -1,12 +1,13 @@
 import fs from "fs/promises"
 import os from "os"
 import pkg from "../package.json" with { type: "json" }
+import { checkin } from "./checkin.js"
 import { cut, merge, name, read, write } from "./config.js"
 import { logFile, stateFile } from "./path.js"
-import { checkin, claim, devices as relayDevices, removeDevice as relayRemoveDevice } from "./relay.js"
-import { append, load, next, save } from "./state.js"
+import { claim, devices as relayDevices, publish, removeDevice as relayRemoveDevice } from "./relay.js"
+import { append, load, next, save, type Data } from "./state.js"
 
-export type Cmd = "install" | "status" | "test" | "unpair" | "devices" | "remove-device"
+export type Cmd = "install" | "pair" | "status" | "test" | "unpair" | "devices" | "remove-device"
 
 export type Opts = {
   plugin: string
@@ -21,6 +22,8 @@ export async function run(cmd: string | undefined, opts: Opts) {
   switch ((cmd ?? "status") as Cmd) {
     case "install":
       return install(opts)
+    case "pair":
+      return pair(opts)
     case "status":
       return status(opts)
     case "test":
@@ -43,27 +46,14 @@ export async function install(opts: Opts) {
   const data = await load()
 
   if (opts.pair) {
-    const server = opts.server ?? os.hostname()
-    const root = opts.relay ?? envRelay()
-    const existing =
-      data.mode === "relay" && data.relay && data.relay.url === root
-        ? { channel_id: data.relay.channel, channel_secret: data.relay.secret }
-        : undefined
-    const res = await claim(root, opts.pair, server, pkg.version, existing)
-    data.mode = "relay"
-    data.relay = {
-      url: res.relay_url,
-      channel: res.channel_id,
-      secret: res.channel_secret,
-      server,
-    }
+    await claimPair(opts, data)
   }
 
   data.updated_at = Date.now()
   await save(data)
 
   if (opts.pair && data.mode === "relay" && data.relay) {
-    await checkin(data).catch(() => undefined)
+    await checkin(data, "install")
   }
 
   await write(cfg.src, cfg.text, list)
@@ -76,6 +66,30 @@ export async function install(opts: Opts) {
     relay: data.relay?.url ?? null,
     channel: data.relay?.channel ?? null,
     config: cfg.src,
+    state: stateFile(),
+  })
+}
+
+export async function pair(opts: Opts) {
+  if (!opts.pair) {
+    return out(opts, { ok: false, error: "missing_pair_token" })
+  }
+
+  const data = await load()
+  await claimPair(opts, data)
+  data.updated_at = Date.now()
+  await save(data)
+
+  if (data.mode === "relay" && data.relay) {
+    await checkin(data, "pair")
+  }
+
+  return out(opts, {
+    ok: true,
+    cmd: "pair",
+    mode: data.mode,
+    relay: data.relay?.url ?? null,
+    channel: data.relay?.channel ?? null,
     state: stateFile(),
   })
 }
@@ -113,30 +127,36 @@ export async function status(opts: Opts) {
 export async function test(opts: Opts) {
   const data = await load()
   const item = next("test")
+  let sent: "accepted" | "suppressed" | undefined
   data.last = item
   data.updated_at = Date.now()
   await append(item)
 
   if (data.mode === "relay" && data.relay) {
-    const relay = data.relay
-    await checkin(data)
-      .then(() => {
-        data.relay = {
-          ...relay,
-          checked: Date.now(),
-          result: "ok",
-          reason: undefined,
-          err: undefined,
-        }
-      })
-      .catch((err: unknown) => {
-        data.relay = {
-          ...relay,
-          checked: Date.now(),
-          result: "failed",
-          err: err instanceof Error ? err.message : String(err),
-        }
-      })
+    await checkin(data, "test")
+    if (data.relay.result !== "failed") {
+      const relay = data.relay
+      await publish(data, item)
+        .then((res) => {
+          sent = res.suppressed ? "suppressed" : "accepted"
+          data.relay = {
+            ...relay,
+            checked: Date.now(),
+            result: "ok",
+            reason: res.reason,
+            delivery: res.deliveries?.[0]?.delivery_id,
+            err: undefined,
+          }
+        })
+        .catch((err: unknown) => {
+          data.relay = {
+            ...relay,
+            checked: Date.now(),
+            result: "failed",
+            err: err instanceof Error ? err.message : String(err),
+          }
+        })
+    }
   }
 
   await save(data)
@@ -149,6 +169,9 @@ export async function test(opts: Opts) {
     channel: data.relay?.channel ?? null,
     checked: data.relay?.checked ?? null,
     result: data.relay?.result ?? null,
+    publish: sent ?? null,
+    reason: data.relay?.reason ?? null,
+    delivery: data.relay?.delivery ?? null,
     error: data.relay?.err ?? null,
     state: stateFile(),
     log: logFile(),
@@ -263,8 +286,25 @@ export function print(opts: Opts, data: Record<string, unknown>) {
 
 export function help() {
   console.log(
-    "opencode-push <install|status|test|unpair|devices|remove-device> [--pair <token>] [--relay <url>] [--server <label>] [--plugin <spec>] [--device <id>] [--json]",
+    "opencode-push <install|pair|status|test|unpair|devices|remove-device> [--pair <token>] [--relay <url>] [--server <label>] [--plugin <spec>] [--device <id>] [--json]",
   )
+}
+
+async function claimPair(opts: Opts, data: Data) {
+  const server = opts.server ?? os.hostname()
+  const root = opts.relay ?? envRelay()
+  const existing =
+    data.mode === "relay" && data.relay && data.relay.url === root
+      ? { channel_id: data.relay.channel, channel_secret: data.relay.secret }
+      : undefined
+  const res = await claim(root, opts.pair!, server, pkg.version, existing)
+  data.mode = "relay"
+  data.relay = {
+    url: res.relay_url,
+    channel: res.channel_id,
+    secret: res.channel_secret,
+    server,
+  }
 }
 
 function envRelay() {

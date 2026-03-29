@@ -44,12 +44,15 @@ describe("settings mobile notifications", () => {
         device: "dev-123",
       },
       paired: true,
+      run: false,
+      phase: undefined,
       relay: "https://relay.test",
       fallback: "https://whisper.clankercontext.com",
     })
 
     expect(rows).toContain("relay: https://relay.test")
     expect(rows).toContain("last_code: repair_needed")
+    expect(rows.some((item) => item.startsWith("last_error:"))).toBe(true)
   })
 
   test("removes redundant host and relay actions from the shared mobile settings view", async () => {

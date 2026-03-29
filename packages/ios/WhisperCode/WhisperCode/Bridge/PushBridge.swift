@@ -30,12 +30,18 @@ final class PushBridge {
   private var didRegister = false
   private var registerAt = Date.distantPast
   private let registerGap: TimeInterval = 30
+  private var pollTask: Task<[String: Any]?, Error>?
+  private var pollAt = Date.distantPast
+  private var pollLast: [String: Any]?
+  private let pollGap: TimeInterval = 5
   private var lastCode: String?
   private var lastErr: String?
   private let session: URLSession = {
     let cfg = URLSessionConfiguration.default
     cfg.timeoutIntervalForRequest = PushBridge.reqTimeout
     cfg.timeoutIntervalForResource = PushBridge.resTimeout
+    cfg.requestCachePolicy = .reloadIgnoringLocalCacheData
+    cfg.urlCache = nil
     return URLSession(configuration: cfg)
   }()
 
@@ -278,6 +284,10 @@ final class PushBridge {
     }
     save(res.install_command, key: pairCmdKey)
     save(res.expires_at, key: pairExpKey)
+    pollTask?.cancel()
+    pollTask = nil
+    pollAt = .distantPast
+    pollLast = nil
     return pair(
       id: res.pair_id,
       status: "pending",
@@ -291,71 +301,102 @@ final class PushBridge {
   }
 
   func getPair() async throws -> [String: Any]? {
-    if let id = text(pairIDKey), !id.isEmpty {
-      let token = text(pairTokKey)
-      let command = text(pairCmdKey)
-      let expires = text(pairExpKey)
-      let path = "/v1/pair/\(id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id)"
-      let res: PairPollRes = try await send(path: path, method: "GET")
-
-      switch res.status {
-      case "active":
-        guard let channel = res.channel_id,
-              let device = res.device_id,
-              let secret = res.device_secret else {
-          throw PushErr.badPair
-        }
-        _ = await setCredentials(channel: channel, device: device, secret: secret)
-        clearPendingPair()
-        return pair(
-          id: id,
-          status: "active",
-          token: nil,
-          command: nil,
-          expires: nil,
-          channel: channel,
-          device: device,
-          message: nil
-        )
-      case "expired", "failed":
-        clearPendingPair()
-        return pair(
-          id: id,
-          status: res.status,
-          token: token,
-          command: command,
-          expires: expires,
-          channel: nil,
-          device: nil,
-          message: res.message
-        )
-      default:
-        return pair(
-          id: id,
-          status: res.status,
-          token: token,
-          command: command,
-          expires: expires,
-          channel: nil,
-          device: nil,
-          message: res.message
-        )
-      }
-    }
-
     if paired() {
+      let chan = channel()
+      let dev = device()
+      if text(pairIDKey) != nil {
+        clearPendingPair()
+      }
       return pair(
         id: nil,
         status: "active",
         token: nil,
         command: nil,
         expires: nil,
-        channel: channel(),
-        device: device(),
+        channel: chan,
+        device: dev,
         message: nil
       )
     }
 
+    if let id = text(pairIDKey), !id.isEmpty {
+      if let task = pollTask {
+        return try await task.value
+      }
+      let age = Date().timeIntervalSince(pollAt)
+      if age < pollGap, let last = pollLast {
+        return last
+      }
+
+      let token = text(pairTokKey)
+      let command = text(pairCmdKey)
+      let expires = text(pairExpKey)
+      let task = Task<[String: Any]?, Error> { @MainActor [self] in
+        let mark = Int(Date().timeIntervalSince1970 * 1000)
+        let path = "/v1/pair/\(id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id)?t=\(mark)"
+        let res: PairPollRes = try await send(path: path, method: "GET")
+
+        let next: [String: Any]?
+        switch res.status {
+        case "active":
+          guard let channel = res.channel_id,
+                let device = res.device_id,
+                let secret = res.device_secret else {
+            throw PushErr.badPair
+          }
+          _ = await setCredentials(channel: channel, device: device, secret: secret)
+          clearPendingPair()
+          next = pair(
+            id: id,
+            status: "active",
+            token: nil,
+            command: nil,
+            expires: nil,
+            channel: channel,
+            device: device,
+            message: nil
+          )
+        case "expired", "failed":
+          clearPendingPair()
+          next = pair(
+            id: id,
+            status: res.status,
+            token: token,
+            command: command,
+            expires: expires,
+            channel: nil,
+            device: nil,
+            message: res.message
+          )
+        default:
+          next = pair(
+            id: id,
+            status: res.status,
+            token: token,
+            command: command,
+            expires: expires,
+            channel: nil,
+            device: nil,
+            message: res.message
+          )
+        }
+        pollAt = Date()
+        pollLast = next
+        return next
+      }
+      pollTask = task
+      defer {
+        pollTask = nil
+      }
+      do {
+        return try await task.value
+      } catch {
+        pollAt = Date()
+        throw error
+      }
+    }
+
+    pollLast = nil
     return nil
   }
 
@@ -605,6 +646,10 @@ final class PushBridge {
   }
 
   private func clearPendingPair() {
+    pollTask?.cancel()
+    pollTask = nil
+    pollAt = .distantPast
+    pollLast = nil
     keychain.remove(pairIDKey)
     keychain.remove(pairTokKey)
     keychain.remove(pairCmdKey)
@@ -697,6 +742,8 @@ final class PushBridge {
     var req = URLRequest(url: url)
     req.httpMethod = method
     req.setValue("application/json", forHTTPHeaderField: "Accept")
+    req.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+    req.cachePolicy = .reloadIgnoringLocalCacheData
     req.timeoutInterval = PushBridge.reqTimeout
 
     do {
@@ -709,7 +756,7 @@ final class PushBridge {
       if let recovered = recover(err, path: path) {
         throw recovered
       }
-      note(err.localizedDescription, code: (err as? PushErr)?.code)
+      note((err as? LocalizedError)?.errorDescription ?? err.localizedDescription, code: (err as? PushErr)?.code)
       throw err
     }
   }
@@ -726,6 +773,8 @@ final class PushBridge {
     req.setValue("application/json", forHTTPHeaderField: "Accept")
     req.httpBody = try JSONEncoder().encode(body)
     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    req.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+    req.cachePolicy = .reloadIgnoringLocalCacheData
     req.timeoutInterval = PushBridge.reqTimeout
 
     do {
@@ -738,7 +787,7 @@ final class PushBridge {
       if let recovered = recover(err, path: path) {
         throw recovered
       }
-      note(err.localizedDescription, code: (err as? PushErr)?.code)
+      note((err as? LocalizedError)?.errorDescription ?? err.localizedDescription, code: (err as? PushErr)?.code)
       throw err
     }
   }
@@ -882,6 +931,9 @@ private enum PushErr: Error, LocalizedError {
       if message == "device_not_found" || message == "bad_device_secret" {
         return "repair_needed"
       }
+      if message == "rate_limited" || message.lowercased().contains("rate limited") {
+        return "relay_rate_limited"
+      }
       if message.lowercased().contains("timed out") {
         return "relay_timeout"
       }
@@ -904,6 +956,9 @@ private enum PushErr: Error, LocalizedError {
     case .repair:
       return "Push pairing is no longer valid on this relay. Re-pair this iPhone."
     case .relay(let message):
+      if message == "rate_limited" || message.lowercased().contains("rate limited") {
+        return "Push relay is temporarily rate limited. Wait a minute and try again."
+      }
       return message
     }
   }

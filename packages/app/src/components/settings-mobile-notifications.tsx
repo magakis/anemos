@@ -200,6 +200,8 @@ export const SettingsMobileNotifications: Component = () => {
       info: diag(),
       pair: pairing.pair,
       paired: paired(),
+      run: pairing.running(),
+      phase: pairing.phase(),
       relay: relay.current(),
       fallback: DEFAULT_PUSH_RELAY_URL,
     }),

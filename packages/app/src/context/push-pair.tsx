@@ -50,12 +50,7 @@ export function canReusePair(input: { id?: string; status?: PairState; token?: s
   return input.status !== "active" && input.status !== "expired"
 }
 
-export function canSyncPair(input: {
-  id?: string
-  status?: PairState
-  expires?: string
-  paired: boolean
-}) {
+export function canSyncPair(input: { id?: string; status?: PairState; expires?: string; paired: boolean }) {
   if (input.paired) return false
   if (!input.id) return true
   if (input.status === "active") return false
@@ -98,6 +93,16 @@ export function canAutoPair(input: {
 
 export function relaySwitched(input: { prev?: string; next?: string }) {
   return input.prev !== undefined && input.prev !== input.next
+}
+
+function limited(err: unknown) {
+  const next = (err instanceof Error ? err.message : String(err)).trim().toLowerCase()
+  return (
+    next.includes("rate_limited") ||
+    next.includes("rate limited") ||
+    next.includes("too many requests") ||
+    next.includes("429")
+  )
 }
 
 export const { use: usePushPair, provider: PushPairProvider } = createSimpleContext({
@@ -344,6 +349,7 @@ export const { use: usePushPair, provider: PushPairProvider } = createSimpleCont
 
     createEffect(() => {
       if (!platform.getPushPairing) return
+      if (state.run || state.clear) return
       if (
         !canPollPair({
           id: pair.id,
@@ -357,10 +363,11 @@ export const { use: usePushPair, provider: PushPairProvider } = createSimpleCont
       }
 
       let live = true
+      let halt = false
       let timer: number | undefined
 
       const step = async () => {
-        if (!live) return
+        if (!live || halt) return
         if (expired(pair.expires)) {
           stop(
             {
@@ -378,8 +385,19 @@ export const { use: usePushPair, provider: PushPairProvider } = createSimpleCont
             if (!live || !value) return
             sync(value)
           })
-          .catch(() => undefined)
-        if (!live) return
+          .catch((err) => {
+            if (!live || !limited(err)) return
+            halt = true
+            stop(
+              {
+                code: "relay_rate_limited",
+                message: "Push relay is temporarily rate limited. Wait a minute and try again.",
+                action: "retry",
+              },
+              { status: "failed" },
+            )
+          })
+        if (!live || halt) return
         timer = window.setTimeout(() => {
           void step()
         }, 5000)
