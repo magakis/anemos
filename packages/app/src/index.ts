@@ -4,6 +4,7 @@
 
 export { AppBaseProviders, AppInterface } from "./app"
 export { useCommand } from "./context/command"
+export { useLanguage } from "./context/language"
 // UPSTREAM-DIVERGENCE: Preserve the push-related platform exports so native wrappers can share the
 // same types and helpers as the app package during upstream merges.
 export {
