@@ -83,10 +83,10 @@ const setDefaultServerConfig = async (config: ServerConfig | null) => {
 
 const getDefaultServerUrl = async () => {
   const config = await getDefaultServerConfig()
-  return config?.url ?? null
+  return config?.url ? ServerConnection.Key.make(config.url) : null
 }
 
-const setDefaultServerUrl = async (url: string | null) => {
+const setDefaultServerUrl = async (url: ServerConnection.Key | null) => {
   if (url) {
     await setDefaultServerConfig({ url })
   } else {
@@ -228,8 +228,8 @@ const App = () => {
       const result = await bridge.sendAsync<boolean>("share", data)
       return result ?? false
     },
-    getDefaultServerUrl,
-    setDefaultServerUrl,
+    getDefaultServer: getDefaultServerUrl,
+    setDefaultServer: setDefaultServerUrl,
     storage: (name?: string) => createTauriStorage(name),
   }
 

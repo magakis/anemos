@@ -1,6 +1,7 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import type { AsyncStorage, SyncStorage } from "@solid-primitives/storage"
 import type { Accessor } from "solid-js"
+import { ServerConnection } from "./server"
 
 // UPSTREAM-DIVERGENCE-FILE: This platform contract is extended by the fork's iOS/Android wrappers.
 // When merging upstream platform changes, preserve the push pairing, relay, and notification metadata
@@ -8,7 +9,7 @@ import type { Accessor } from "solid-js"
 
 type PickerPaths = string | string[] | null
 type OpenDirectoryPickerOptions = { title?: string; multiple?: boolean }
-type OpenFilePickerOptions = { title?: string; multiple?: boolean }
+type OpenFilePickerOptions = { title?: string; multiple?: boolean; accept?: string[]; extensions?: string[] }
 type SaveFilePickerOptions = { title?: string; defaultPath?: string }
 type UpdateInfo = { updateAvailable: boolean; version?: string }
 // UPSTREAM-DIVERGENCE: These exported types are consumed across packages/app, packages/ios, and
@@ -154,20 +155,20 @@ export type Platform = {
   /** Clear paired push credentials (optional native platforms) */
   clearPushPairing?(): Promise<PushState>
 
-  /** Check for updates (Tauri only) */
+  /** Check for a downloadable desktop update */
   checkUpdate?(): Promise<UpdateInfo>
 
-  /** Install updates (Tauri only) */
-  update?(): Promise<void>
+  /** Install the downloaded update using the platform restart flow */
+  updateAndRestart?(): Promise<void>
 
   /** Fetch override */
   fetch?: typeof fetch
 
   /** Get the configured default server URL (platform-specific) */
-  getDefaultServerUrl?(): Promise<string | null>
+  getDefaultServer?(): Promise<ServerConnection.Key | null>
 
   /** Set the default server URL to use on app startup (platform-specific) */
-  setDefaultServerUrl?(url: string | null): Promise<void> | void
+  setDefaultServer?(url: ServerConnection.Key | null): Promise<void> | void
 
   /** Get the configured WSL integration (desktop only) */
   getWslEnabled?(): Promise<boolean>

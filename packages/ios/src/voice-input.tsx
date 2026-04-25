@@ -16,15 +16,19 @@ export function VoiceInputOverlay(props: {
 
   return (
     <Show when={active()}>
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div class="flex flex-col items-center gap-3 rounded-xl bg-background-base px-4 py-3 shadow-lg">
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div class="flex flex-col items-center gap-3 rounded-xl bg-background-base px-4 py-3 shadow-lg">
           <div class="max-w-64 text-center">
             {processing() ? (
               <div class="text-12-medium text-foreground-base">{language.t("voice.processing")}</div>
             ) : (
               <>
-                <div class="text-12-medium text-foreground-base">{language.t("voice.listeningFor", { label: props.speechLabel() })}</div>
-                <div class="mt-1 text-text-subtle" style={{ "font-size": "9px", opacity: 0.4 }}>{language.t("voice.editLangInSettings")}</div>
+                <div class="text-12-medium text-foreground-base">
+                  {language.t("voice.listeningFor", { label: props.speechLabel() })}
+                </div>
+                <div class="mt-1 text-text-subtle" style={{ "font-size": "9px", opacity: 0.4 }}>
+                  {language.t("voice.editLangInSettings")}
+                </div>
               </>
             )}
           </div>

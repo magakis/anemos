@@ -7,12 +7,12 @@ import { useGlobalSync } from "./global-sync"
 import { usePlatform } from "@/context/platform"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
-import { Binary } from "@opencode-ai/util/binary"
-import { base64Encode } from "@opencode-ai/util/encode"
+import { Binary } from "@opencode-ai/shared/util/binary"
+import { base64Encode } from "@opencode-ai/shared/util/encode"
 import { decode64 } from "@/utils/base64"
 import { EventSessionError } from "@opencode-ai/sdk/v2"
 import { Persist, persisted } from "@/utils/persist"
-import { playSound, soundSrc } from "@/utils/sound"
+import { playSoundById } from "@/utils/sound"
 
 // UPSTREAM-DIVERGENCE-FILE: Notification delivery now tags the fork's mobile push kinds so shared app
 // code can drive generic iOS/Android alerts after upstream sync 6b9ce5e63.
@@ -237,7 +237,7 @@ export const { use: useNotification, provider: NotificationProvider } = createSi
         if (session.parentID) return
 
         if (settings.sounds.agentEnabled()) {
-          playSound(soundSrc(settings.sounds.agent()))
+          void playSoundById(settings.sounds.agent())
         }
 
         append({
@@ -275,7 +275,7 @@ export const { use: useNotification, provider: NotificationProvider } = createSi
         if (session?.parentID) return
 
         if (settings.sounds.errorsEnabled()) {
-          playSound(soundSrc(settings.sounds.errors()))
+          void playSoundById(settings.sounds.errors())
         }
 
         const error = "error" in event.properties ? event.properties.error : undefined

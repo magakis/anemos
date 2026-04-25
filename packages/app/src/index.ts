@@ -3,8 +3,9 @@
 // packages/android, which consume the shared app package instead of re-declaring these types.
 
 export { AppBaseProviders, AppInterface } from "./app"
+export { ACCEPTED_FILE_EXTENSIONS, ACCEPTED_FILE_TYPES, filePickerFilters } from "./constants/file-picker"
 export { useCommand } from "./context/command"
-export { useLanguage } from "./context/language"
+export { loadLocaleDict, normalizeLocale, type Locale, useLanguage } from "./context/language"
 // UPSTREAM-DIVERGENCE: Preserve the push-related platform exports so native wrappers can share the
 // same types and helpers as the app package during upstream merges.
 export {
