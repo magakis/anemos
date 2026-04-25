@@ -1,5 +1,5 @@
 import { Select as Kobalte } from "@kobalte/core/select"
-import { createMemo, onCleanup, splitProps, type ComponentProps, type JSX } from "solid-js"
+import { createMemo, createSignal, onCleanup, splitProps, type ComponentProps, type JSX } from "solid-js"
 import { pipe, groupBy, entries, map } from "remeda"
 import { Button, ButtonProps } from "./button"
 import { Icon } from "./icon"
@@ -43,6 +43,8 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
     "search",
     "triggerProps",
   ])
+  const [query, setQuery] = createSignal("")
+  let searchRef: HTMLInputElement | undefined
 
   const state = {
     key: undefined as string | undefined,
@@ -56,6 +58,7 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
   }
 
   const keyFor = (item: T) => (local.value ? local.value(item) : (item as string))
+  const labelFor = (item: T) => (local.label ? local.label(item) : String(item))
 
   const move = (item: T | undefined) => {
     if (!local.onHighlight) return
@@ -73,9 +76,19 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
 
   onCleanup(stop)
 
+  const filtered = createMemo(() => {
+    const value = query().trim().toLocaleLowerCase()
+    if (!local.search || !value) return local.options
+    return local.options.filter((item) => {
+      const label = labelFor(item).toLocaleLowerCase()
+      const key = keyFor(item).toLocaleLowerCase()
+      return label.includes(value) || key.includes(value)
+    })
+  })
+
   const grouped = createMemo(() => {
     const result = pipe(
-      local.options,
+      filtered(),
       groupBy((x) => (local.groupBy ? local.groupBy(x) : "")),
       // mapValues((x) => x.sort((a, b) => a.title.localeCompare(b.title))),
       entries(),
@@ -131,7 +144,13 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
       }}
       onOpenChange={(open) => {
         local.onOpenChange?.(open)
-        if (!open) stop()
+        if (open && local.search && typeof local.search === "object" && local.search.autofocus) {
+          queueMicrotask(() => searchRef?.focus())
+        }
+        if (!open) {
+          setQuery("")
+          stop()
+        }
       }}
     >
       <Kobalte.Trigger
@@ -168,6 +187,18 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
           data-component="select-content"
           data-trigger-style={local.triggerVariant}
         >
+          {local.search ? (
+            <div class="border-b border-border-weak-base p-2">
+              <input
+                ref={searchRef}
+                type="text"
+                value={query()}
+                onInput={(event) => setQuery(event.currentTarget.value)}
+                placeholder={typeof local.search === "object" ? local.search.placeholder : "Search"}
+                class="w-full rounded-md bg-surface-base px-2 py-1.5 text-12-regular text-text-base outline-none placeholder:text-text-dimmed"
+              />
+            </div>
+          ) : null}
           <Kobalte.Listbox data-slot="select-select-content-list" />
         </Kobalte.Content>
       </Kobalte.Portal>
