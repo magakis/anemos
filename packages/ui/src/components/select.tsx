@@ -20,6 +20,7 @@ export type SelectProps<T> = Omit<ComponentProps<typeof Kobalte<T>>, "value" | "
   triggerStyle?: JSX.CSSProperties
   triggerVariant?: "settings"
   search?: boolean | { placeholder?: string; autofocus?: boolean }
+  triggerProps?: Record<string, string | number | boolean | undefined>
 }
 
 export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">) {
@@ -40,6 +41,7 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
     "triggerStyle",
     "triggerVariant",
     "search",
+    "triggerProps",
   ])
   const [query, setQuery] = createSignal("")
   let searchRef: HTMLInputElement | undefined
@@ -117,7 +119,7 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
           {...itemProps}
           data-slot="select-select-item"
           classList={{
-            ...(local.classList ?? {}),
+            ...local.classList,
             [local.class ?? ""]: !!local.class,
           }}
           onPointerEnter={() => move(itemProps.item.rawValue)}
@@ -152,6 +154,7 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
       }}
     >
       <Kobalte.Trigger
+        {...local.triggerProps}
         disabled={props.disabled}
         data-slot="select-select-trigger"
         as={Button}
@@ -159,7 +162,7 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
         variant={props.variant}
         style={local.triggerStyle}
         classList={{
-          ...(local.classList ?? {}),
+          ...local.classList,
           [local.class ?? ""]: !!local.class,
         }}
       >
@@ -178,7 +181,7 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
       <Kobalte.Portal>
         <Kobalte.Content
           classList={{
-            ...(local.classList ?? {}),
+            ...local.classList,
             [local.class ?? ""]: !!local.class,
           }}
           data-component="select-content"
