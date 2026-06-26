@@ -764,7 +764,7 @@ export const dict = {
   "notification.push.route.title": "إشعار OpenCode",
   "notification.push.route.server": "لم يتمكن Anemos من مطابقة هذا الإشعار مع خادم متصل بعد.",
   "notification.push.route.session": "لم يتمكن Anemos من استعادة تلك الجلسة بعد، لذا فتح الصفحة الرئيسية للخادم.",
-  "settings.whispercode.mobile.unavailable": "هذا التبويب متاح في إصدارات Anemos للأجهزة المحمولة.",
+  "settings.anemos.mobile.unavailable": "هذا التبويب متاح في إصدارات Anemos للأجهزة المحمولة.",
   "settings.general.sounds.agent.title": "وكيل",
   "settings.general.sounds.agent.description": "تشغيل صوت عندما يكتمل الوكيل أو يحتاج إلى اهتمام",
   "settings.general.sounds.permissions.title": "أذونات",

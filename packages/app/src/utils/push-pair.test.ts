@@ -776,7 +776,7 @@ describe("mergePushIssue", () => {
     const issue = mergePushIssue(
       {
         code: "permission_denied",
-        message: "Turn on notifications for WhisperCode in the iPhone Settings app.",
+        message: "Turn on notifications for Anemos in the iPhone Settings app.",
         action: "settings",
       },
       push(),

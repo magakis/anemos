@@ -841,7 +841,7 @@ export const dict = {
   "notification.push.route.server": "Anemos kunne endnu ikke matche denne notifikation til en tilsluttet server.",
   "notification.push.route.session":
     "Anemos kunne endnu ikke gendanne den session, så den åbnede serverens startside.",
-  "settings.whispercode.mobile.unavailable": "Denne fane er tilgængelig på Anemos mobile builds.",
+  "settings.anemos.mobile.unavailable": "Denne fane er tilgængelig på Anemos mobile builds.",
 
   "settings.general.sounds.agent.title": "Agent",
   "settings.general.sounds.agent.description": "Afspil lyd når agenten er færdig eller kræver opmærksomhed",

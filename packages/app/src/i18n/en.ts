@@ -955,7 +955,7 @@ export const dict = {
   "notification.push.route.title": "OpenCode notification",
   "notification.push.route.server": "Anemos could not match this notification to a connected server yet.",
   "notification.push.route.session": "Anemos could not restore that session yet, so it opened the server home.",
-  "settings.whispercode.mobile.unavailable": "This tab is available on Anemos mobile builds.",
+  "settings.anemos.mobile.unavailable": "This tab is available on Anemos mobile builds.",
 
   "settings.general.sounds.agent.title": "Agent",
   "settings.general.sounds.agent.description": "Play sound when the agent is complete or needs attention",

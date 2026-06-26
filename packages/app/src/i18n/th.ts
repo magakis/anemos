@@ -839,7 +839,7 @@ export const dict = {
   "notification.push.route.title": "การแจ้งเตือน OpenCode",
   "notification.push.route.server": "Anemos ยังไม่สามารถจับคู่การแจ้งเตือนนี้กับเซิร์ฟเวอร์ที่เชื่อมต่ออยู่ได้",
   "notification.push.route.session": "Anemos ยังไม่สามารถกู้คืนเซสชันนั้นได้ จึงเปิดหน้าแรกของเซิร์ฟเวอร์แทน",
-  "settings.whispercode.mobile.unavailable": "แท็บนี้ใช้งานได้เฉพาะบน Anemos เวอร์ชันมือถือ",
+  "settings.anemos.mobile.unavailable": "แท็บนี้ใช้งานได้เฉพาะบน Anemos เวอร์ชันมือถือ",
 
   "settings.general.sounds.agent.title": "เอเจนต์",
   "settings.general.sounds.agent.description": "เล่นเสียงเมื่อเอเจนต์เสร็จสิ้นหรือต้องการความสนใจ",

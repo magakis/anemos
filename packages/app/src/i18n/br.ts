@@ -782,7 +782,7 @@ export const dict = {
     "O Anemos ainda não conseguiu associar esta notificação a um servidor conectado.",
   "notification.push.route.session":
     "O Anemos ainda não conseguiu restaurar essa sessão, então abriu a página inicial do servidor.",
-  "settings.whispercode.mobile.unavailable": "Esta aba está disponível nas versões móveis do Anemos.",
+  "settings.anemos.mobile.unavailable": "Esta aba está disponível nas versões móveis do Anemos.",
   "settings.general.sounds.agent.title": "Agente",
   "settings.general.sounds.agent.description": "Reproduzir som quando o agente estiver completo ou precisar de atenção",
   "settings.general.sounds.permissions.title": "Permissões",

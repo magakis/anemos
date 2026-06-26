@@ -793,7 +793,7 @@ export const dict = {
     "Anemos konnte diese Benachrichtigung noch keinem verbundenen Server zuordnen.",
   "notification.push.route.session":
     "Anemos konnte diese Sitzung noch nicht wiederherstellen und hat stattdessen die Server-Startseite geöffnet.",
-  "settings.whispercode.mobile.unavailable": "Dieser Tab ist in Anemos-Mobilversionen verfügbar.",
+  "settings.anemos.mobile.unavailable": "Dieser Tab ist in Anemos-Mobilversionen verfügbar.",
   "settings.general.sounds.agent.title": "Agent",
   "settings.general.sounds.agent.description": "Ton abspielen, wenn der Agent fertig ist oder Aufmerksamkeit benötigt",
   "settings.general.sounds.permissions.title": "Berechtigungen",

@@ -776,7 +776,7 @@ export const dict = {
   "notification.push.route.server": "Anemos nie mógł jeszcze dopasować tego powiadomienia do połączonego serwera.",
   "notification.push.route.session":
     "Anemos nie mógł jeszcze przywrócić tej sesji, więc otworzył stronę główną serwera.",
-  "settings.whispercode.mobile.unavailable": "Ta karta jest dostępna w kompilacjach mobilnych Anemos.",
+  "settings.anemos.mobile.unavailable": "Ta karta jest dostępna w kompilacjach mobilnych Anemos.",
   "settings.general.sounds.agent.title": "Agent",
   "settings.general.sounds.agent.description": "Odtwórz dźwięk, gdy agent zakończy pracę lub wymaga uwagi",
   "settings.general.sounds.permissions.title": "Uprawnienia",

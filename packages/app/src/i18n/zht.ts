@@ -811,7 +811,7 @@ export const dict = {
   "notification.push.route.title": "OpenCode 通知",
   "notification.push.route.server": "Anemos 暫時無法將此通知配對到已連線的伺服器。",
   "notification.push.route.session": "Anemos 暫時無法還原該工作階段，已開啟伺服器首頁。",
-  "settings.whispercode.mobile.unavailable": "此分頁在 Anemos 行動版本中可用。",
+  "settings.anemos.mobile.unavailable": "此分頁在 Anemos 行動版本中可用。",
 
   "settings.general.sounds.agent.title": "代理程式",
   "settings.general.sounds.agent.description": "當代理程式完成或需要注意時播放聲音",

@@ -469,7 +469,7 @@ export const SettingsMobileNotifications: Component = () => {
                   description={
                     mobile()
                       ? language.t("settings.general.notifications.push.permission.unsupported")
-                      : language.t("settings.whispercode.mobile.unavailable")
+                      : language.t("settings.anemos.mobile.unavailable")
                   }
                 >
                   <span class="text-12-medium text-text-dimmed">

@@ -845,7 +845,7 @@ export const dict = {
   "notification.push.route.server": "Anemos još nije mogao povezati ovu obavijest sa povezanim serverom.",
   "notification.push.route.session":
     "Anemos još nije mogao vratiti tu sesiju, pa je otvorio početnu stranicu servera.",
-  "settings.whispercode.mobile.unavailable": "Ova kartica je dostupna na Anemos mobilnim verzijama.",
+  "settings.anemos.mobile.unavailable": "Ova kartica je dostupna na Anemos mobilnim verzijama.",
 
   "settings.general.sounds.agent.title": "Agent",
   "settings.general.sounds.agent.description": "Pusti zvuk kada agent završi ili zahtijeva pažnju",

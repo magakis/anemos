@@ -859,7 +859,7 @@ export const dict = {
   "notification.push.route.server": "Anemos bu bildirimi henüz bağlı bir sunucuyla eşleştiremedi.",
   "notification.push.route.session":
     "Anemos o oturumu henüz geri yükleyemedi, bu yüzden sunucu ana sayfasını açtı.",
-  "settings.whispercode.mobile.unavailable": "Bu sekme Anemos mobil yapılarında kullanılabilir.",
+  "settings.anemos.mobile.unavailable": "Bu sekme Anemos mobil yapılarında kullanılabilir.",
 
   "settings.general.sounds.agent.title": "Ajan",
   "settings.general.sounds.agent.description": "Ajan tamamlandığında veya dikkat gerektirdiğinde ses çal",

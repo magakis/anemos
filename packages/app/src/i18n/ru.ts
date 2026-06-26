@@ -844,7 +844,7 @@ export const dict = {
   "notification.push.route.server": "Anemos пока не смог сопоставить это уведомление с подключённым сервером.",
   "notification.push.route.session":
     "Anemos пока не смог восстановить эту сессию, поэтому открыл главную страницу сервера.",
-  "settings.whispercode.mobile.unavailable": "Эта вкладка доступна в мобильных сборках Anemos.",
+  "settings.anemos.mobile.unavailable": "Эта вкладка доступна в мобильных сборках Anemos.",
 
   "settings.general.sounds.agent.title": "Агент",
   "settings.general.sounds.agent.description": "Воспроизводить звук когда агент завершён или требует внимания",

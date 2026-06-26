@@ -774,7 +774,7 @@ export const dict = {
   "notification.push.route.server": "Anemosはまだこの通知を接続済みサーバーに関連付けることができませんでした。",
   "notification.push.route.session":
     "Anemosはまだそのセッションを復元できなかったため、サーバーホームを開きました。",
-  "settings.whispercode.mobile.unavailable": "このタブはAnemosモバイルビルドで利用可能です。",
+  "settings.anemos.mobile.unavailable": "このタブはAnemosモバイルビルドで利用可能です。",
   "settings.general.sounds.agent.title": "エージェント",
   "settings.general.sounds.agent.description": "エージェントが完了したか、注意が必要な場合に音を再生します",
   "settings.general.sounds.permissions.title": "権限",

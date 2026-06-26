@@ -764,7 +764,7 @@ export const dict = {
   "notification.push.route.title": "OpenCode 알림",
   "notification.push.route.server": "Anemos가 아직 이 알림을 연결된 서버와 매칭하지 못했습니다.",
   "notification.push.route.session": "Anemos가 아직 해당 세션을 복원하지 못하여 서버 홈을 열었습니다.",
-  "settings.whispercode.mobile.unavailable": "이 탭은 Anemos 모바일 빌드에서 사용할 수 있습니다.",
+  "settings.anemos.mobile.unavailable": "이 탭은 Anemos 모바일 빌드에서 사용할 수 있습니다.",
   "settings.general.sounds.agent.title": "에이전트",
   "settings.general.sounds.agent.description": "에이전트가 완료되거나 주의가 필요할 때 소리 재생",
   "settings.general.sounds.permissions.title": "권한",

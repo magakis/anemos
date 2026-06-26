@@ -819,7 +819,7 @@ export const dict = {
   "notification.push.route.title": "OpenCode 通知",
   "notification.push.route.server": "Anemos 暂时无法将此通知匹配到已连接的服务器。",
   "notification.push.route.session": "Anemos 暂时无法恢复该会话，已打开服务器主页。",
-  "settings.whispercode.mobile.unavailable": "此标签页在 Anemos 移动端版本中可用。",
+  "settings.anemos.mobile.unavailable": "此标签页在 Anemos 移动端版本中可用。",
   "settings.general.sounds.agent.title": "智能体",
   "settings.general.sounds.agent.description": "当智能体完成或需要注意时播放声音",
   "settings.general.sounds.permissions.title": "权限",
