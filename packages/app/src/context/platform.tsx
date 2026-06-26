@@ -7,11 +7,6 @@ import { ServerConnection } from "./server"
 // When merging upstream platform changes, preserve the push pairing, relay, and notification metadata
 // additions introduced after upstream sync 6b9ce5e63.
 
-type PickerPaths = string | string[] | null
-type OpenDirectoryPickerOptions = { title?: string; multiple?: boolean }
-type OpenFilePickerOptions = { title?: string; multiple?: boolean; accept?: string[]; extensions?: string[] }
-type SaveFilePickerOptions = { title?: string; defaultPath?: string }
-type UpdateInfo = { updateAvailable: boolean; version?: string }
 // UPSTREAM-DIVERGENCE: These exported types are consumed across packages/app, packages/ios, and
 // packages/android to keep push notification permission, pairing, and relay state aligned.
 export type PushKind = "complete" | "error" | "approval" | "question" | "test"
@@ -93,9 +88,6 @@ export type Platform = {
   /** Open a URL in the default browser */
   openLink(url: string): void
 
-  /** Open a local path in a local app (desktop only) */
-  openPath?(path: string, app?: string): Promise<void>
-
   /** Restart the app  */
   restart(): Promise<void>
 
@@ -108,15 +100,6 @@ export type Platform = {
   /** UPSTREAM-DIVERGENCE: Fork mobile builds attach notification kind metadata so native bridges can
       choose generic push payloads while the web implementation safely ignores the extra options. */
   notify(title: string, description?: string, href?: string, opts?: NotifyOpts): Promise<void>
-
-  /** Open directory picker dialog (native on Tauri, server-backed on web) */
-  openDirectoryPickerDialog?(opts?: OpenDirectoryPickerOptions): Promise<PickerPaths>
-
-  /** Open native file picker dialog (Tauri only) */
-  openFilePickerDialog?(opts?: OpenFilePickerOptions): Promise<PickerPaths>
-
-  /** Save file picker dialog (Tauri only) */
-  saveFilePickerDialog?(opts?: SaveFilePickerOptions): Promise<string | null>
 
   /** Storage mechanism, defaults to localStorage */
   storage?: (name?: string) => SyncStorage | AsyncStorage
@@ -155,12 +138,6 @@ export type Platform = {
   /** Clear paired push credentials (optional native platforms) */
   clearPushPairing?(): Promise<PushState>
 
-  /** Check for a downloadable desktop update */
-  checkUpdate?(): Promise<UpdateInfo>
-
-  /** Install the downloaded update using the platform restart flow */
-  updateAndRestart?(): Promise<void>
-
   /** Fetch override */
   fetch?: typeof fetch
 
@@ -169,30 +146,6 @@ export type Platform = {
 
   /** Set the default server URL to use on app startup (platform-specific) */
   setDefaultServer?(url: ServerConnection.Key | null): Promise<void> | void
-
-  /** Get the configured WSL integration (desktop only) */
-  getWslEnabled?(): Promise<boolean>
-
-  /** Set the configured WSL integration (desktop only) */
-  setWslEnabled?(config: boolean): Promise<void> | void
-
-  /** Get the preferred display backend (desktop only) */
-  getDisplayBackend?(): Promise<DisplayBackend | null> | DisplayBackend | null
-
-  /** Set the preferred display backend (desktop only) */
-  setDisplayBackend?(backend: DisplayBackend): Promise<void>
-
-  /** Parse markdown to HTML using native parser (desktop only, returns unprocessed code blocks) */
-  parseMarkdown?(markdown: string): Promise<string>
-
-  /** Webview zoom level (desktop only) */
-  webviewZoom?: Accessor<number>
-
-  /** Check if an editor app exists (desktop only) */
-  checkAppExists?(appName: string): Promise<boolean>
-
-  /** Read image from clipboard (desktop only) */
-  readClipboardImage?(): Promise<File | null>
 
   /** Start voice input (mobile only) */
   startVoiceInput?(): Promise<VoiceStartResult> | VoiceStartResult
@@ -215,8 +168,6 @@ export type Platform = {
   /** Share content (mobile only) */
   share?(data: { text?: string; url?: string }): Promise<boolean>
 }
-
-export type DisplayBackend = "auto" | "wayland"
 
 export const { use: usePlatform, provider: PlatformProvider } = createSimpleContext({
   name: "Platform",

@@ -9,12 +9,13 @@ export { loadLocaleDict, normalizeLocale, type Locale, useLanguage } from "./con
 // UPSTREAM-DIVERGENCE: Preserve the push-related platform exports so native wrappers can share the
 // same types and helpers as the app package during upstream merges.
 export {
-  type DisplayBackend,
   type NotifyOpts,
   type PairInfo,
   type PairState,
   type Platform,
   type PushCred,
+  type VoiceStartResult,
+  type VoiceStopResult,
   type PushDiag,
   type PushKind,
   type PushPerm,

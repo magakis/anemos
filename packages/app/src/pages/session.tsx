@@ -12,17 +12,15 @@ import {
   onMount,
   untrack,
 } from "solid-js"
-import { createMediaQuery } from "@solid-primitives/media"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { useLocal } from "@/context/local"
 import { selectionFromLines, useFile, type FileSelection, type SelectedLineRange } from "@/context/file"
 import { createStore } from "solid-js/store"
-import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Select } from "@opencode-ai/ui/select"
 import { createAutoScroll } from "@opencode-ai/ui/hooks"
 import { Button } from "@opencode-ai/ui/button"
 import { showToast } from "@opencode-ai/ui/toast"
-import { base64Encode, checksum } from "@opencode-ai/util/encode"
+import { base64Encode, checksum } from "@opencode-ai/shared/util/encode"
 import { useNavigate, useParams, useSearchParams } from "@solidjs/router"
 import { NewSessionView, SessionHeader } from "@/components/session"
 import { useComments } from "@/context/comments"
@@ -33,13 +31,12 @@ import { usePrompt } from "@/context/prompt"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
 import { createSessionComposerState, SessionComposerRegion } from "@/pages/session/composer"
-import { createOpenReviewFile, createSizing } from "@/pages/session/helpers"
+import { createOpenReviewFile } from "@/pages/session/helpers"
 import { MessageTimeline } from "@/pages/session/message-timeline"
 import { type DiffStyle, SessionReviewTab, type SessionReviewTabProps } from "@/pages/session/review-tab"
 import { resetSessionModel, syncSessionModel } from "@/pages/session/session-model-helpers"
 import { createScrollSpy } from "@/pages/session/scroll-spy"
 import { SessionMobileTabs } from "@/pages/session/session-mobile-tabs"
-import { SessionSidePanel } from "@/pages/session/session-side-panel"
 import { TerminalPanel } from "@/pages/session/terminal-panel"
 import { useSessionCommands } from "@/pages/session/use-session-commands"
 import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
@@ -344,18 +341,6 @@ export default function Page() {
       { defer: true },
     ),
   )
-
-  const isDesktop = createMediaQuery("(min-width: 768px)")
-  const size = createSizing()
-  const desktopReviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened())
-  const desktopFileTreeOpen = createMemo(() => isDesktop() && layout.fileTree.opened())
-  const desktopSidePanelOpen = createMemo(() => desktopReviewOpen() || desktopFileTreeOpen())
-  const sessionPanelWidth = createMemo(() => {
-    if (!desktopSidePanelOpen()) return "100%"
-    if (desktopReviewOpen()) return `${layout.session.width()}px`
-    return `calc(100% - ${layout.fileTree.width()}px)`
-  })
-  const centered = createMemo(() => isDesktop() && !desktopReviewOpen())
 
   function normalizeTab(tab: string) {
     if (!tab.startsWith("file://")) return tab
@@ -736,9 +721,6 @@ export default function Page() {
       return
     }
 
-    // Don't autofocus chat if desktop terminal panel is open
-    if (isDesktop() && view().terminal.opened()) return
-
     // Only treat explicit scroll keys as potential "user scroll" gestures.
     if (event.key === "PageUp" || event.key === "PageDown" || event.key === "Home" || event.key === "End") {
       markScrollGesture()
@@ -758,11 +740,7 @@ export default function Page() {
       .filter((tab) => tab !== "context" && tab !== "review"),
   )
 
-  const mobileChanges = createMemo(() => !isDesktop() && store.mobileTab === "changes")
-  const reviewTab = createMemo(() => isDesktop())
-
-  const fileTreeTab = () => layout.fileTree.tab()
-  const setFileTreeTab = (value: "changes" | "all") => layout.fileTree.setTab(value)
+  const mobileChanges = createMemo(() => store.mobileTab === "changes")
 
   const [tree, setTree] = createStore({
     reviewScroll: undefined as HTMLDivElement | undefined,
@@ -785,8 +763,7 @@ export default function Page() {
   )
 
   const showAllFiles = () => {
-    if (fileTreeTab() !== "changes") return
-    setFileTreeTab("all")
+    // File tree navigation is not used in mobile-first layout
   }
 
   const focusInput = () => inputRef?.focus()
@@ -950,19 +927,6 @@ export default function Page() {
     </div>
   )
 
-  createEffect(
-    on(
-      () => tabs().active(),
-      (active) => {
-        if (!active) return
-        if (fileTreeTab() !== "changes") return
-        if (!file.pathFromTab(active)) return
-        showAllFiles()
-      },
-      { defer: true },
-    ),
-  )
-
   const reviewDiffId = (path: string) => {
     const sum = checksum(path)
     if (!sum) return
@@ -1048,20 +1012,18 @@ export default function Page() {
   const activeTab = createMemo(() => {
     const active = tabs().active()
     if (active === "context") return "context"
-    if (active === "review" && reviewTab()) return "review"
     if (active && file.pathFromTab(active)) return normalizeTab(active)
 
     const first = openedTabs()[0]
     if (first) return first
     if (contextOpen()) return "context"
-    if (reviewTab() && hasReview()) return "review"
     return "empty"
   })
 
   createEffect(() => {
     if (!layout.ready()) return
     if (tabs().active()) return
-    if (openedTabs().length === 0 && !contextOpen() && !(reviewTab() && hasReview())) return
+    if (openedTabs().length === 0 && !contextOpen()) return
 
     const next = activeTab()
     if (next === "empty") return
@@ -1071,11 +1033,7 @@ export default function Page() {
   createEffect(() => {
     const id = params.id
     if (!id) return
-
-    const wants = isDesktop()
-      ? desktopFileTreeOpen() || (desktopReviewOpen() && activeTab() === "review")
-      : store.mobileTab === "changes"
-    if (!wants) return
+    if (store.mobileTab !== "changes") return
     if (sync.data.session_diff[id] !== undefined) return
     if (sync.status === "loading") return
 
@@ -1083,17 +1041,6 @@ export default function Page() {
   })
 
   let treeDir: string | undefined
-  createEffect(() => {
-    const dir = sdk.directory
-    if (!isDesktop()) return
-    if (!layout.fileTree.opened()) return
-    if (sync.status === "loading") return
-
-    fileTreeTab()
-    const refresh = treeDir !== dir
-    treeDir = dir
-    void (refresh ? file.tree.refresh("") : file.tree.list(""))
-  })
 
   createEffect(
     on(
@@ -1154,7 +1101,7 @@ export default function Page() {
 
   const resumeScroll = () => {
     setStore("messageId", undefined)
-    autoScroll.smoothScrollToBottom()
+    autoScroll.scrollToBottom()
     clearMessageHash()
 
     const el = scroller
@@ -1226,7 +1173,7 @@ export default function Page() {
 
       dockHeight = next
 
-      if (stick) autoScroll.smoothScrollToBottom()
+      if (stick) autoScroll.scrollToBottom()
 
       if (el) scheduleScrollState(el)
       scrollSpy.markDirty()
@@ -1238,6 +1185,9 @@ export default function Page() {
     sessionID: () => params.id,
     messagesReady,
     visibleUserMessages,
+    historyMore,
+    historyLoading,
+    loadMore: (sessionID) => sync.session.history.loadMore(sessionID),
     turnStart: historyWindow.turnStart,
     currentMessageId: () => store.messageId,
     pendingMessage: () => ui.pendingMessage,
@@ -1286,9 +1236,9 @@ export default function Page() {
   return (
     <div class="relative bg-background-base size-full overflow-hidden flex flex-col">
       <SessionHeader />
-      <div ref={pullToRefresh.setRef} class="flex-1 min-h-0 flex flex-col md:flex-row">
+      <div ref={pullToRefresh.setRef} class="flex-1 min-h-0 flex flex-col">
         <SessionMobileTabs
-          open={!isDesktop() && !!params.id}
+          open={!!params.id}
           mobileTab={store.mobileTab}
           hasReview={hasReview()}
           reviewCount={reviewCount()}
@@ -1297,16 +1247,7 @@ export default function Page() {
         />
 
         {/* Session panel */}
-        <div
-          classList={{
-            "@container relative shrink-0 flex flex-col min-h-0 h-full bg-background-stronger flex-1 md:flex-none": true,
-            "transition-[width] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
-              !size.active(),
-          }}
-          style={{
-            width: sessionPanelWidth(),
-          }}
-        >
+        <div class="flex-1 min-h-0 flex flex-col bg-background-stronger">
           <div class="flex-1 min-h-0 overflow-hidden">
             <Switch>
               <Match when={params.id}>
@@ -1330,19 +1271,18 @@ export default function Page() {
                     onAutoScrollHandleScroll={autoScroll.handleScroll}
                     onMarkScrollGesture={markScrollGesture}
                     hasScrollGesture={hasScrollGesture}
-                    isDesktop={isDesktop()}
+                    isDesktop={false}
                     onScrollSpyScroll={scrollSpy.onScroll}
                     onTurnBackfillScroll={historyWindow.onScrollerScroll}
                     onAutoScrollInteraction={autoScroll.handleInteraction}
-                    onPreserveScrollAnchor={autoScroll.preserve}
-                    centered={centered()}
+                    onPreserveScrollAnchor={autoScroll.pause}
                     setContentRef={(el) => {
                       content = el
                       autoScroll.contentRef(el)
-
                       const root = scroller
                       if (root) scheduleScrollState(root)
                     }}
+                    centered={false}
                     turnStart={historyWindow.turnStart()}
                     historyMore={historyMore()}
                     historyLoading={historyLoading()}
@@ -1363,23 +1303,7 @@ export default function Page() {
                 </Show>
               </Match>
               <Match when={true}>
-                <NewSessionView
-                  worktree={newSessionWorktree()}
-                  onWorktreeChange={(value) => {
-                    if (value === "create") {
-                      setStore("newSessionWorktree", value)
-                      return
-                    }
-
-                    setStore("newSessionWorktree", "main")
-
-                    const target = value === "main" ? sync.project?.worktree : value
-                    if (!target) return
-                    if (target === sdk.directory) return
-                    layout.projects.open(target)
-                    navigate(`/${base64Encode(target)}/session`)
-                  }}
-                />
+                <NewSessionView worktree={newSessionWorktree()} />
               </Match>
             </Switch>
           </div>
@@ -1387,7 +1311,7 @@ export default function Page() {
           <SessionComposerRegion
             state={composer}
             ready={!store.deferRender && messagesReady()}
-            centered={centered()}
+            centered={false}
             inputRef={(el) => {
               inputRef = el
             }}
@@ -1402,29 +1326,7 @@ export default function Page() {
               promptDock = el
             }}
           />
-
-          <Show when={desktopReviewOpen()}>
-            <div onPointerDown={() => size.start()}>
-              <ResizeHandle
-                direction="horizontal"
-                size={layout.session.width()}
-                min={450}
-                max={typeof window === "undefined" ? 1000 : window.innerWidth * 0.45}
-                onResize={(width) => {
-                  size.touch()
-                  layout.session.resize(width)
-                }}
-              />
-            </div>
-          </Show>
         </div>
-
-        <SessionSidePanel
-          reviewPanel={reviewPanel}
-          activeDiff={tree.activeDiff}
-          focusReviewDiff={focusReviewDiff}
-          size={size}
-        />
       </div>
 
       <TerminalPanel />

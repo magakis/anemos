@@ -103,7 +103,6 @@ const useTerminalUiBindings = (input: {
   handlePointerDown: () => void
   handleLinkClick: (event: MouseEvent) => void
 }) => {
-  const isMobile = input.platform.platform === "ios" || input.platform.platform === "android"
   let touchY: number | undefined
   let touchRemainder = 0
 
@@ -136,7 +135,6 @@ const useTerminalUiBindings = (input: {
   }
 
   const handleTouchStart = (event: TouchEvent) => {
-    if (!isMobile) return
     if (event.touches.length !== 1) {
       touchY = undefined
       touchRemainder = 0
@@ -147,7 +145,6 @@ const useTerminalUiBindings = (input: {
   }
 
   const handleTouchMove = (event: TouchEvent) => {
-    if (!isMobile) return
     if (event.touches.length !== 1 || touchY === undefined) return
 
     const next = event.touches[0]?.clientY
@@ -379,15 +376,6 @@ export const Terminal = (props: TerminalProps) => {
     const font = terminalFontFamily(settings.appearance.terminalFont())
     if (!term) return
     setOptionIfSupported(term, "fontFamily", font)
-    scheduleFit()
-  })
-
-  let zoom = platform.webviewZoom?.()
-  createEffect(() => {
-    const next = platform.webviewZoom?.()
-    if (next === undefined) return
-    if (next === zoom) return
-    zoom = next
     scheduleFit()
   })
 

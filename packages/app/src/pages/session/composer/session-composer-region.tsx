@@ -140,7 +140,7 @@ export function SessionComposerRegion(props: {
       ref={props.setPromptDockRef}
       data-component="session-prompt-dock"
       // UPSTREAM-DIVERGENCE: Mobile chat keeps the composer closer to the bottom edge to avoid a tall empty chin.
-      class="shrink-0 w-full pb-1 md:pb-3 flex flex-col justify-center items-center bg-background-stronger pointer-events-none"
+      class="shrink-0 w-full pb-3 flex flex-col justify-center items-center bg-background-stronger pointer-events-none"
     >
       <div
         classList={{

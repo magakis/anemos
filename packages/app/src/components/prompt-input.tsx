@@ -1124,7 +1124,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       setCursorPosition(editorRef, promptLength(prompt.current()))
     },
     addPart,
-    readClipboardImage: platform.readClipboardImage,
   })
 
   const variants = createMemo(() => ["default", ...local.model.variant.list()])
@@ -1353,7 +1352,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         t={(key) => language.t(key as Parameters<typeof language.t>[0])}
       />
       <DockShellForm
-        onSubmit={handleSubmit}
+        onSubmit={(event) => {
+          platform.haptic?.("light")
+          return handleSubmit(event)
+        }}
         classList={{
           "group/prompt-input": true,
           "focus-within:shadow-xs-border": true,
@@ -1472,11 +1474,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
             <div class="flex items-center gap-1 pointer-events-auto">
               <Show
-                when={
-                  store.mode === "normal" &&
-                  (platform.platform === "ios" || platform.platform === "android") &&
-                  platform.startVoiceInput
-                }
+                when={store.mode === "normal" && platform.startVoiceInput}
               >
                 <Tooltip placement="top" value="Voice input">
                   <Button

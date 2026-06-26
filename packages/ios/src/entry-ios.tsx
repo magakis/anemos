@@ -1,7 +1,7 @@
 // @refresh reload
 import { render } from "solid-js/web"
 import { createResource, createSignal, onCleanup, onMount } from "solid-js"
-import { AppBaseProviders, AppInterface, PlatformProvider, type Platform } from "@opencode-ai/app"
+import { AppBaseProviders, AppInterface, PlatformProvider, ServerConnection, type Platform, type VoiceStartResult, type VoiceStopResult } from "@opencode-ai/app"
 import { bridge } from "./bridge"
 import { createBridgeStorage } from "./ios-storage"
 import { VoiceInputOverlay } from "./voice-input"
@@ -23,13 +23,14 @@ const App = () => {
   const startVoiceInput = () => {
     setRecording(true)
     bridge.send("startRecording")
+    return { ok: true } satisfies VoiceStartResult
   }
 
   const stopVoiceInput = async () => {
     const text = await bridge.sendAsync<string>("stopRecording")
     setRecording(false)
     if (text) emitTranscription(text, true)
-    return text ?? ""
+    return { text: text ?? "" } satisfies VoiceStopResult
   }
 
   const platform: Platform = {
@@ -52,20 +53,20 @@ const App = () => {
       const result = await bridge.sendAsync<boolean>("share", data)
       return result ?? false
     },
-    getDefaultServerUrl: async () => {
+    getDefaultServer: async () => {
       const result = await bridge.sendAsync<string | null>("getDefaultServerUrl")
-      return result ?? null
+      return result !== null ? ServerConnection.Key.make(result) : null
     },
-    setDefaultServerUrl: async (url: string | null) => {
+    setDefaultServer: async (url: string | null) => {
       await bridge.sendAsync("setDefaultServerUrl", { url })
     },
     storage: (name?: string) => createBridgeStorage(name),
   }
 
-  const [defaultUrl] = createResource(async () => {
-    if (!platform.getDefaultServerUrl) return null
-    const result = await Promise.resolve(platform.getDefaultServerUrl?.()).catch(() => null)
-    return result ?? null
+  const [defaultServer] = createResource(async () => {
+    if (!platform.getDefaultServer) return ServerConnection.Key.make("http://localhost:4096")
+    const result = await Promise.resolve(platform.getDefaultServer?.()).catch(() => null)
+    return result ?? ServerConnection.Key.make("http://localhost:4096")
   })
 
   onMount(() => {
@@ -119,7 +120,7 @@ const App = () => {
     <PlatformProvider value={platform}>
       <AppBaseProviders>
         <VoiceInputOverlay active={recording} onStop={() => void stopVoiceInput()} />
-        <AppInterface defaultUrl={defaultUrl() ?? undefined} />
+        <AppInterface defaultServer={defaultServer() ?? ServerConnection.Key.make("http://localhost:4096")} />
       </AppBaseProviders>
     </PlatformProvider>
   )

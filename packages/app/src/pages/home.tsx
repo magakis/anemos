@@ -5,7 +5,7 @@ import { useLayout } from "@/context/layout"
 import { useNavigate } from "@solidjs/router"
 import { base64Encode } from "@opencode-ai/shared/util/encode"
 import { Icon } from "@opencode-ai/ui/icon"
-import { usePlatform } from "@/context/platform"
+
 import { DateTime } from "luxon"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { DialogSelectDirectory } from "@/components/dialog-select-directory"
@@ -17,7 +17,6 @@ import { useLanguage } from "@/context/language"
 export default function Home() {
   const sync = useGlobalSync()
   const layout = useLayout()
-  const platform = usePlatform()
   const dialog = useDialog()
   const navigate = useNavigate()
   const server = useServer()
@@ -43,7 +42,7 @@ export default function Home() {
     navigate(`/${base64Encode(directory)}`)
   }
 
-  async function chooseProject() {
+  function chooseProject() {
     function resolve(result: string | string[] | null) {
       if (Array.isArray(result)) {
         for (const directory of result) {
@@ -54,41 +53,31 @@ export default function Home() {
       }
     }
 
-    if (platform.openDirectoryPickerDialog && server.isLocal()) {
-      const result = await platform.openDirectoryPickerDialog?.({
-        title: language.t("command.project.open"),
-        multiple: true,
-      })
-      resolve(result)
-    } else {
-      dialog.show(
-        () => <DialogSelectDirectory multiple={true} onSelect={resolve} />,
-        () => resolve(null),
-      )
-    }
+    dialog.show(
+      () => <DialogSelectDirectory multiple={true} onSelect={resolve} />,
+      () => resolve(null),
+    )
   }
 
   return (
-    <div class="mx-auto mt-55 w-full md:w-auto px-4">
-      <Logo class="md:w-xl opacity-12" />
-      <Button
-        size="large"
-        variant="ghost"
-        class="mt-4 mx-auto text-14-regular text-text-weak"
-        onClick={() => dialog.show(() => <DialogSelectServer />)}
-      >
-        <div
-          classList={{
-            "size-2 rounded-full": true,
-            [serverDotClass()]: true,
-          }}
-        />
-        {server.name}
-      </Button>
-      {(platform.platform === "ios" || platform.platform === "android") && (
+    <div class="w-full px-4 pt-6 pb-4">
+      <div class="flex flex-col items-center">
+        <Logo class="w-20 opacity-12" />
+        <Button
+          size="large"
+          variant="ghost"
+          class="mt-4 mx-auto text-14-regular text-text-weak"
+          onClick={() => dialog.show(() => <DialogSelectServer />)}
+        >
+          <div
+            classList={{
+              "size-2 rounded-full": true,
+              [serverDotClass()]: true,
+            }}
+          />
+          {server.name}
+        </Button>
         <p class="block text-center mt-2 text-12-regular text-text-dimmed">
-          {/* UPSTREAM-DIVERGENCE: Keep the mobile quick-start link on the shared home page so server
-              onboarding survives upstream empty-state redesigns. */}
           Need help connecting?{" "}
           <a
             class="external-link text-text-link underline"
@@ -97,37 +86,38 @@ export default function Home() {
             Quick Start Guide
           </a>
         </p>
-      )}
+      </div>
       <Switch>
         <Match when={sync.data.project.length > 0}>
-          <div class="mt-20 w-full flex flex-col gap-4">
-            <div class="flex gap-2 items-center justify-between pl-3">
+          <div class="mt-6 w-full flex flex-col gap-4">
+            <div class="flex items-center justify-between px-1">
               <div class="text-14-medium text-text-strong">{language.t("home.recentProjects")}</div>
               <Button icon="folder-add-left" size="normal" class="pl-2 pr-3" onClick={chooseProject}>
                 {language.t("command.project.open")}
               </Button>
             </div>
-            <ul class="flex flex-col gap-2">
+            <ul class="flex flex-col gap-1">
               <For each={recent()}>
                 {(project) => (
-                  <Button
-                    size="large"
-                    variant="ghost"
-                    class="text-14-mono text-left justify-between px-3"
+                  <button
+                    type="button"
+                    class="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-surface-raised-base hover:bg-surface-raised-base-hover active:bg-surface-raised-base-active transition-colors text-left"
                     onClick={() => openProject(project.worktree)}
                   >
-                    {project.worktree.replace(homedir(), "~")}
-                    <div class="text-14-regular text-text-weak">
+                    <span class="text-14-mono text-text-strong truncate min-w-0">
+                      {project.worktree.replace(homedir(), "~")}
+                    </span>
+                    <span class="text-14-regular text-text-weak shrink-0 ml-2">
                       {DateTime.fromMillis(project.time.updated ?? project.time.created).toRelative()}
-                    </div>
-                  </Button>
+                    </span>
+                  </button>
                 )}
               </For>
             </ul>
           </div>
         </Match>
         <Match when={!sync.ready}>
-          <div class="mt-30 mx-auto flex flex-col items-center gap-3">
+          <div class="mt-10 mx-auto flex flex-col items-center gap-3">
             <div class="text-12-regular text-text-weak">{language.t("common.loading")}</div>
             <Button class="px-3" onClick={chooseProject}>
               {language.t("command.project.open")}
@@ -135,7 +125,7 @@ export default function Home() {
           </div>
         </Match>
         <Match when={true}>
-          <div class="mt-30 mx-auto flex flex-col items-center gap-3">
+          <div class="mt-10 mx-auto flex flex-col items-center gap-3">
             <Icon name="folder-add-left" size="large" />
             <div class="flex flex-col gap-1 items-center justify-center">
               <div class="text-14-medium text-text-strong">{language.t("home.empty.title")}</div>

@@ -18,11 +18,10 @@ import { Icon } from "@opencode-ai/ui/icon"
 import { SessionTurn } from "@opencode-ai/ui/session-turn"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import type { AssistantMessage, Message as MessageType, Part, TextPart, UserMessage } from "@opencode-ai/sdk/v2"
-import { Binary } from "@opencode-ai/util/binary"
-import { getFilename } from "@opencode-ai/util/path"
+import { Binary } from "@opencode-ai/shared/util/binary"
+import { getFilename } from "@opencode-ai/shared/util/path"
 import { shouldMarkBoundaryGesture, normalizeWheelDelta } from "@/pages/session/message-gesture"
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh-indicator"
-import { usePlatform } from "@/context/platform"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { useSync } from "@/context/sync"
@@ -254,8 +253,6 @@ export function MessageTimeline(props: {
   let touchGesture: number | undefined
 
   const params = useParams()
-  const platform = usePlatform()
-  const mobile = platform.platform === "ios" || platform.platform === "android"
   const sync = useSync()
   const settings = useSettings()
   const language = useLanguage()
@@ -422,14 +419,12 @@ export function MessageTimeline(props: {
           }}
         >
           <div>
-            <Show when={mobile}>
-              <PullToRefreshIndicator
-                pulling={props.pullToRefresh.pulling}
-                progress={props.pullToRefresh.progress}
-                refreshing={props.pullToRefresh.refreshing}
-                pullDistance={props.pullToRefresh.pullDistance}
-              />
-            </Show>
+            <PullToRefreshIndicator
+              pulling={props.pullToRefresh.pulling}
+              progress={props.pullToRefresh.progress}
+              refreshing={props.pullToRefresh.refreshing}
+              pullDistance={props.pullToRefresh.pullDistance}
+            />
             <div
               ref={props.setContentRef}
               role="log"
@@ -535,8 +530,6 @@ export function MessageTimeline(props: {
                         sessionID={sessionID() ?? ""}
                         messageID={messageID}
                         active={active()}
-                        queued={queued()}
-                        animate={isNew || active()}
                         showReasoningSummaries={settings.general.showReasoningSummaries()}
                         shellToolDefaultOpen={settings.general.shellToolPartsExpanded()}
                         editToolDefaultOpen={settings.general.editToolPartsExpanded()}
@@ -551,14 +544,6 @@ export function MessageTimeline(props: {
                 }}
               </For>
             </div>
-            <Show when={!mobile}>
-              <PullToRefreshIndicator
-                pulling={props.pullToRefresh.pulling}
-                progress={props.pullToRefresh.progress}
-                refreshing={props.pullToRefresh.refreshing}
-                pullDistance={props.pullToRefresh.pullDistance}
-              />
-            </Show>
           </div>
         </ScrollView>
       </div>
