@@ -140,7 +140,7 @@ function text(msg: PushMsg) {
 }
 
 function envMode(opts?: Opts): Mode {
-  const mode = opts?.mode ?? process.env.WHISPEROPENCODE_PUSH_APNS_MODE
+  const mode = opts?.mode ?? process.env.ANEMOS_PUSH_APNS_MODE
   if (mode === "mock" || mode === "disabled" || mode === "live") return mode
   return ready(opts) ? "live" : "disabled"
 }
@@ -168,19 +168,19 @@ function cfg(opts?: Opts): Live | undefined {
 }
 
 function team(opts?: Opts) {
-  return opts?.team ?? process.env.WHISPEROPENCODE_PUSH_APNS_TEAM_ID
+  return opts?.team ?? process.env.ANEMOS_PUSH_APNS_TEAM_ID
 }
 
 function kid(opts?: Opts) {
-  return opts?.kid ?? process.env.WHISPEROPENCODE_PUSH_APNS_KEY_ID
+  return opts?.kid ?? process.env.ANEMOS_PUSH_APNS_KEY_ID
 }
 
 function topic(opts?: Opts) {
-  return opts?.topic ?? process.env.WHISPEROPENCODE_PUSH_APNS_TOPIC
+  return opts?.topic ?? process.env.ANEMOS_PUSH_APNS_TOPIC
 }
 
 function kind(opts?: Opts): "sandbox" | "production" {
-  const value = opts?.env ?? process.env.WHISPEROPENCODE_PUSH_APNS_ENV
+  const value = opts?.env ?? process.env.ANEMOS_PUSH_APNS_ENV
   if (value === "production") return value
   return "sandbox"
 }
@@ -188,9 +188,9 @@ function kind(opts?: Opts): "sandbox" | "production" {
 function pem(opts?: Opts) {
   if (opts?.key) return opts.key
   if (opts?.keyfile) return fs.readFileSync(opts.keyfile, "utf8")
-  if (process.env.WHISPEROPENCODE_PUSH_APNS_KEY) return process.env.WHISPEROPENCODE_PUSH_APNS_KEY
-  if (process.env.WHISPEROPENCODE_PUSH_APNS_KEY_FILE) {
-    return fs.readFileSync(process.env.WHISPEROPENCODE_PUSH_APNS_KEY_FILE, "utf8")
+  if (process.env.ANEMOS_PUSH_APNS_KEY) return process.env.ANEMOS_PUSH_APNS_KEY
+  if (process.env.ANEMOS_PUSH_APNS_KEY_FILE) {
+    return fs.readFileSync(process.env.ANEMOS_PUSH_APNS_KEY_FILE, "utf8")
   }
 }
 

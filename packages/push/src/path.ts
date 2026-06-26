@@ -24,13 +24,13 @@ export function stateDir() {
 }
 
 export function stateFile() {
-  return path.join(stateDir(), "whisperopencode-push.json")
+  return path.join(stateDir(), "anemos-push.json")
 }
 
 export function logFile() {
-  return path.join(stateDir(), "whisperopencode-push.ndjson")
+  return path.join(stateDir(), "anemos-push.ndjson")
 }
 
 export function checkinLockFile() {
-  return path.join(stateDir(), "whisperopencode-push.checkin.lock")
+  return path.join(stateDir(), "anemos-push.checkin.lock")
 }

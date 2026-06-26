@@ -8,11 +8,11 @@ function home() {
 }
 
 export function dir() {
-  const root = process.env.WHISPEROPENCODE_PUSH_RELAY_STATE_DIR || process.env.XDG_STATE_HOME
+  const root = process.env.ANEMOS_PUSH_RELAY_STATE_DIR || process.env.XDG_STATE_HOME
   if (root) return path.join(root, app)
   return path.join(home(), ".local", "state", app)
 }
 
 export function file() {
-  return process.env.WHISPEROPENCODE_PUSH_RELAY_DB || path.join(dir(), "whisperopencode-push-relay.sqlite")
+  return process.env.ANEMOS_PUSH_RELAY_DB || path.join(dir(), "anemos-push-relay.sqlite")
 }

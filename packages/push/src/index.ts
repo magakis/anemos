@@ -11,7 +11,7 @@ const plugin: Plugin = async () => {
       await checkin(data, "plugin")
     })
     .catch(() => {
-      // console.error("whisperopencode-push: init failed")
+      // console.error("anemos-push: init failed")
     })
 
   let run = Promise.resolve()
@@ -36,7 +36,7 @@ const plugin: Plugin = async () => {
                   err: undefined,
                 }
                 // console.info(
-                //   `whisperopencode-push: publish ${res.suppressed ? "suppressed" : "accepted"}`,
+                //   `anemos-push: publish ${res.suppressed ? "suppressed" : "accepted"}`,
                 //   res.reason ?? (res.device_count ? `${res.device_count} device(s)` : ""),
                 // )
               })
@@ -47,13 +47,13 @@ const plugin: Plugin = async () => {
                   result: "failed",
                   err: err instanceof Error ? err.message : String(err),
                 }
-                // console.warn("whisperopencode-push: publish failed", data.relay.err)
+                // console.warn("anemos-push: publish failed", data.relay.err)
               })
           }
           await save(data)
         })
         .catch(() => {
-          // console.error("whisperopencode-push: event failed")
+          // console.error("anemos-push: event failed")
         })
       return run
     },

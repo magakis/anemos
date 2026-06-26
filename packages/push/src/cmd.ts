@@ -309,7 +309,7 @@ async function claimPair(opts: Opts, data: Data) {
 
 function envRelay() {
   return (
-    process.env.WHISPEROPENCODE_PUSH_RELAY_URL ??
+    process.env.ANEMOS_PUSH_RELAY_URL ??
     process.env.OPENCODE_PUSH_RELAY_URL ??
     "https://whisper.clankercontext.com"
   )

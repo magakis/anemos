@@ -3,8 +3,8 @@ import { listen } from "./server"
 
 const srv = listen({
   port: Number(process.env.PORT || 8787),
-  url: process.env.WHISPEROPENCODE_PUSH_RELAY_URL,
-  file: process.env.WHISPEROPENCODE_PUSH_RELAY_DB,
+  url: process.env.ANEMOS_PUSH_RELAY_URL,
+  file: process.env.ANEMOS_PUSH_RELAY_DB,
 })
 
 log("info", "listening", { port: srv.port })

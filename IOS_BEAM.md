@@ -18,7 +18,7 @@ This repo now supports private TestFlight uploads directly from your Mac without
    export ASC_KEY_ID="YOUR_KEY_ID"
    export ASC_ISSUER_ID="YOUR_ISSUER_ID"
    export ASC_KEY_PATH="$HOME/.keys/AuthKey_XXXXXX.p8"
-   export IOS_BUNDLE_ID="com.devgriffin.whispercode"
+   export IOS_BUNDLE_ID="com.anemos.app"
    ```
 
 4. Optional (recommended for SSH/Shortcuts): create `packages/ios/.beam.env` with the same vars so non-interactive shells can still run uploads.
@@ -27,7 +27,7 @@ This repo now supports private TestFlight uploads directly from your Mac without
    ASC_KEY_ID="YOUR_KEY_ID"
    ASC_ISSUER_ID="YOUR_ISSUER_ID"
    ASC_KEY_PATH="$HOME/.keys/AuthKey_XXXXXX.p8"
-   IOS_BUNDLE_ID="com.devgriffin.whispercode"
+   IOS_BUNDLE_ID="com.anemos.app"
    ```
 
 ## Run a private TestFlight upload
