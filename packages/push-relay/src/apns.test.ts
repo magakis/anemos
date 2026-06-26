@@ -43,7 +43,7 @@ describe("push apns", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       env: "sandbox",
       dial: stub(({ url, headers, body }) => {
@@ -72,7 +72,7 @@ describe("push apns", () => {
     expect(res.mode).toBe("live")
     expect(seen[0]?.url).toBe("https://api.sandbox.push.apple.com")
     expect(seen[0]?.path).toBe("/3/device/tok_live")
-    expect(seen[0]?.topic).toBe("dev.whispercode.app")
+    expect(seen[0]?.topic).toBe("com.anemos.app")
     expect(seen[0]?.auth?.startsWith("bearer ")).toBe(true)
     expect(seen[0]?.collapse).toBeNull()
     expect(JSON.parse(seen[0]!.body)).toEqual({
@@ -93,7 +93,7 @@ describe("push apns", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       env: "sandbox",
       dial: stub(({ headers }) => {
@@ -118,7 +118,7 @@ describe("push apns", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       dial: hangStub(),
       timeout: 50,
@@ -134,7 +134,7 @@ describe("push apns", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       dial: stub(() => ({ status: 400, body: { reason: "BadDeviceToken" } })),
     })
@@ -152,7 +152,7 @@ describe("push apns", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       env: "sandbox",
       dial: (origin: string | URL) => {
@@ -175,7 +175,7 @@ describe("push apns", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       env: "sandbox",
       dial: (origin: string | URL) => {
@@ -203,7 +203,7 @@ describe("push apns", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       env: "sandbox",
       dial: (origin: string | URL) => {
@@ -231,7 +231,7 @@ describe("push apns", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       env: "sandbox",
       dial: (origin: string | URL) => {

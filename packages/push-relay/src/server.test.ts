@@ -137,7 +137,7 @@ describe("push relay", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       dial: stub(({ headers }) => {
         callCount++
@@ -215,7 +215,7 @@ describe("push relay", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       dial: stub(({ origin }) => {
         origins.push(origin)
@@ -260,7 +260,7 @@ describe("push relay", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       dial: stub(({ origin }) => {
         origins.push(origin)
@@ -305,7 +305,7 @@ describe("push relay", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       dial: stub(({ origin }) => {
         origins.push(origin)
@@ -349,7 +349,7 @@ describe("push relay", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       dial: stub(() => {
         sendCount++
@@ -434,7 +434,7 @@ describe("push relay", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       dial: stub(() => {
         sendCount++
@@ -510,7 +510,7 @@ describe("push relay", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       dial: stub(() => {
         sendCount++
@@ -697,7 +697,7 @@ describe("push relay", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       dial: stub(() => {
         sendCount++
@@ -767,7 +767,7 @@ describe("push relay", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       dial: stub(() => ({ status: 200 })),
     })
@@ -1200,7 +1200,7 @@ describe("push relay", () => {
       mode: "live",
       team: "TEAM123",
       kid: "KEY123",
-      topic: "dev.whispercode.app",
+      topic: "com.anemos.app",
       key: testkey(),
       dial: stub(({ headers }) => {
         captured.push({ collapse: str(headers["apns-collapse-id"]) })
