@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "@whispercode/push-relay",
+  "name": "@anemos/push-relay",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",

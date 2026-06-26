@@ -32,8 +32,8 @@ describe("push relay", () => {
       })
       expect(start.install_command).toContain(`--pair ${start.pair_token}`)
       expect(start.install_command).toContain(`--relay ${env.root}`)
-      expect(start.install_command).toContain(`--package=@whisperopencode/push`)
-      expect(start.install_command).not.toMatch(/@whisperopencode\/push@\d/)
+      expect(start.install_command).toContain(`--package=@anemos/push`)
+      expect(start.install_command).not.toMatch(/@anemos\/push@\d/)
 
       const claim = await post<Claim>(env.root, "/v1/pair/claim", {
         pair_token: start.pair_token,

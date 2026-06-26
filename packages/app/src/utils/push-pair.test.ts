@@ -402,7 +402,7 @@ describe("runPushSetup", () => {
             id: "pair_1",
             status: "pending" as const,
             token: "tok_1",
-            command: "bunx @whispercode/opencode-push install --pair tok_1",
+            command: "bunx @anemos/push install --pair tok_1",
             expires: new Date(Date.now() + 60_000).toISOString(),
           }),
         }
@@ -454,7 +454,7 @@ describe("runPushSetup", () => {
             id: "pair_1",
             status: "pending" as const,
             token: "tok_1",
-            command: "bunx @whispercode/opencode-push pair --pair tok_1",
+            command: "bunx @anemos/push pair --pair tok_1",
             expires: new Date(Date.now() + 60_000).toISOString(),
           }),
         }
@@ -502,7 +502,7 @@ describe("runPushSetup", () => {
             id: "pair_1",
             status: "pending" as const,
             token: "tok_1",
-            command: "bunx @whispercode/opencode-push pair --pair tok_1",
+            command: "bunx @anemos/push pair --pair tok_1",
             expires: new Date(Date.now() + 60_000).toISOString(),
           }),
         }
@@ -548,7 +548,7 @@ describe("runPushSetup", () => {
             id: "pair_1",
             status: "pending" as const,
             token: "tok_1",
-            command: "bunx @whispercode/opencode-push install --pair tok_1",
+            command: "bunx @anemos/push install --pair tok_1",
             expires: new Date(Date.now() + 60_000).toISOString(),
           }),
         }
@@ -607,7 +607,7 @@ describe("runPushSetup", () => {
             id: "pair_1",
             status: "pending" as const,
             token: "tok_1",
-            command: "bunx @whispercode/opencode-push pair --pair tok_1",
+            command: "bunx @anemos/push pair --pair tok_1",
             expires: new Date(Date.now() + 60_000).toISOString(),
           }),
         }
@@ -630,7 +630,7 @@ describe("runPushSetup", () => {
       {
         runs: [{ out: '{\n  "ok": true,\n  "cmd": "pair"\n}' }],
         pairs: [{ status: "claimed" }],
-        cfg: { plugin: ["@whisperopencode/push@0.2.1"] },
+        cfg: { plugin: ["@anemos/push@0.2.1"] },
       },
       async (next) => {
         const platform = {
@@ -647,7 +647,7 @@ describe("runPushSetup", () => {
             id: "pair_1",
             status: "pending" as const,
             token: "tok_1",
-            command: "bunx @whispercode/opencode-push pair --pair tok_1",
+            command: "bunx @anemos/push pair --pair tok_1",
             expires: new Date(Date.now() + 60_000).toISOString(),
           }),
         }
@@ -717,7 +717,7 @@ describe("runPushSetup", () => {
             id: "pair_1",
             status: "pending" as const,
             token: "tok_1",
-            command: "bunx @whispercode/opencode-push pair --pair tok_1",
+            command: "bunx @anemos/push pair --pair tok_1",
             expires: new Date(Date.now() + 60_000).toISOString(),
           }),
         }

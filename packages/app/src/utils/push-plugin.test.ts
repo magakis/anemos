@@ -28,18 +28,18 @@ describe("push plugin", () => {
   })
 
   test("detects installed package by package name", () => {
-    expect(hasPush(["@whisperopencode/push@0.1.0"])).toBe(true)
+    expect(hasPush(["@anemos/push@0.1.0"])).toBe(true)
     expect(hasPush(["foo@1.0.0"])).toBe(false)
   })
 
   test("treats version-pinned entries as compatible by package name", () => {
     expect(hasPushSpec([PushPlugin.spec])).toBe(true)
-    expect(hasPushSpec(["@whisperopencode/push@0.1.0"])).toBe(true)
+    expect(hasPushSpec(["@anemos/push@0.1.0"])).toBe(true)
     expect(hasPushSpec(["foo@1.0.0"])).toBe(false)
   })
 
   test("adds package idempotently", () => {
-    expect(addPush(["foo@1.0.0", "@whisperopencode/push@0.1.0"])).toEqual(["foo@1.0.0", PushPlugin.spec])
+    expect(addPush(["foo@1.0.0", "@anemos/push@0.1.0"])).toEqual(["foo@1.0.0", PushPlugin.spec])
   })
 
   test("drops package by package name", () => {
@@ -67,8 +67,8 @@ describe("push plugin", () => {
   })
 
   test("uses the relay-issued install command when provided", () => {
-    expect(installPrompt("bunx @whisperopencode/push pair --pair ptok_1")).toBe(
-      "Run this exact command on the machine hosting OpenCode and report whether it succeeded: bunx @whisperopencode/push pair --pair ptok_1",
+    expect(installPrompt("bunx @anemos/push pair --pair ptok_1")).toBe(
+      "Run this exact command on the machine hosting OpenCode and report whether it succeeded: bunx @anemos/push pair --pair ptok_1",
     )
   })
 

@@ -4,7 +4,7 @@ import os from "os"
 import path from "path"
 import { install, pair, status, test as ping, unpair, type Opts } from "./cmd"
 
-const base = (): Opts => ({ plugin: "@whisperopencode/push", json: true })
+const base = (): Opts => ({ plugin: "@anemos/push", json: true })
 
 async function tmp() {
   return fs.mkdtemp(path.join(os.tmpdir(), "push-"))
@@ -49,7 +49,7 @@ describe("push cmd", () => {
 
     const text = await fs.readFile(cfg, "utf8")
     expect(text).toContain('"foo@1.0.0"')
-    expect(text).not.toContain("@whisperopencode/push")
+    expect(text).not.toContain("@anemos/push")
     await srv.stop()
   })
 
@@ -158,7 +158,7 @@ describe("push cmd", () => {
       cfg,
       JSON.stringify(
         {
-          plugin: ["foo@1.0.0", "@whisperopencode/push@0.2.0"],
+          plugin: ["foo@1.0.0", "@anemos/push@0.2.0"],
         },
         null,
         2,
@@ -168,8 +168,8 @@ describe("push cmd", () => {
     await install(base())
 
     const text = await fs.readFile(cfg, "utf8")
-    expect(text).toContain('"@whisperopencode/push"')
-    expect(text).not.toContain("@whisperopencode/push@0.2.0")
+    expect(text).toContain('"@anemos/push"')
+    expect(text).not.toContain("@anemos/push@0.2.0")
     expect(text).toContain('"foo@1.0.0"')
   })
 })
