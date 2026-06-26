@@ -8,8 +8,7 @@
     "typecheck": "tsgo -b",
     "dev": "vite",
     "build": "bun run typecheck && vite build",
-    "preview": "vite preview",
-    "beam": "./script/beam"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@opencode-ai/app": "workspace:*",

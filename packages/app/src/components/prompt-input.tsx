@@ -601,6 +601,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     onCleanup(() => window.removeEventListener("opencode:transcription", handleTranscription))
   })
 
+
   createEffect(() => {
     // UPSTREAM-DIVERGENCE: Listen for the native mobile keyboard accessory action that requests the
     // shared prompt editor to delete the previous word without forking this component.
