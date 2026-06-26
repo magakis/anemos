@@ -1,4 +1,4 @@
-package com.devgriffin.whispercode
+package com.anemos.app
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Android build-and-install script for WhisperCode
+# Android build-and-install script for Anemos
 # Usage: ./build-and-install.sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -40,4 +40,4 @@ echo "==> Installing on device..."
 adb install -r "$APK"
 
 echo "==> Done! Launching app..."
-adb shell am start -n com.devgriffin.whispercode/.MainActivity
+adb shell am start -n com.anemos.app/.MainActivity

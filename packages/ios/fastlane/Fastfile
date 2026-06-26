@@ -3,11 +3,11 @@ default_platform(:ios)
 platform :ios do
   desc "Build and upload a private TestFlight build"
   lane :beam do
-    proj = "WhisperCode/WhisperCode.xcodeproj"
-    sch = "WhisperCode"
-    bid = ENV["IOS_BUNDLE_ID"] || "com.devgriffin.whispercode"
+    proj = "OpenCode/OpenCode.xcodeproj"
+    sch = "OpenCode"
+    bid = ENV["IOS_BUNDLE_ID"] || "com.anemos.app"
     out = "build"
-    ipa = "#{out}/WhisperCode.ipa"
+    ipa = "#{out}/OpenCode.ipa"
     num = Time.now.utc.strftime("%Y%m%d%H%M%S")
     version = ENV["BEAM_MARKETING_VERSION"] || ENV["MARKETING_VERSION"]
     xcargs = ["CURRENT_PROJECT_VERSION=#{num}"]
@@ -36,7 +36,7 @@ platform :ios do
       export_method: "app-store",
       clean: true,
       output_directory: out,
-      output_name: "WhisperCode.ipa",
+      output_name: "OpenCode.ipa",
       xcargs: xcargs.join(" ")
     )
 

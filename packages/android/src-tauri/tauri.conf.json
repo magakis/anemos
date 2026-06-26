@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "WhisperCode",
-  "identifier": "com.devgriffin.whispercode",
+  "productName": "Anemos",
+  "identifier": "com.anemos.app",
   "version": "../package.json",
   "build": {
     "beforeDevCommand": "bun run dev",

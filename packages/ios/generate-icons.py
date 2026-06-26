@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate 1024x1024 app icon PNGs for WhisperCode.
+"""Generate 1024x1024 app icon PNGs for Anemos.
 
 Draws the pixel-art "W" mark at 2x scale (512→1024) using Pillow.
 No SVG rasterizer needed — all shapes are axis-aligned rectangles.
@@ -58,7 +58,7 @@ def main():
 
     out_dir = os.path.join(
         os.path.dirname(__file__),
-        "WhisperCode", "WhisperCode", "Assets.xcassets",
+        "OpenCode", "OpenCode", "Assets.xcassets",
         "AppIcon.appiconset",
     )
     os.makedirs(out_dir, exist_ok=True)
