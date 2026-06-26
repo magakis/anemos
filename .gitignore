@@ -36,3 +36,6 @@ todo.md
 *.internal.md
 *.tgz
 script/deploy-relay
+
+# Binary artifacts
+*.apk
