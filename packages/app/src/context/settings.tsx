@@ -5,7 +5,7 @@ import { usePlatform } from "@/context/platform"
 import { persisted } from "@/utils/persist"
 
 // UPSTREAM-DIVERGENCE-FILE: This file was updated after upstream sync 6b9ce5e63 to add the speech locale
-// settings surface plus platform pushdown/pull of speech locale for WhisperCode mobile voice input flows.
+// settings surface plus platform pushdown/pull of speech locale for Anemos mobile voice input flows.
 
 export interface NotificationSettings {
   agent: boolean

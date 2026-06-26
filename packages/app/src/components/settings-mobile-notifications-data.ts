@@ -1,4 +1,4 @@
-// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63 for WhisperCode mobile push setup.
+// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63 for Anemos mobile push setup.
 // Preserve these diagnostic row helpers when upstream changes settings rendering.
 
 import type { PairState, PushDiag, PushState } from "@/context/platform"

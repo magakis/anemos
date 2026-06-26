@@ -96,7 +96,7 @@ function AppShellProviders(props: ParentProps) {
   return (
     <SettingsProvider>
       <PermissionProvider>
-        {/* UPSTREAM-DIVERGENCE: WhisperCode inserts push relay/pair providers ahead of Layout so the
+        {/* UPSTREAM-DIVERGENCE: Anemos inserts push relay/pair providers ahead of Layout so the
             shared app package can serve iOS/Android pairing flows without forking the route tree. */}
         <PushRelayProvider>
           <PushPairProvider>

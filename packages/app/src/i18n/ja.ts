@@ -1,4 +1,4 @@
-// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the WhisperCode mobile refresh,
+// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the Anemos mobile refresh,
 // phone settings tab, and push-notification keys when merging upstream locale updates.
 
 export const dict = {
@@ -562,8 +562,8 @@ export const dict = {
   "app.name.desktop": "OpenCode Desktop",
   "settings.section.desktop": "デスクトップ",
   "settings.section.server": "サーバー",
-  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the WhisperCode phone tab.
-  "settings.section.whispercode": "WhisperCode",
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.anemos": "Anemos",
   "settings.section.mobile": "モバイル",
   "settings.tab.general": "一般",
   "settings.tab.shortcuts": "ショートカット",
@@ -678,12 +678,12 @@ export const dict = {
   // UPSTREAM-DIVERGENCE: Fork-only mobile push permission, relay, pairing, diagnostics, and routing
   // strings used by the shared app package and native wrappers.
   "settings.general.notifications.push.permission.title": "プッシュ通知の許可",
-  "settings.general.notifications.push.permission.pending": "WhisperCodeがこのiPhoneで通知を表示できるか確認中です",
+  "settings.general.notifications.push.permission.pending": "AnemosがこのiPhoneで通知を表示できるか確認中です",
   "settings.general.notifications.push.permission.notDetermined":
     "応答、承認、質問、エラーの汎用アラートを有効にします",
-  "settings.general.notifications.push.permission.denied": "iPhoneの設定アプリでWhisperCodeの通知をオンにしてください",
+  "settings.general.notifications.push.permission.denied": "iPhoneの設定アプリでAnemosの通知をオンにしてください",
   "settings.general.notifications.push.permission.registering":
-    "許可が付与されました。WhisperCodeがAppleへの登録を完了しています。",
+    "許可が付与されました。AnemosがAppleへの登録を完了しています。",
   "settings.general.notifications.push.permission.authorized": "このiPhoneで汎用アラートの準備ができています",
   "settings.general.notifications.push.permission.provisional": "このiPhoneで静かな汎用アラートの準備ができています",
   "settings.general.notifications.push.permission.ephemeral": "このiPhoneで一時的な汎用アラートの準備ができています",
@@ -694,7 +694,7 @@ export const dict = {
   "settings.general.notifications.push.generic.value": "汎用のみ",
   "settings.general.notifications.push.test.title": "テスト通知を送信",
   "settings.general.notifications.push.test.description":
-    "接続されたOpenCodeホストからリレー経由のアラートを送信し、タップするとWhisperCodeに戻ることを確認します",
+    "接続されたOpenCodeホストからリレー経由のアラートを送信し、タップするとAnemosに戻ることを確認します",
   "settings.general.notifications.push.relay.title": "プッシュリレー",
   "settings.general.notifications.push.relay.description.custom":
     "ペアリングとバックグラウンドプッシュ配信にカスタムリレーURLを使用しています: {url}",
@@ -707,13 +707,13 @@ export const dict = {
   "settings.general.notifications.push.pairing.pending":
     "このiPhoneがプッシュチャネルにペアリングされているか確認中です。",
   "settings.general.notifications.push.pairing.server":
-    "WhisperCodeがペアリングを完了できるよう、まずOpenCodeサーバーに接続してください。",
+    "Anemosがペアリングを完了できるよう、まずOpenCodeサーバーに接続してください。",
   "settings.general.notifications.push.pairing.unpaired":
-    "「セットアップ」を一度タップすると、WhisperCodeが許可の要求、ホスト連携のインストール、このiPhoneのペアリングを自動的に行います。",
+    "「セットアップ」を一度タップすると、Anemosが許可の要求、ホスト連携のインストール、このiPhoneのペアリングを自動的に行います。",
   "settings.general.notifications.push.pairing.paired":
-    "このiPhoneはOpenCodeホストにペアリングされています。接続がずれた場合、WhisperCodeが自動的に修復します。",
+    "このiPhoneはOpenCodeホストにペアリングされています。接続がずれた場合、Anemosが自動的に修復します。",
   "settings.general.notifications.push.pairing.retry":
-    "WhisperCodeはこのiPhoneのホストペアリングを完了中で、定着するまで再試行を続けます。",
+    "AnemosはこのiPhoneのホストペアリングを完了中で、定着するまで再試行を続けます。",
   "settings.general.notifications.push.pairing.step.permission": "iPhoneの設定から通知許可を要求しています。",
   "settings.general.notifications.push.pairing.step.register": "Appleプッシュ登録の完了を待っています。",
   "settings.general.notifications.push.pairing.step.begin":
@@ -731,7 +731,7 @@ export const dict = {
     "保存されたプッシュチャネルの認証情報がこのiPhoneから削除されました。",
   "settings.general.notifications.push.pairing.toast.paired.title": "iPhoneがペアリングされました",
   "settings.general.notifications.push.pairing.toast.paired.description":
-    "WhisperCodeはこのiPhoneをOpenCodeホストに接続してプッシュ配信を維持できるようになりました。",
+    "AnemosはこのiPhoneをOpenCodeホストに接続してプッシュ配信を維持できるようになりました。",
   "settings.general.notifications.push.action.enable": "有効にする",
   "settings.general.notifications.push.action.openSettings": "設定を開く",
   "settings.general.notifications.push.action.enabled": "有効",
@@ -754,27 +754,27 @@ export const dict = {
   "settings.general.notifications.push.host.action.removing": "削除中...",
   "settings.general.notifications.push.host.toast.installed.title": "ホストプラグインが追加されました",
   "settings.general.notifications.push.host.toast.installed.description":
-    "OpenCodeグローバル設定にWhisperCodeプッシュプラグインが含まれるようになりました。",
+    "OpenCodeグローバル設定にAnemosプッシュプラグインが含まれるようになりました。",
   "settings.general.notifications.push.host.toast.removed.title": "ホストプラグインが削除されました",
   "settings.general.notifications.push.host.toast.removed.description":
-    "OpenCodeグローバル設定からWhisperCodeプッシュプラグインが削除されました。",
+    "OpenCodeグローバル設定からAnemosプッシュプラグインが削除されました。",
   "settings.general.notifications.push.host.toast.copied.title": "インストーラーコマンドがコピーされました",
   "settings.general.notifications.push.host.toast.copied.description":
     "OpenCodeをホストしているマシンでコピーしたコマンドを実行してください。",
   "settings.general.notifications.push.host.toast.copyFailed.title": "インストーラーコマンドをコピーできませんでした",
   "settings.general.notifications.push.host.toast.copyFailed.description":
-    "WhisperCodeからコマンドを手動でコピーし、OpenCodeホストで実行してください。",
+    "Anemosからコマンドを手動でコピーし、OpenCodeホストで実行してください。",
   "settings.general.notifications.push.toast.sent.title": "テスト通知がスケジュールされました",
   "settings.general.notifications.push.toast.sent.description":
     "iPhoneをロックするかアプリを開いたままにして、バナーとタップの動作を確認してください。",
   "settings.general.notifications.push.toast.failed.title": "テスト通知を送信できませんでした",
   "settings.general.notifications.push.toast.failed.description":
-    "WhisperCodeのiPhone通知を有効にしてから再度お試しください。",
+    "AnemosのiPhone通知を有効にしてから再度お試しください。",
   "notification.push.route.title": "OpenCode通知",
-  "notification.push.route.server": "WhisperCodeはまだこの通知を接続済みサーバーに関連付けることができませんでした。",
+  "notification.push.route.server": "Anemosはまだこの通知を接続済みサーバーに関連付けることができませんでした。",
   "notification.push.route.session":
-    "WhisperCodeはまだそのセッションを復元できなかったため、サーバーホームを開きました。",
-  "settings.whispercode.mobile.unavailable": "このタブはWhisperCodeモバイルビルドで利用可能です。",
+    "Anemosはまだそのセッションを復元できなかったため、サーバーホームを開きました。",
+  "settings.whispercode.mobile.unavailable": "このタブはAnemosモバイルビルドで利用可能です。",
   "settings.general.sounds.agent.title": "エージェント",
   "settings.general.sounds.agent.description": "エージェントが完了したか、注意が必要な場合に音を再生します",
   "settings.general.sounds.permissions.title": "権限",

@@ -142,9 +142,9 @@ export function Onboarding(props: OnboardingProps) {
         <div class="flex flex-col items-center text-center max-w-sm w-full gap-6">
           <Logo class="w-32 opacity-80" />
           <div class="flex flex-col gap-2">
-            <h1 class="text-2xl font-semibold text-text-strong">Welcome to WhisperCode</h1>
+            <h1 class="text-2xl font-semibold text-text-strong">Welcome to Anemos</h1>
             <p class="text-text-weak text-14-regular leading-relaxed">
-              WhisperCode connects to an OpenCode server running on your development machine. We&apos;ll help you get
+              Anemos connects to an OpenCode server running on your development machine. We&apos;ll help you get
               set up.
             </p>
           </div>

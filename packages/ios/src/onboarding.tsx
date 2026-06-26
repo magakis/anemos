@@ -254,11 +254,11 @@ export function Onboarding(props: OnboardingProps) {
     <div class="flex flex-col items-center justify-center min-h-screen px-6 py-12 bg-bg-base">
       <Show when={step() === 0}>
         <div class="flex flex-col items-center text-center max-w-sm w-full gap-6">
-          <img src={appIcon} alt="WhisperCode" class="w-20 h-20 rounded-2xl" />
+          <img src={appIcon} alt="Anemos" class="w-20 h-20 rounded-2xl" />
           <div class="flex flex-col gap-2">
-            <h1 class="text-2xl font-semibold text-text-strong">Welcome to WhisperCode</h1>
+            <h1 class="text-2xl font-semibold text-text-strong">Welcome to Anemos</h1>
             <p class="text-text-weak text-14-regular leading-relaxed">
-              WhisperCode connects to an OpenCode server running on your development machine. We'll help you get set up.
+              Anemos connects to an OpenCode server running on your development machine. We'll help you get set up.
             </p>
           </div>
           <Button variant="primary" size="large" class="w-full mt-4" onClick={() => setStep(1)}>
@@ -444,7 +444,7 @@ export function Onboarding(props: OnboardingProps) {
           <div class="flex flex-col gap-2 text-center">
             <h2 class="text-xl font-semibold text-text-strong">Enable Notifications</h2>
             <p class="text-text-weak text-14-regular leading-relaxed">
-              Get notified when your agent needs attention or finishes a task. To deliver notifications, WhisperCode
+              Get notified when your agent needs attention or finishes a task. To deliver notifications, Anemos
               installs an OpenCode plugin on your server. You can skip this for now and enable it later in Settings.
             </p>
           </div>
@@ -468,7 +468,7 @@ export function Onboarding(props: OnboardingProps) {
                 {notif.run
                   ? phaseText(notif.phase)
                   : (notif.issue?.message ??
-                    "WhisperCode will request iPhone permission, install the host plugin, and pair this iPhone before you continue.")}
+                    "Anemos will request iPhone permission, install the host plugin, and pair this iPhone before you continue.")}
               </span>
               <Show when={notif.issue?.detail}>
                 {(text) => <div class="text-12-regular text-text-dimmed break-words">{text()}</div>}

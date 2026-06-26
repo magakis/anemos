@@ -651,7 +651,7 @@ export function DialogSelectServer() {
                 </code>{" "}
                 <a
                   class="external-link text-text-link underline"
-                  href="https://github.com/DNGriffin/whispercode?tab=readme-ov-file#quick-start"
+                  href="https://github.com/anemos/anemos"
                 >
                   Quick Start Guide
                 </a>

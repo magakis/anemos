@@ -1,4 +1,4 @@
-// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the WhisperCode mobile refresh,
+// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the Anemos mobile refresh,
 // phone settings tab, and push-notification keys when merging upstream locale updates.
 
 import { dict as en } from "./en"
@@ -615,8 +615,8 @@ export const dict = {
   "app.name.desktop": "OpenCode Desktop",
   "settings.section.desktop": "桌面",
   "settings.section.server": "伺服器",
-  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the WhisperCode phone tab.
-  "settings.section.whispercode": "WhisperCode",
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.anemos": "Anemos",
   "settings.section.mobile": "行動裝置",
   "settings.tab.general": "一般",
   "settings.tab.shortcuts": "快速鍵",
@@ -729,10 +729,10 @@ export const dict = {
   // UPSTREAM-DIVERGENCE: Fork-only mobile push permission, relay, pairing, diagnostics, and routing
   // strings used by the shared app package and native wrappers.
   "settings.general.notifications.push.permission.title": "推播權限",
-  "settings.general.notifications.push.permission.pending": "正在檢查 WhisperCode 能否在此 iPhone 上顯示通知",
+  "settings.general.notifications.push.permission.pending": "正在檢查 Anemos 能否在此 iPhone 上顯示通知",
   "settings.general.notifications.push.permission.notDetermined": "啟用通用提醒，以接收回覆、核准、問題和錯誤通知",
-  "settings.general.notifications.push.permission.denied": "請在 iPhone 設定 App 中為 WhisperCode 開啟通知",
-  "settings.general.notifications.push.permission.registering": "權限已授予。WhisperCode 正在完成 Apple 註冊。",
+  "settings.general.notifications.push.permission.denied": "請在 iPhone 設定 App 中為 Anemos 開啟通知",
+  "settings.general.notifications.push.permission.registering": "權限已授予。Anemos 正在完成 Apple 註冊。",
   "settings.general.notifications.push.permission.authorized": "此 iPhone 已準備好接收通用提醒",
   "settings.general.notifications.push.permission.provisional": "此 iPhone 已準備好接收靜默通用提醒",
   "settings.general.notifications.push.permission.ephemeral": "此 iPhone 已準備好接收臨時通用提醒",
@@ -743,7 +743,7 @@ export const dict = {
   "settings.general.notifications.push.generic.value": "僅通用",
   "settings.general.notifications.push.test.title": "傳送測試通知",
   "settings.general.notifications.push.test.description":
-    "從已連線的 OpenCode 主機傳送中繼推播提醒，並驗證點擊後能否返回 WhisperCode",
+    "從已連線的 OpenCode 主機傳送中繼推播提醒，並驗證點擊後能否返回 Anemos",
   "settings.general.notifications.push.relay.title": "推播中繼",
   "settings.general.notifications.push.relay.description.custom": "正在使用自訂中繼 URL 進行配對和背景推播投遞：{url}",
   "settings.general.notifications.push.relay.description.guess": "預設使用已連線伺服器主機的 8787 連接埠：{url}",
@@ -752,12 +752,12 @@ export const dict = {
   "settings.general.notifications.push.relay.action.auto": "使用預設",
   "settings.general.notifications.push.pairing.title": "手機配對",
   "settings.general.notifications.push.pairing.pending": "正在檢查此 iPhone 是否已配對到推播通道。",
-  "settings.general.notifications.push.pairing.server": "請先連線到 OpenCode 伺服器，以便 WhisperCode 完成配對。",
+  "settings.general.notifications.push.pairing.server": "請先連線到 OpenCode 伺服器，以便 Anemos 完成配對。",
   "settings.general.notifications.push.pairing.unpaired":
-    "點擊「設定」一次，WhisperCode 將要求權限、安裝主機整合並自動配對此 iPhone。",
+    "點擊「設定」一次，Anemos 將要求權限、安裝主機整合並自動配對此 iPhone。",
   "settings.general.notifications.push.pairing.paired":
-    "此 iPhone 已與你的 OpenCode 主機配對。如果連線偏移，WhisperCode 將自動修復。",
-  "settings.general.notifications.push.pairing.retry": "WhisperCode 正在為此 iPhone 完成主機配對，將持續重試直到成功。",
+    "此 iPhone 已與你的 OpenCode 主機配對。如果連線偏移，Anemos 將自動修復。",
+  "settings.general.notifications.push.pairing.retry": "Anemos 正在為此 iPhone 完成主機配對，將持續重試直到成功。",
   "settings.general.notifications.push.pairing.step.permission": "正在從 iPhone 設定要求通知權限。",
   "settings.general.notifications.push.pairing.step.register": "正在等待 Apple 推播註冊完成。",
   "settings.general.notifications.push.pairing.step.begin": "正在為此 iPhone 準備安全配對請求。",
@@ -773,7 +773,7 @@ export const dict = {
   "settings.general.notifications.push.pairing.toast.cleared.description": "已從此 iPhone 移除儲存的推播通道憑證。",
   "settings.general.notifications.push.pairing.toast.paired.title": "iPhone 已配對",
   "settings.general.notifications.push.pairing.toast.paired.description":
-    "WhisperCode 現在可以保持此 iPhone 與 OpenCode 主機的連線以進行推播投遞。",
+    "Anemos 現在可以保持此 iPhone 與 OpenCode 主機的連線以進行推播投遞。",
   "settings.general.notifications.push.action.enable": "啟用",
   "settings.general.notifications.push.action.openSettings": "開啟設定",
   "settings.general.notifications.push.action.enabled": "已啟用",
@@ -794,24 +794,24 @@ export const dict = {
   "settings.general.notifications.push.host.action.removing": "移除中...",
   "settings.general.notifications.push.host.toast.installed.title": "主機外掛程式已新增",
   "settings.general.notifications.push.host.toast.installed.description":
-    "OpenCode 全域設定現已包含 WhisperCode 推播外掛程式。",
+    "OpenCode 全域設定現已包含 Anemos 推播外掛程式。",
   "settings.general.notifications.push.host.toast.removed.title": "主機外掛程式已移除",
   "settings.general.notifications.push.host.toast.removed.description":
-    "OpenCode 全域設定不再包含 WhisperCode 推播外掛程式。",
+    "OpenCode 全域設定不再包含 Anemos 推播外掛程式。",
   "settings.general.notifications.push.host.toast.copied.title": "安裝命令已複製",
   "settings.general.notifications.push.host.toast.copied.description": "在託管 OpenCode 的機器上執行已複製的命令。",
   "settings.general.notifications.push.host.toast.copyFailed.title": "無法複製安裝命令",
   "settings.general.notifications.push.host.toast.copyFailed.description":
-    "請從 WhisperCode 手動複製命令並在 OpenCode 主機上執行。",
+    "請從 Anemos 手動複製命令並在 OpenCode 主機上執行。",
   "settings.general.notifications.push.toast.sent.title": "測試通知已排程",
   "settings.general.notifications.push.toast.sent.description":
     "鎖定你的 iPhone 或保持應用程式開啟，以驗證橫幅和點擊流程。",
   "settings.general.notifications.push.toast.failed.title": "無法傳送測試通知",
-  "settings.general.notifications.push.toast.failed.description": "請為 WhisperCode 啟用 iPhone 通知後重試。",
+  "settings.general.notifications.push.toast.failed.description": "請為 Anemos 啟用 iPhone 通知後重試。",
   "notification.push.route.title": "OpenCode 通知",
-  "notification.push.route.server": "WhisperCode 暫時無法將此通知配對到已連線的伺服器。",
-  "notification.push.route.session": "WhisperCode 暫時無法還原該工作階段，已開啟伺服器首頁。",
-  "settings.whispercode.mobile.unavailable": "此分頁在 WhisperCode 行動版本中可用。",
+  "notification.push.route.server": "Anemos 暫時無法將此通知配對到已連線的伺服器。",
+  "notification.push.route.session": "Anemos 暫時無法還原該工作階段，已開啟伺服器首頁。",
+  "settings.whispercode.mobile.unavailable": "此分頁在 Anemos 行動版本中可用。",
 
   "settings.general.sounds.agent.title": "代理程式",
   "settings.general.sounds.agent.description": "當代理程式完成或需要注意時播放聲音",

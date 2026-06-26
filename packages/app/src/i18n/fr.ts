@@ -1,4 +1,4 @@
-// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the WhisperCode mobile refresh,
+// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the Anemos mobile refresh,
 // phone settings tab, and push-notification keys when merging upstream locale updates.
 
 export const dict = {
@@ -571,8 +571,8 @@ export const dict = {
   "app.name.desktop": "OpenCode Desktop",
   "settings.section.desktop": "Bureau",
   "settings.section.server": "Serveur",
-  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the WhisperCode phone tab.
-  "settings.section.whispercode": "WhisperCode",
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.anemos": "Anemos",
   "settings.section.mobile": "Mobile",
   "settings.tab.general": "Général",
   "settings.tab.shortcuts": "Raccourcis",
@@ -690,13 +690,13 @@ export const dict = {
   // strings used by the shared app package and native wrappers.
   "settings.general.notifications.push.permission.title": "Autorisation push",
   "settings.general.notifications.push.permission.pending":
-    "Vérification de la capacité de WhisperCode à afficher des notifications sur cet iPhone",
+    "Vérification de la capacité de Anemos à afficher des notifications sur cet iPhone",
   "settings.general.notifications.push.permission.notDetermined":
     "Activer les alertes génériques pour les réponses, approbations, questions et erreurs",
   "settings.general.notifications.push.permission.denied":
-    "Activez les notifications pour WhisperCode dans les Réglages de l'iPhone",
+    "Activez les notifications pour Anemos dans les Réglages de l'iPhone",
   "settings.general.notifications.push.permission.registering":
-    "L'autorisation est accordée. WhisperCode finalise l'inscription auprès d'Apple.",
+    "L'autorisation est accordée. Anemos finalise l'inscription auprès d'Apple.",
   "settings.general.notifications.push.permission.authorized": "Prêt pour les alertes génériques sur cet iPhone",
   "settings.general.notifications.push.permission.provisional":
     "Prêt pour les alertes génériques silencieuses sur cet iPhone",
@@ -710,7 +710,7 @@ export const dict = {
   "settings.general.notifications.push.generic.value": "Génériques uniquement",
   "settings.general.notifications.push.test.title": "Envoyer une notification de test",
   "settings.general.notifications.push.test.description":
-    "Envoyer une alerte relayée depuis l'hôte OpenCode connecté et vérifier que le tapotement vous ramène vers WhisperCode",
+    "Envoyer une alerte relayée depuis l'hôte OpenCode connecté et vérifier que le tapotement vous ramène vers Anemos",
   "settings.general.notifications.push.relay.title": "Relais push",
   "settings.general.notifications.push.relay.description.custom":
     "Utilisation d'une URL de relais personnalisée pour l'appairage et la livraison push en arrière-plan : {url}",
@@ -722,13 +722,13 @@ export const dict = {
   "settings.general.notifications.push.pairing.title": "Appairage du téléphone",
   "settings.general.notifications.push.pairing.pending": "Vérification de l'appairage de cet iPhone à un canal push.",
   "settings.general.notifications.push.pairing.server":
-    "Connectez-vous d'abord à un serveur OpenCode pour que WhisperCode puisse finaliser l'appairage.",
+    "Connectez-vous d'abord à un serveur OpenCode pour que Anemos puisse finaliser l'appairage.",
   "settings.general.notifications.push.pairing.unpaired":
-    "Appuyez une fois sur Configurer et WhisperCode demandera l'autorisation, installera l'intégration hôte et appairera cet iPhone automatiquement.",
+    "Appuyez une fois sur Configurer et Anemos demandera l'autorisation, installera l'intégration hôte et appairera cet iPhone automatiquement.",
   "settings.general.notifications.push.pairing.paired":
-    "Cet iPhone est appairé à votre hôte OpenCode. WhisperCode réparera automatiquement la connexion si elle se dégrade.",
+    "Cet iPhone est appairé à votre hôte OpenCode. Anemos réparera automatiquement la connexion si elle se dégrade.",
   "settings.general.notifications.push.pairing.retry":
-    "WhisperCode finalise l'appairage hôte de cet iPhone et continuera de réessayer jusqu'à ce que cela fonctionne.",
+    "Anemos finalise l'appairage hôte de cet iPhone et continuera de réessayer jusqu'à ce que cela fonctionne.",
   "settings.general.notifications.push.pairing.step.permission":
     "Demande de l'autorisation de notification depuis les Réglages de l'iPhone.",
   "settings.general.notifications.push.pairing.step.register": "En attente de la fin de l'inscription push Apple.",
@@ -747,7 +747,7 @@ export const dict = {
     "Les identifiants du canal push stockés ont été supprimés de cet iPhone.",
   "settings.general.notifications.push.pairing.toast.paired.title": "iPhone appairé",
   "settings.general.notifications.push.pairing.toast.paired.description":
-    "WhisperCode peut maintenant maintenir cet iPhone connecté à l'hôte OpenCode pour la livraison push.",
+    "Anemos peut maintenant maintenir cet iPhone connecté à l'hôte OpenCode pour la livraison push.",
   "settings.general.notifications.push.action.enable": "Activer",
   "settings.general.notifications.push.action.openSettings": "Ouvrir les Réglages",
   "settings.general.notifications.push.action.enabled": "Activé",
@@ -770,27 +770,27 @@ export const dict = {
   "settings.general.notifications.push.host.action.removing": "Suppression...",
   "settings.general.notifications.push.host.toast.installed.title": "Plugin hôte ajouté",
   "settings.general.notifications.push.host.toast.installed.description":
-    "La configuration globale OpenCode inclut maintenant le plugin push WhisperCode.",
+    "La configuration globale OpenCode inclut maintenant le plugin push Anemos.",
   "settings.general.notifications.push.host.toast.removed.title": "Plugin hôte supprimé",
   "settings.general.notifications.push.host.toast.removed.description":
-    "La configuration globale OpenCode n'inclut plus le plugin push WhisperCode.",
+    "La configuration globale OpenCode n'inclut plus le plugin push Anemos.",
   "settings.general.notifications.push.host.toast.copied.title": "Commande d'installation copiée",
   "settings.general.notifications.push.host.toast.copied.description":
     "Exécutez la commande copiée sur la machine hébergeant OpenCode.",
   "settings.general.notifications.push.host.toast.copyFailed.title": "Impossible de copier la commande d'installation",
   "settings.general.notifications.push.host.toast.copyFailed.description":
-    "Copiez la commande manuellement depuis WhisperCode et exécutez-la sur l'hôte OpenCode.",
+    "Copiez la commande manuellement depuis Anemos et exécutez-la sur l'hôte OpenCode.",
   "settings.general.notifications.push.toast.sent.title": "Notification de test programmée",
   "settings.general.notifications.push.toast.sent.description":
     "Verrouillez votre iPhone ou laissez l'application ouverte pour vérifier la bannière et le flux de tapotement.",
   "settings.general.notifications.push.toast.failed.title": "Impossible d'envoyer la notification de test",
   "settings.general.notifications.push.toast.failed.description":
-    "Activez les notifications iPhone pour WhisperCode et réessayez.",
+    "Activez les notifications iPhone pour Anemos et réessayez.",
   "notification.push.route.title": "Notification OpenCode",
-  "notification.push.route.server": "WhisperCode n'a pas encore pu associer cette notification à un serveur connecté.",
+  "notification.push.route.server": "Anemos n'a pas encore pu associer cette notification à un serveur connecté.",
   "notification.push.route.session":
-    "WhisperCode n'a pas encore pu restaurer cette session et a ouvert l'accueil du serveur.",
-  "settings.whispercode.mobile.unavailable": "Cet onglet est disponible sur les versions mobiles de WhisperCode.",
+    "Anemos n'a pas encore pu restaurer cette session et a ouvert l'accueil du serveur.",
+  "settings.whispercode.mobile.unavailable": "Cet onglet est disponible sur les versions mobiles de Anemos.",
   "settings.general.sounds.agent.title": "Agent",
   "settings.general.sounds.agent.description": "Jouer un son lorsque l'agent a terminé ou nécessite une attention",
   "settings.general.sounds.permissions.title": "Permissions",

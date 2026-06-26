@@ -1,4 +1,4 @@
-// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63 for WhisperCode's relay-backed mobile
+// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63 for Anemos's relay-backed mobile
 // pairing workflow. Future upstream merges must preserve the host install, claim, and repair flow.
 
 import type { PairInfo, Platform, PushState } from "@/context/platform"
@@ -347,14 +347,14 @@ export function pushIssue(push?: PushState): PushIssue | undefined {
     return issue("unsupported", "Notifications are unavailable on this device.")
   }
   if (push?.permission === "denied") {
-    return issue("permission_denied", "Turn on notifications for WhisperCode in the iPhone Settings app.")
+    return issue("permission_denied", "Turn on notifications for Anemos in the iPhone Settings app.")
   }
 
   switch (push?.diag?.lastCode) {
     case "apns_register_failed":
       return issue("apns_register_failed", "Apple push registration failed. Try again in a moment.")
     case "missing_token":
-      return issue("missing_token", "WhisperCode could not get an Apple push token yet. Try again in a moment.")
+      return issue("missing_token", "Anemos could not get an Apple push token yet. Try again in a moment.")
     case "bad_relay":
       return issue("relay_invalid", "The push relay URL is invalid.")
     case "relay_rate_limited":
@@ -408,10 +408,10 @@ function errIssue(err: unknown, push?: PushState, phase?: PushPhase): PushIssue 
   const message = text(err).trim()
   const lower = message.toLowerCase()
 
-  if (lower.includes("turn on notifications for whispercode")) {
+  if (lower.includes("turn on notifications for anemos")) {
     return issue("permission_denied", message)
   }
-  if (lower.includes("enable notifications for whispercode")) {
+  if (lower.includes("enable notifications for anemos")) {
     return issue(push?.permission === "denied" ? "permission_denied" : "permission_required", message)
   }
   if (lower.includes("apns registration failed")) {
@@ -421,7 +421,7 @@ function errIssue(err: unknown, push?: PushState, phase?: PushPhase): PushIssue 
     return issue("apns_register_timeout", message)
   }
   if (lower.includes("apns token unavailable")) {
-    return issue("missing_token", "WhisperCode could not get an Apple push token yet. Try again in a moment.")
+    return issue("missing_token", "Anemos could not get an Apple push token yet. Try again in a moment.")
   }
   if (lower.includes("apple push token")) {
     return issue("missing_token", message)
@@ -468,7 +468,7 @@ function errIssue(err: unknown, push?: PushState, phase?: PushPhase): PushIssue 
   if (next) return next
 
   if (phase === "register") {
-    return issue("apns_register_timeout", message || "WhisperCode is still waiting for Apple push registration.")
+    return issue("apns_register_timeout", message || "Anemos is still waiting for Apple push registration.")
   }
 
   return issue("unknown", message || "Notification setup failed. Try again.")
@@ -501,17 +501,17 @@ async function waitPush(input: PushSetupInput) {
       throw new PushFail(issue)
     }
     if (push?.permission === "denied") {
-      throw fail("permission_denied", "Turn on notifications for WhisperCode in the iPhone Settings app.")
+      throw fail("permission_denied", "Turn on notifications for Anemos in the iPhone Settings app.")
     }
     if (push?.allowed && push.registered) return push
     if (Date.now() >= end) {
       if (!push?.allowed) {
-        throw fail("permission_required", "Enable notifications for WhisperCode to finish setup.")
+        throw fail("permission_required", "Enable notifications for Anemos to finish setup.")
       }
       if (issue) {
         throw new PushFail(issue)
       }
-      throw fail("apns_register_timeout", "WhisperCode is still waiting for Apple push registration.")
+      throw fail("apns_register_timeout", "Anemos is still waiting for Apple push registration.")
     }
     await wait(WAIT_GAP)
   }
@@ -1217,10 +1217,10 @@ export async function runPushSetup(input: PushSetupInput): Promise<PushSetupResu
 
     if (!push?.allowed) {
       if (push?.permission === "denied") {
-        throw fail("permission_denied", "Turn on notifications for WhisperCode in the iPhone Settings app.")
+        throw fail("permission_denied", "Turn on notifications for Anemos in the iPhone Settings app.")
       }
       if (!input.ask || !platform.requestPushPermission) {
-        throw fail("permission_required", "Enable notifications for WhisperCode to finish setup.")
+        throw fail("permission_required", "Enable notifications for Anemos to finish setup.")
       }
       phase = "permission"
       input.onPhase?.(phase)
@@ -1231,8 +1231,8 @@ export async function runPushSetup(input: PushSetupInput): Promise<PushSetupResu
         throw fail(
           push.permission === "denied" ? "permission_denied" : "permission_required",
           push.permission === "denied"
-            ? "Turn on notifications for WhisperCode in the iPhone Settings app."
-            : "Enable notifications for WhisperCode to finish setup.",
+            ? "Turn on notifications for Anemos in the iPhone Settings app."
+            : "Enable notifications for Anemos to finish setup.",
         )
       }
     }

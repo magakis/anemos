@@ -1,4 +1,4 @@
-// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the WhisperCode mobile refresh,
+// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the Anemos mobile refresh,
 // phone settings tab, and push-notification keys when merging upstream locale updates.
 
 export const dict = {
@@ -620,8 +620,8 @@ export const dict = {
 
   "app.name.desktop": "OpenCode Desktop",
 
-  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the WhisperCode phone tab.
-  "settings.section.whispercode": "WhisperCode",
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.anemos": "Anemos",
   "settings.section.mobile": "มือถือ",
   "settings.section.desktop": "เดสก์ท็อป",
   "settings.section.server": "เซิร์ฟเวอร์",
@@ -742,12 +742,12 @@ export const dict = {
   // strings used by the shared app package and native wrappers.
   "settings.general.notifications.push.permission.title": "สิทธิ์การแจ้งเตือนแบบพุช",
   "settings.general.notifications.push.permission.pending":
-    "กำลังตรวจสอบว่า WhisperCode สามารถแสดงการแจ้งเตือนบน iPhone เครื่องนี้ได้หรือไม่",
+    "กำลังตรวจสอบว่า Anemos สามารถแสดงการแจ้งเตือนบน iPhone เครื่องนี้ได้หรือไม่",
   "settings.general.notifications.push.permission.notDetermined":
     "เปิดใช้งานการแจ้งเตือนทั่วไปสำหรับการตอบกลับ การอนุมัติ คำถาม และข้อผิดพลาด",
-  "settings.general.notifications.push.permission.denied": "เปิดการแจ้งเตือนสำหรับ WhisperCode ในแอปการตั้งค่า iPhone",
+  "settings.general.notifications.push.permission.denied": "เปิดการแจ้งเตือนสำหรับ Anemos ในแอปการตั้งค่า iPhone",
   "settings.general.notifications.push.permission.registering":
-    "ได้รับสิทธิ์แล้ว WhisperCode กำลังลงทะเบียนกับ Apple ให้เสร็จสิ้น",
+    "ได้รับสิทธิ์แล้ว Anemos กำลังลงทะเบียนกับ Apple ให้เสร็จสิ้น",
   "settings.general.notifications.push.permission.authorized": "พร้อมสำหรับการแจ้งเตือนทั่วไปบน iPhone เครื่องนี้",
   "settings.general.notifications.push.permission.provisional":
     "พร้อมสำหรับการแจ้งเตือนทั่วไปแบบเงียบบน iPhone เครื่องนี้",
@@ -760,7 +760,7 @@ export const dict = {
   "settings.general.notifications.push.generic.value": "แบบทั่วไปเท่านั้น",
   "settings.general.notifications.push.test.title": "ส่งการแจ้งเตือนทดสอบ",
   "settings.general.notifications.push.test.description":
-    "ส่งการแจ้งเตือนผ่านรีเลย์จากโฮสต์ OpenCode ที่เชื่อมต่ออยู่ และตรวจสอบว่าเมื่อแตะแล้วจะนำคุณกลับมาที่ WhisperCode",
+    "ส่งการแจ้งเตือนผ่านรีเลย์จากโฮสต์ OpenCode ที่เชื่อมต่ออยู่ และตรวจสอบว่าเมื่อแตะแล้วจะนำคุณกลับมาที่ Anemos",
   "settings.general.notifications.push.relay.title": "รีเลย์พุช",
   "settings.general.notifications.push.relay.description.custom":
     "ใช้ URL รีเลย์แบบกำหนดเองสำหรับการจับคู่และการส่งพุชในพื้นหลัง: {url}",
@@ -773,13 +773,13 @@ export const dict = {
   "settings.general.notifications.push.pairing.pending":
     "กำลังตรวจสอบว่า iPhone เครื่องนี้ถูกจับคู่กับช่องทางพุชหรือไม่",
   "settings.general.notifications.push.pairing.server":
-    "เชื่อมต่อกับเซิร์ฟเวอร์ OpenCode ก่อนเพื่อให้ WhisperCode จับคู่ได้สำเร็จ",
+    "เชื่อมต่อกับเซิร์ฟเวอร์ OpenCode ก่อนเพื่อให้ Anemos จับคู่ได้สำเร็จ",
   "settings.general.notifications.push.pairing.unpaired":
-    "แตะตั้งค่าครั้งเดียวแล้ว WhisperCode จะขอสิทธิ์ ติดตั้งการรวมโฮสต์ และจับคู่ iPhone เครื่องนี้โดยอัตโนมัติ",
+    "แตะตั้งค่าครั้งเดียวแล้ว Anemos จะขอสิทธิ์ ติดตั้งการรวมโฮสต์ และจับคู่ iPhone เครื่องนี้โดยอัตโนมัติ",
   "settings.general.notifications.push.pairing.paired":
-    "iPhone เครื่องนี้ถูกจับคู่กับโฮสต์ OpenCode ของคุณแล้ว WhisperCode จะซ่อมแซมการเชื่อมต่อโดยอัตโนมัติหากเกิดการเปลี่ยนแปลง",
+    "iPhone เครื่องนี้ถูกจับคู่กับโฮสต์ OpenCode ของคุณแล้ว Anemos จะซ่อมแซมการเชื่อมต่อโดยอัตโนมัติหากเกิดการเปลี่ยนแปลง",
   "settings.general.notifications.push.pairing.retry":
-    "WhisperCode กำลังจับคู่โฮสต์สำหรับ iPhone เครื่องนี้ให้เสร็จสิ้น และจะลองใหม่จนกว่าจะสำเร็จ",
+    "Anemos กำลังจับคู่โฮสต์สำหรับ iPhone เครื่องนี้ให้เสร็จสิ้น และจะลองใหม่จนกว่าจะสำเร็จ",
   "settings.general.notifications.push.pairing.step.permission": "กำลังขอสิทธิ์การแจ้งเตือนจากการตั้งค่า iPhone",
   "settings.general.notifications.push.pairing.step.register": "กำลังรอการลงทะเบียนพุชจาก Apple ให้เสร็จสิ้น",
   "settings.general.notifications.push.pairing.step.begin": "กำลังเตรียมคำขอจับคู่ที่ปลอดภัยสำหรับ iPhone เครื่องนี้",
@@ -796,7 +796,7 @@ export const dict = {
     "ข้อมูลรับรองช่องทางพุชที่จัดเก็บไว้ถูกลบออกจาก iPhone เครื่องนี้แล้ว",
   "settings.general.notifications.push.pairing.toast.paired.title": "จับคู่ iPhone แล้ว",
   "settings.general.notifications.push.pairing.toast.paired.description":
-    "ตอนนี้ WhisperCode สามารถเชื่อมต่อ iPhone เครื่องนี้กับโฮสต์ OpenCode สำหรับการส่งพุชได้แล้ว",
+    "ตอนนี้ Anemos สามารถเชื่อมต่อ iPhone เครื่องนี้กับโฮสต์ OpenCode สำหรับการส่งพุชได้แล้ว",
   "settings.general.notifications.push.action.enable": "เปิดใช้งาน",
   "settings.general.notifications.push.action.openSettings": "เปิดการตั้งค่า",
   "settings.general.notifications.push.action.enabled": "เปิดใช้งานแล้ว",
@@ -819,27 +819,27 @@ export const dict = {
   "settings.general.notifications.push.host.action.removing": "กำลังลบ...",
   "settings.general.notifications.push.host.toast.installed.title": "เพิ่มปลั๊กอินโฮสต์แล้ว",
   "settings.general.notifications.push.host.toast.installed.description":
-    "การกำหนดค่าส่วนกลางของ OpenCode ตอนนี้รวมปลั๊กอินพุชของ WhisperCode แล้ว",
+    "การกำหนดค่าส่วนกลางของ OpenCode ตอนนี้รวมปลั๊กอินพุชของ Anemos แล้ว",
   "settings.general.notifications.push.host.toast.removed.title": "ลบปลั๊กอินโฮสต์แล้ว",
   "settings.general.notifications.push.host.toast.removed.description":
-    "การกำหนดค่าส่วนกลางของ OpenCode ไม่รวมปลั๊กอินพุชของ WhisperCode อีกต่อไป",
+    "การกำหนดค่าส่วนกลางของ OpenCode ไม่รวมปลั๊กอินพุชของ Anemos อีกต่อไป",
   "settings.general.notifications.push.host.toast.copied.title": "คัดลอกคำสั่งติดตั้งแล้ว",
   "settings.general.notifications.push.host.toast.copied.description":
     "เรียกใช้คำสั่งที่คัดลอกบนเครื่องที่โฮสต์ OpenCode",
   "settings.general.notifications.push.host.toast.copyFailed.title": "ไม่สามารถคัดลอกคำสั่งติดตั้ง",
   "settings.general.notifications.push.host.toast.copyFailed.description":
-    "คัดลอกคำสั่งจาก WhisperCode ด้วยตนเองและเรียกใช้บนโฮสต์ OpenCode",
+    "คัดลอกคำสั่งจาก Anemos ด้วยตนเองและเรียกใช้บนโฮสต์ OpenCode",
   "settings.general.notifications.push.toast.sent.title": "กำหนดเวลาส่งการแจ้งเตือนทดสอบแล้ว",
   "settings.general.notifications.push.toast.sent.description":
     "ล็อก iPhone ของคุณหรือเปิดแอปไว้เพื่อตรวจสอบแบนเนอร์และขั้นตอนการแตะ",
   "settings.general.notifications.push.toast.failed.title": "ไม่สามารถส่งการแจ้งเตือนทดสอบ",
   "settings.general.notifications.push.toast.failed.description":
-    "เปิดการแจ้งเตือน iPhone สำหรับ WhisperCode แล้วลองอีกครั้ง",
+    "เปิดการแจ้งเตือน iPhone สำหรับ Anemos แล้วลองอีกครั้ง",
 
   "notification.push.route.title": "การแจ้งเตือน OpenCode",
-  "notification.push.route.server": "WhisperCode ยังไม่สามารถจับคู่การแจ้งเตือนนี้กับเซิร์ฟเวอร์ที่เชื่อมต่ออยู่ได้",
-  "notification.push.route.session": "WhisperCode ยังไม่สามารถกู้คืนเซสชันนั้นได้ จึงเปิดหน้าแรกของเซิร์ฟเวอร์แทน",
-  "settings.whispercode.mobile.unavailable": "แท็บนี้ใช้งานได้เฉพาะบน WhisperCode เวอร์ชันมือถือ",
+  "notification.push.route.server": "Anemos ยังไม่สามารถจับคู่การแจ้งเตือนนี้กับเซิร์ฟเวอร์ที่เชื่อมต่ออยู่ได้",
+  "notification.push.route.session": "Anemos ยังไม่สามารถกู้คืนเซสชันนั้นได้ จึงเปิดหน้าแรกของเซิร์ฟเวอร์แทน",
+  "settings.whispercode.mobile.unavailable": "แท็บนี้ใช้งานได้เฉพาะบน Anemos เวอร์ชันมือถือ",
 
   "settings.general.sounds.agent.title": "เอเจนต์",
   "settings.general.sounds.agent.description": "เล่นเสียงเมื่อเอเจนต์เสร็จสิ้นหรือต้องการความสนใจ",

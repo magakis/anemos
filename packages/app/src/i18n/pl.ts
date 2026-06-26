@@ -1,4 +1,4 @@
-// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the WhisperCode mobile refresh,
+// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the Anemos mobile refresh,
 // phone settings tab, and push-notification keys when merging upstream locale updates.
 
 export const dict = {
@@ -562,8 +562,8 @@ export const dict = {
   "app.name.desktop": "OpenCode Desktop",
   "settings.section.desktop": "Pulpit",
   "settings.section.server": "Serwer",
-  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the WhisperCode phone tab.
-  "settings.section.whispercode": "WhisperCode",
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.anemos": "Anemos",
   "settings.section.mobile": "Mobilne",
   "settings.tab.general": "Ogólne",
   "settings.tab.shortcuts": "Skróty",
@@ -680,12 +680,12 @@ export const dict = {
   // strings used by the shared app package and native wrappers.
   "settings.general.notifications.push.permission.title": "Uprawnienia push",
   "settings.general.notifications.push.permission.pending":
-    "Sprawdzanie, czy WhisperCode może wyświetlać powiadomienia na tym iPhone",
+    "Sprawdzanie, czy Anemos może wyświetlać powiadomienia na tym iPhone",
   "settings.general.notifications.push.permission.notDetermined":
     "Włącz ogólne alerty dla odpowiedzi, zatwierdzeń, pytań i błędów",
-  "settings.general.notifications.push.permission.denied": "Włącz powiadomienia dla WhisperCode w ustawieniach iPhone",
+  "settings.general.notifications.push.permission.denied": "Włącz powiadomienia dla Anemos w ustawieniach iPhone",
   "settings.general.notifications.push.permission.registering":
-    "Uprawnienie przyznane. WhisperCode kończy rejestrację w Apple.",
+    "Uprawnienie przyznane. Anemos kończy rejestrację w Apple.",
   "settings.general.notifications.push.permission.authorized": "Gotowe do ogólnych alertów na tym iPhone",
   "settings.general.notifications.push.permission.provisional": "Gotowe do cichych ogólnych alertów na tym iPhone",
   "settings.general.notifications.push.permission.ephemeral": "Gotowe do tymczasowych ogólnych alertów na tym iPhone",
@@ -696,7 +696,7 @@ export const dict = {
   "settings.general.notifications.push.generic.value": "Tylko ogólne",
   "settings.general.notifications.push.test.title": "Wyślij powiadomienie testowe",
   "settings.general.notifications.push.test.description":
-    "Wyślij alert przez relay z podłączonego hosta OpenCode i sprawdź, czy dotknięcie go przenosi z powrotem do WhisperCode",
+    "Wyślij alert przez relay z podłączonego hosta OpenCode i sprawdź, czy dotknięcie go przenosi z powrotem do Anemos",
   "settings.general.notifications.push.relay.title": "Relay push",
   "settings.general.notifications.push.relay.description.custom":
     "Używany jest niestandardowy URL relay do parowania i dostarczania push w tle: {url}",
@@ -708,13 +708,13 @@ export const dict = {
   "settings.general.notifications.push.pairing.title": "Parowanie telefonu",
   "settings.general.notifications.push.pairing.pending": "Sprawdzanie, czy ten iPhone jest sparowany z kanałem push.",
   "settings.general.notifications.push.pairing.server":
-    "Najpierw połącz się z serwerem OpenCode, aby WhisperCode mógł zakończyć parowanie.",
+    "Najpierw połącz się z serwerem OpenCode, aby Anemos mógł zakończyć parowanie.",
   "settings.general.notifications.push.pairing.unpaired":
-    "Dotknij Skonfiguruj raz, a WhisperCode poprosi o uprawnienie, zainstaluje integrację hosta i automatycznie sparuje tego iPhone.",
+    "Dotknij Skonfiguruj raz, a Anemos poprosi o uprawnienie, zainstaluje integrację hosta i automatycznie sparuje tego iPhone.",
   "settings.general.notifications.push.pairing.paired":
-    "Ten iPhone jest sparowany z hostem OpenCode. WhisperCode automatycznie naprawi połączenie, jeśli się rozłączy.",
+    "Ten iPhone jest sparowany z hostem OpenCode. Anemos automatycznie naprawi połączenie, jeśli się rozłączy.",
   "settings.general.notifications.push.pairing.retry":
-    "WhisperCode kończy parowanie hosta dla tego iPhone i będzie ponawiać próby, aż się uda.",
+    "Anemos kończy parowanie hosta dla tego iPhone i będzie ponawiać próby, aż się uda.",
   "settings.general.notifications.push.pairing.step.permission":
     "Żądanie uprawnienia do powiadomień z ustawień iPhone.",
   "settings.general.notifications.push.pairing.step.register": "Oczekiwanie na zakończenie rejestracji push Apple.",
@@ -733,7 +733,7 @@ export const dict = {
     "Zapisane dane uwierzytelniające kanału push zostały usunięte z tego iPhone.",
   "settings.general.notifications.push.pairing.toast.paired.title": "iPhone sparowany",
   "settings.general.notifications.push.pairing.toast.paired.description":
-    "WhisperCode może teraz utrzymywać połączenie tego iPhone z hostem OpenCode do dostarczania push.",
+    "Anemos może teraz utrzymywać połączenie tego iPhone z hostem OpenCode do dostarczania push.",
   "settings.general.notifications.push.action.enable": "Włącz",
   "settings.general.notifications.push.action.openSettings": "Otwórz ustawienia",
   "settings.general.notifications.push.action.enabled": "Włączone",
@@ -756,27 +756,27 @@ export const dict = {
   "settings.general.notifications.push.host.action.removing": "Usuwanie...",
   "settings.general.notifications.push.host.toast.installed.title": "Wtyczka hosta dodana",
   "settings.general.notifications.push.host.toast.installed.description":
-    "Globalna konfiguracja OpenCode zawiera teraz wtyczkę push WhisperCode.",
+    "Globalna konfiguracja OpenCode zawiera teraz wtyczkę push Anemos.",
   "settings.general.notifications.push.host.toast.removed.title": "Wtyczka hosta usunięta",
   "settings.general.notifications.push.host.toast.removed.description":
-    "Globalna konfiguracja OpenCode nie zawiera już wtyczki push WhisperCode.",
+    "Globalna konfiguracja OpenCode nie zawiera już wtyczki push Anemos.",
   "settings.general.notifications.push.host.toast.copied.title": "Polecenie instalatora skopiowane",
   "settings.general.notifications.push.host.toast.copied.description":
     "Uruchom skopiowane polecenie na maszynie hostującej OpenCode.",
   "settings.general.notifications.push.host.toast.copyFailed.title": "Nie udało się skopiować polecenia instalatora",
   "settings.general.notifications.push.host.toast.copyFailed.description":
-    "Skopiuj polecenie ręcznie z WhisperCode i uruchom je na hoście OpenCode.",
+    "Skopiuj polecenie ręcznie z Anemos i uruchom je na hoście OpenCode.",
   "settings.general.notifications.push.toast.sent.title": "Powiadomienie testowe zaplanowane",
   "settings.general.notifications.push.toast.sent.description":
     "Zablokuj iPhone lub pozostaw aplikację otwartą, aby zweryfikować baner i przepływ dotknięcia.",
   "settings.general.notifications.push.toast.failed.title": "Nie udało się wysłać powiadomienia testowego",
   "settings.general.notifications.push.toast.failed.description":
-    "Włącz powiadomienia iPhone dla WhisperCode i spróbuj ponownie.",
+    "Włącz powiadomienia iPhone dla Anemos i spróbuj ponownie.",
   "notification.push.route.title": "Powiadomienie OpenCode",
-  "notification.push.route.server": "WhisperCode nie mógł jeszcze dopasować tego powiadomienia do połączonego serwera.",
+  "notification.push.route.server": "Anemos nie mógł jeszcze dopasować tego powiadomienia do połączonego serwera.",
   "notification.push.route.session":
-    "WhisperCode nie mógł jeszcze przywrócić tej sesji, więc otworzył stronę główną serwera.",
-  "settings.whispercode.mobile.unavailable": "Ta karta jest dostępna w kompilacjach mobilnych WhisperCode.",
+    "Anemos nie mógł jeszcze przywrócić tej sesji, więc otworzył stronę główną serwera.",
+  "settings.whispercode.mobile.unavailable": "Ta karta jest dostępna w kompilacjach mobilnych Anemos.",
   "settings.general.sounds.agent.title": "Agent",
   "settings.general.sounds.agent.description": "Odtwórz dźwięk, gdy agent zakończy pracę lub wymaga uwagi",
   "settings.general.sounds.permissions.title": "Uprawnienia",

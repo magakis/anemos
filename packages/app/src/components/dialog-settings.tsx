@@ -10,7 +10,7 @@ import { SettingsMobileNotifications } from "./settings-mobile-notifications"
 import { SettingsProviders } from "./settings-providers"
 import { SettingsModels } from "./settings-models"
 
-// UPSTREAM-DIVERGENCE-FILE: The settings dialog exposes a fork-only WhisperCode phone tab added after
+// UPSTREAM-DIVERGENCE-FILE: The settings dialog exposes a fork-only Anemos phone tab added after
 // upstream sync 6b9ce5e63. Preserve this entrypoint when upstream reorganizes the settings navigation.
 
 export const DialogSettings: Component = () => {

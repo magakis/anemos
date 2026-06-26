@@ -556,8 +556,8 @@ export const dict = {
   "app.name.desktop": "OpenCode Desktop",
   "settings.section.desktop": "데스크톱",
   "settings.section.server": "서버",
-  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the WhisperCode phone tab.
-  "settings.section.whispercode": "WhisperCode",
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.anemos": "Anemos",
   "settings.section.mobile": "모바일",
   "settings.tab.general": "일반",
   "settings.tab.shortcuts": "단축키",
@@ -671,12 +671,12 @@ export const dict = {
   // strings used by the shared app package and native wrappers.
   "settings.general.notifications.push.permission.title": "푸시 알림 권한",
   "settings.general.notifications.push.permission.pending":
-    "WhisperCode가 이 iPhone에서 알림을 표시할 수 있는지 확인 중입니다",
+    "Anemos가 이 iPhone에서 알림을 표시할 수 있는지 확인 중입니다",
   "settings.general.notifications.push.permission.notDetermined":
     "응답, 승인, 질문 및 오류에 대한 일반 알림을 활성화합니다",
-  "settings.general.notifications.push.permission.denied": "iPhone 설정 앱에서 WhisperCode 알림을 켜세요",
+  "settings.general.notifications.push.permission.denied": "iPhone 설정 앱에서 Anemos 알림을 켜세요",
   "settings.general.notifications.push.permission.registering":
-    "권한이 부여되었습니다. WhisperCode가 Apple 등록을 완료하고 있습니다.",
+    "권한이 부여되었습니다. Anemos가 Apple 등록을 완료하고 있습니다.",
   "settings.general.notifications.push.permission.authorized": "이 iPhone에서 일반 알림을 받을 준비가 되었습니다",
   "settings.general.notifications.push.permission.provisional":
     "이 iPhone에서 조용한 일반 알림을 받을 준비가 되었습니다",
@@ -688,7 +688,7 @@ export const dict = {
   "settings.general.notifications.push.generic.value": "일반만",
   "settings.general.notifications.push.test.title": "테스트 알림 보내기",
   "settings.general.notifications.push.test.description":
-    "연결된 OpenCode 호스트에서 릴레이 기반 알림을 보내고, 탭하면 WhisperCode로 돌아오는지 확인합니다",
+    "연결된 OpenCode 호스트에서 릴레이 기반 알림을 보내고, 탭하면 Anemos로 돌아오는지 확인합니다",
   "settings.general.notifications.push.relay.title": "푸시 릴레이",
   "settings.general.notifications.push.relay.description.custom":
     "페어링 및 백그라운드 푸시 전달에 사용자 지정 릴레이 URL을 사용 중입니다: {url}",
@@ -699,13 +699,13 @@ export const dict = {
   "settings.general.notifications.push.pairing.title": "휴대폰 페어링",
   "settings.general.notifications.push.pairing.pending": "이 iPhone이 푸시 채널에 페어링되어 있는지 확인 중입니다.",
   "settings.general.notifications.push.pairing.server":
-    "WhisperCode가 페어링을 완료할 수 있도록 먼저 OpenCode 서버에 연결하세요.",
+    "Anemos가 페어링을 완료할 수 있도록 먼저 OpenCode 서버에 연결하세요.",
   "settings.general.notifications.push.pairing.unpaired":
-    "설정을 한 번 탭하면 WhisperCode가 권한 요청, 호스트 통합 설치, 이 iPhone 페어링을 자동으로 수행합니다.",
+    "설정을 한 번 탭하면 Anemos가 권한 요청, 호스트 통합 설치, 이 iPhone 페어링을 자동으로 수행합니다.",
   "settings.general.notifications.push.pairing.paired":
-    "이 iPhone은 OpenCode 호스트에 페어링되어 있습니다. 연결이 끊어지면 WhisperCode가 자동으로 복구합니다.",
+    "이 iPhone은 OpenCode 호스트에 페어링되어 있습니다. 연결이 끊어지면 Anemos가 자동으로 복구합니다.",
   "settings.general.notifications.push.pairing.retry":
-    "WhisperCode가 이 iPhone의 호스트 페어링을 완료하고 있으며, 성공할 때까지 계속 재시도합니다.",
+    "Anemos가 이 iPhone의 호스트 페어링을 완료하고 있으며, 성공할 때까지 계속 재시도합니다.",
   "settings.general.notifications.push.pairing.step.permission": "iPhone 설정에서 알림 권한을 요청하고 있습니다.",
   "settings.general.notifications.push.pairing.step.register": "Apple 푸시 등록이 완료되기를 기다리고 있습니다.",
   "settings.general.notifications.push.pairing.step.begin": "이 iPhone을 위한 보안 페어링 요청을 준비하고 있습니다.",
@@ -722,7 +722,7 @@ export const dict = {
     "저장된 푸시 채널 자격 증명이 이 iPhone에서 제거되었습니다.",
   "settings.general.notifications.push.pairing.toast.paired.title": "iPhone이 페어링되었습니다",
   "settings.general.notifications.push.pairing.toast.paired.description":
-    "WhisperCode가 이제 이 iPhone을 OpenCode 호스트에 연결하여 푸시 전달을 유지할 수 있습니다.",
+    "Anemos가 이제 이 iPhone을 OpenCode 호스트에 연결하여 푸시 전달을 유지할 수 있습니다.",
   "settings.general.notifications.push.action.enable": "활성화",
   "settings.general.notifications.push.action.openSettings": "설정 열기",
   "settings.general.notifications.push.action.enabled": "활성화됨",
@@ -745,26 +745,26 @@ export const dict = {
   "settings.general.notifications.push.host.action.removing": "제거 중...",
   "settings.general.notifications.push.host.toast.installed.title": "호스트 플러그인이 추가되었습니다",
   "settings.general.notifications.push.host.toast.installed.description":
-    "OpenCode 글로벌 구성에 WhisperCode 푸시 플러그인이 포함되었습니다.",
+    "OpenCode 글로벌 구성에 Anemos 푸시 플러그인이 포함되었습니다.",
   "settings.general.notifications.push.host.toast.removed.title": "호스트 플러그인이 제거되었습니다",
   "settings.general.notifications.push.host.toast.removed.description":
-    "OpenCode 글로벌 구성에서 WhisperCode 푸시 플러그인이 제거되었습니다.",
+    "OpenCode 글로벌 구성에서 Anemos 푸시 플러그인이 제거되었습니다.",
   "settings.general.notifications.push.host.toast.copied.title": "설치 명령어가 복사되었습니다",
   "settings.general.notifications.push.host.toast.copied.description":
     "OpenCode를 호스팅하는 컴퓨터에서 복사한 명령어를 실행하세요.",
   "settings.general.notifications.push.host.toast.copyFailed.title": "설치 명령어를 복사할 수 없습니다",
   "settings.general.notifications.push.host.toast.copyFailed.description":
-    "WhisperCode에서 명령어를 수동으로 복사하여 OpenCode 호스트에서 실행하세요.",
+    "Anemos에서 명령어를 수동으로 복사하여 OpenCode 호스트에서 실행하세요.",
   "settings.general.notifications.push.toast.sent.title": "테스트 알림이 예약되었습니다",
   "settings.general.notifications.push.toast.sent.description":
     "iPhone을 잠그거나 앱을 열어둔 채로 배너와 탭 동작을 확인하세요.",
   "settings.general.notifications.push.toast.failed.title": "테스트 알림을 보낼 수 없습니다",
   "settings.general.notifications.push.toast.failed.description":
-    "WhisperCode의 iPhone 알림을 활성화하고 다시 시도하세요.",
+    "Anemos의 iPhone 알림을 활성화하고 다시 시도하세요.",
   "notification.push.route.title": "OpenCode 알림",
-  "notification.push.route.server": "WhisperCode가 아직 이 알림을 연결된 서버와 매칭하지 못했습니다.",
-  "notification.push.route.session": "WhisperCode가 아직 해당 세션을 복원하지 못하여 서버 홈을 열었습니다.",
-  "settings.whispercode.mobile.unavailable": "이 탭은 WhisperCode 모바일 빌드에서 사용할 수 있습니다.",
+  "notification.push.route.server": "Anemos가 아직 이 알림을 연결된 서버와 매칭하지 못했습니다.",
+  "notification.push.route.session": "Anemos가 아직 해당 세션을 복원하지 못하여 서버 홈을 열었습니다.",
+  "settings.whispercode.mobile.unavailable": "이 탭은 Anemos 모바일 빌드에서 사용할 수 있습니다.",
   "settings.general.sounds.agent.title": "에이전트",
   "settings.general.sounds.agent.description": "에이전트가 완료되거나 주의가 필요할 때 소리 재생",
   "settings.general.sounds.permissions.title": "권한",

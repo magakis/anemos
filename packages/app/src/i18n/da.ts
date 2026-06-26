@@ -1,4 +1,4 @@
-// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the WhisperCode mobile refresh,
+// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the Anemos mobile refresh,
 // phone settings tab, and push-notification keys when merging upstream locale updates.
 
 export const dict = {
@@ -623,8 +623,8 @@ export const dict = {
   "app.name.desktop": "OpenCode Desktop",
   "settings.section.desktop": "Desktop",
   "settings.section.server": "Server",
-  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the WhisperCode phone tab.
-  "settings.section.whispercode": "WhisperCode",
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.anemos": "Anemos",
   "settings.section.mobile": "Mobil",
   "settings.tab.general": "Generelt",
   "settings.tab.shortcuts": "Genveje",
@@ -744,13 +744,13 @@ export const dict = {
   // strings used by the shared app package and native wrappers.
   "settings.general.notifications.push.permission.title": "Push-tilladelse",
   "settings.general.notifications.push.permission.pending":
-    "Tjekker om WhisperCode kan vise notifikationer på denne iPhone",
+    "Tjekker om Anemos kan vise notifikationer på denne iPhone",
   "settings.general.notifications.push.permission.notDetermined":
     "Aktiver generiske advarsler for svar, godkendelser, spørgsmål og fejl",
   "settings.general.notifications.push.permission.denied":
-    "Slå notifikationer til for WhisperCode i iPhone Indstillinger",
+    "Slå notifikationer til for Anemos i iPhone Indstillinger",
   "settings.general.notifications.push.permission.registering":
-    "Tilladelse er givet. WhisperCode afslutter registrering hos Apple.",
+    "Tilladelse er givet. Anemos afslutter registrering hos Apple.",
   "settings.general.notifications.push.permission.authorized": "Klar til generiske advarsler på denne iPhone",
   "settings.general.notifications.push.permission.provisional": "Klar til stille generiske advarsler på denne iPhone",
   "settings.general.notifications.push.permission.ephemeral":
@@ -762,7 +762,7 @@ export const dict = {
   "settings.general.notifications.push.generic.value": "Kun generiske",
   "settings.general.notifications.push.test.title": "Send testnotifikation",
   "settings.general.notifications.push.test.description":
-    "Send en relay-understøttet advarsel fra den tilsluttede OpenCode-vært og bekræft at tryk på den bringer dig tilbage til WhisperCode",
+    "Send en relay-understøttet advarsel fra den tilsluttede OpenCode-vært og bekræft at tryk på den bringer dig tilbage til Anemos",
   "settings.general.notifications.push.relay.title": "Push-relay",
   "settings.general.notifications.push.relay.description.custom":
     "Bruger en brugerdefineret relay-URL til parring og baggrunds-push-levering: {url}",
@@ -774,13 +774,13 @@ export const dict = {
   "settings.general.notifications.push.pairing.title": "Telefonparring",
   "settings.general.notifications.push.pairing.pending": "Tjekker om denne iPhone er parret til en push-kanal.",
   "settings.general.notifications.push.pairing.server":
-    "Opret forbindelse til en OpenCode-server først, så WhisperCode kan fuldføre parringen.",
+    "Opret forbindelse til en OpenCode-server først, så Anemos kan fuldføre parringen.",
   "settings.general.notifications.push.pairing.unpaired":
-    "Tryk på Opsæt én gang, og WhisperCode vil anmode om tilladelse, installere værtsintegration og parre denne iPhone automatisk.",
+    "Tryk på Opsæt én gang, og Anemos vil anmode om tilladelse, installere værtsintegration og parre denne iPhone automatisk.",
   "settings.general.notifications.push.pairing.paired":
-    "Denne iPhone er parret til din OpenCode-vært. WhisperCode vil automatisk reparere forbindelsen, hvis den mistes.",
+    "Denne iPhone er parret til din OpenCode-vært. Anemos vil automatisk reparere forbindelsen, hvis den mistes.",
   "settings.general.notifications.push.pairing.retry":
-    "WhisperCode afslutter værtsparring for denne iPhone og vil fortsætte med at prøve, indtil det lykkes.",
+    "Anemos afslutter værtsparring for denne iPhone og vil fortsætte med at prøve, indtil det lykkes.",
   "settings.general.notifications.push.pairing.step.permission":
     "Anmoder om notifikationstilladelse fra iPhone Indstillinger.",
   "settings.general.notifications.push.pairing.step.register": "Venter på at Apple push-registrering afsluttes.",
@@ -798,7 +798,7 @@ export const dict = {
     "Gemte push-kanallegitimationsoplysninger blev fjernet fra denne iPhone.",
   "settings.general.notifications.push.pairing.toast.paired.title": "iPhone parret",
   "settings.general.notifications.push.pairing.toast.paired.description":
-    "WhisperCode kan nu holde denne iPhone forbundet til OpenCode-værten til push-levering.",
+    "Anemos kan nu holde denne iPhone forbundet til OpenCode-værten til push-levering.",
   "settings.general.notifications.push.action.enable": "Aktiver",
   "settings.general.notifications.push.action.openSettings": "Åbn Indstillinger",
   "settings.general.notifications.push.action.enabled": "Aktiveret",
@@ -821,27 +821,27 @@ export const dict = {
   "settings.general.notifications.push.host.action.removing": "Fjerner...",
   "settings.general.notifications.push.host.toast.installed.title": "Værtsplugin tilføjet",
   "settings.general.notifications.push.host.toast.installed.description":
-    "OpenCode global konfiguration inkluderer nu WhisperCode push-pluginet.",
+    "OpenCode global konfiguration inkluderer nu Anemos push-pluginet.",
   "settings.general.notifications.push.host.toast.removed.title": "Værtsplugin fjernet",
   "settings.general.notifications.push.host.toast.removed.description":
-    "OpenCode global konfiguration inkluderer ikke længere WhisperCode push-pluginet.",
+    "OpenCode global konfiguration inkluderer ikke længere Anemos push-pluginet.",
   "settings.general.notifications.push.host.toast.copied.title": "Installationskommando kopieret",
   "settings.general.notifications.push.host.toast.copied.description":
     "Kør den kopierede kommando på maskinen der hoster OpenCode.",
   "settings.general.notifications.push.host.toast.copyFailed.title": "Kunne ikke kopiere installationskommando",
   "settings.general.notifications.push.host.toast.copyFailed.description":
-    "Kopier kommandoen manuelt fra WhisperCode og kør den på OpenCode-værten.",
+    "Kopier kommandoen manuelt fra Anemos og kør den på OpenCode-værten.",
   "settings.general.notifications.push.toast.sent.title": "Testnotifikation planlagt",
   "settings.general.notifications.push.toast.sent.description":
     "Lås din iPhone eller hold appen åben for at bekræfte banneret og trykflowet.",
   "settings.general.notifications.push.toast.failed.title": "Kunne ikke sende testnotifikation",
   "settings.general.notifications.push.toast.failed.description":
-    "Aktiver iPhone-notifikationer for WhisperCode og prøv igen.",
+    "Aktiver iPhone-notifikationer for Anemos og prøv igen.",
   "notification.push.route.title": "OpenCode-notifikation",
-  "notification.push.route.server": "WhisperCode kunne endnu ikke matche denne notifikation til en tilsluttet server.",
+  "notification.push.route.server": "Anemos kunne endnu ikke matche denne notifikation til en tilsluttet server.",
   "notification.push.route.session":
-    "WhisperCode kunne endnu ikke gendanne den session, så den åbnede serverens startside.",
-  "settings.whispercode.mobile.unavailable": "Denne fane er tilgængelig på WhisperCode mobile builds.",
+    "Anemos kunne endnu ikke gendanne den session, så den åbnede serverens startside.",
+  "settings.whispercode.mobile.unavailable": "Denne fane er tilgængelig på Anemos mobile builds.",
 
   "settings.general.sounds.agent.title": "Agent",
   "settings.general.sounds.agent.description": "Afspil lyd når agenten er færdig eller kræver opmærksomhed",

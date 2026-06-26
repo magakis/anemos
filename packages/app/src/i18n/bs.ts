@@ -1,4 +1,4 @@
-// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the WhisperCode mobile refresh,
+// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the Anemos mobile refresh,
 // phone settings tab, and push-notification keys when merging upstream locale updates.
 
 export const dict = {
@@ -628,8 +628,8 @@ export const dict = {
 
   "settings.section.desktop": "Desktop",
   "settings.section.server": "Server",
-  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the WhisperCode phone tab.
-  "settings.section.whispercode": "WhisperCode",
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.anemos": "Anemos",
   "settings.section.mobile": "Mobilno",
   "settings.tab.general": "Opšte",
   "settings.tab.shortcuts": "Prečice",
@@ -750,12 +750,12 @@ export const dict = {
   // strings used by the shared app package and native wrappers.
   "settings.general.notifications.push.permission.title": "Push dozvola",
   "settings.general.notifications.push.permission.pending":
-    "Provjeravanje da li WhisperCode može prikazivati obavijesti na ovom iPhone-u",
+    "Provjeravanje da li Anemos može prikazivati obavijesti na ovom iPhone-u",
   "settings.general.notifications.push.permission.notDetermined":
     "Omogući generička upozorenja za odgovore, odobrenja, pitanja i greške",
-  "settings.general.notifications.push.permission.denied": "Uključi obavijesti za WhisperCode u iPhone Postavkama",
+  "settings.general.notifications.push.permission.denied": "Uključi obavijesti za Anemos u iPhone Postavkama",
   "settings.general.notifications.push.permission.registering":
-    "Dozvola je odobrena. WhisperCode završava registraciju kod Apple-a.",
+    "Dozvola je odobrena. Anemos završava registraciju kod Apple-a.",
   "settings.general.notifications.push.permission.authorized": "Spremno za generička upozorenja na ovom iPhone-u",
   "settings.general.notifications.push.permission.provisional": "Spremno za tiha generička upozorenja na ovom iPhone-u",
   "settings.general.notifications.push.permission.ephemeral":
@@ -767,7 +767,7 @@ export const dict = {
   "settings.general.notifications.push.generic.value": "Samo generičko",
   "settings.general.notifications.push.test.title": "Pošalji probnu obavijest",
   "settings.general.notifications.push.test.description":
-    "Pošalji upozorenje putem releja sa povezanog OpenCode hosta i provjeri da li te dodirivanje vraća u WhisperCode",
+    "Pošalji upozorenje putem releja sa povezanog OpenCode hosta i provjeri da li te dodirivanje vraća u Anemos",
   "settings.general.notifications.push.relay.title": "Push relej",
   "settings.general.notifications.push.relay.description.custom":
     "Koristi se prilagođeni URL releja za uparivanje i pozadinsku isporuku push obavijesti: {url}",
@@ -779,13 +779,13 @@ export const dict = {
   "settings.general.notifications.push.pairing.title": "Uparivanje telefona",
   "settings.general.notifications.push.pairing.pending": "Provjeravanje da li je ovaj iPhone uparen sa push kanalom.",
   "settings.general.notifications.push.pairing.server":
-    "Prvo se poveži na OpenCode server kako bi WhisperCode mogao završiti uparivanje.",
+    "Prvo se poveži na OpenCode server kako bi Anemos mogao završiti uparivanje.",
   "settings.general.notifications.push.pairing.unpaired":
-    "Dodirni Postavi jednom i WhisperCode će zatražiti dozvolu, instalirati integraciju hosta i automatski upariti ovaj iPhone.",
+    "Dodirni Postavi jednom i Anemos će zatražiti dozvolu, instalirati integraciju hosta i automatski upariti ovaj iPhone.",
   "settings.general.notifications.push.pairing.paired":
-    "Ovaj iPhone je uparen sa tvojim OpenCode hostom. WhisperCode će automatski popraviti vezu ako se izgubi.",
+    "Ovaj iPhone je uparen sa tvojim OpenCode hostom. Anemos će automatski popraviti vezu ako se izgubi.",
   "settings.general.notifications.push.pairing.retry":
-    "WhisperCode završava uparivanje hosta za ovaj iPhone i nastavit će pokušavati dok ne uspije.",
+    "Anemos završava uparivanje hosta za ovaj iPhone i nastavit će pokušavati dok ne uspije.",
   "settings.general.notifications.push.pairing.step.permission": "Traži dozvolu za obavijesti od iPhone Postavki.",
   "settings.general.notifications.push.pairing.step.register": "Čekanje da Apple push registracija završi.",
   "settings.general.notifications.push.pairing.step.begin": "Priprema sigurnog zahtjeva za uparivanje za ovaj iPhone.",
@@ -802,7 +802,7 @@ export const dict = {
     "Pohranjeni kredencijali push kanala su uklonjeni sa ovog iPhone-a.",
   "settings.general.notifications.push.pairing.toast.paired.title": "iPhone uparen",
   "settings.general.notifications.push.pairing.toast.paired.description":
-    "WhisperCode sada može održavati vezu ovog iPhone-a sa OpenCode hostom za isporuku push obavijesti.",
+    "Anemos sada može održavati vezu ovog iPhone-a sa OpenCode hostom za isporuku push obavijesti.",
   "settings.general.notifications.push.action.enable": "Omogući",
   "settings.general.notifications.push.action.openSettings": "Otvori Postavke",
   "settings.general.notifications.push.action.enabled": "Omogućeno",
@@ -825,27 +825,27 @@ export const dict = {
   "settings.general.notifications.push.host.action.removing": "Uklanjanje...",
   "settings.general.notifications.push.host.toast.installed.title": "Host plugin dodan",
   "settings.general.notifications.push.host.toast.installed.description":
-    "OpenCode globalna konfiguracija sada uključuje WhisperCode push plugin.",
+    "OpenCode globalna konfiguracija sada uključuje Anemos push plugin.",
   "settings.general.notifications.push.host.toast.removed.title": "Host plugin uklonjen",
   "settings.general.notifications.push.host.toast.removed.description":
-    "OpenCode globalna konfiguracija više ne uključuje WhisperCode push plugin.",
+    "OpenCode globalna konfiguracija više ne uključuje Anemos push plugin.",
   "settings.general.notifications.push.host.toast.copied.title": "Komanda za instalaciju kopirana",
   "settings.general.notifications.push.host.toast.copied.description":
     "Pokreni kopiranu komandu na mašini koja hostira OpenCode.",
   "settings.general.notifications.push.host.toast.copyFailed.title": "Nije moguće kopirati komandu za instalaciju",
   "settings.general.notifications.push.host.toast.copyFailed.description":
-    "Kopiraj komandu ručno iz WhisperCode-a i pokreni je na OpenCode hostu.",
+    "Kopiraj komandu ručno iz Anemos-a i pokreni je na OpenCode hostu.",
   "settings.general.notifications.push.toast.sent.title": "Probna obavijest zakazana",
   "settings.general.notifications.push.toast.sent.description":
     "Zaključaj iPhone ili ostavi aplikaciju otvorenu da provjeriš baner i tok dodirivanja.",
   "settings.general.notifications.push.toast.failed.title": "Nije moguće poslati probnu obavijest",
   "settings.general.notifications.push.toast.failed.description":
-    "Omogući iPhone obavijesti za WhisperCode i pokušaj ponovo.",
+    "Omogući iPhone obavijesti za Anemos i pokušaj ponovo.",
   "notification.push.route.title": "OpenCode obavijest",
-  "notification.push.route.server": "WhisperCode još nije mogao povezati ovu obavijest sa povezanim serverom.",
+  "notification.push.route.server": "Anemos još nije mogao povezati ovu obavijest sa povezanim serverom.",
   "notification.push.route.session":
-    "WhisperCode još nije mogao vratiti tu sesiju, pa je otvorio početnu stranicu servera.",
-  "settings.whispercode.mobile.unavailable": "Ova kartica je dostupna na WhisperCode mobilnim verzijama.",
+    "Anemos još nije mogao vratiti tu sesiju, pa je otvorio početnu stranicu servera.",
+  "settings.whispercode.mobile.unavailable": "Ova kartica je dostupna na Anemos mobilnim verzijama.",
 
   "settings.general.sounds.agent.title": "Agent",
   "settings.general.sounds.agent.description": "Pusti zvuk kada agent završi ili zahtijeva pažnju",

@@ -1,4 +1,4 @@
-// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the WhisperCode mobile refresh,
+// UPSTREAM-DIVERGENCE-FILE: Added after upstream sync 6b9ce5e63. Keep the Anemos mobile refresh,
 // phone settings tab, and push-notification keys when merging upstream locale updates.
 
 import { dict as en } from "./en"
@@ -632,8 +632,8 @@ export const dict = {
 
   "app.name.desktop": "OpenCode Masaüstü",
 
-  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the WhisperCode phone tab.
-  "settings.section.whispercode": "WhisperCode",
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.anemos": "Anemos",
   "settings.section.mobile": "Mobil",
   "settings.section.desktop": "Masaüstü",
   "settings.section.server": "Sunucu",
@@ -761,13 +761,13 @@ export const dict = {
   // strings used by the shared app package and native wrappers.
   "settings.general.notifications.push.permission.title": "Push izni",
   "settings.general.notifications.push.permission.pending":
-    "WhisperCode'un bu iPhone'da bildirim gösterip gösteremeyeceği kontrol ediliyor",
+    "Anemos'un bu iPhone'da bildirim gösterip gösteremeyeceği kontrol ediliyor",
   "settings.general.notifications.push.permission.notDetermined":
     "Yanıtlar, onaylar, sorular ve hatalar için genel bildirimleri etkinleştirin",
   "settings.general.notifications.push.permission.denied":
-    "iPhone Ayarlar uygulamasından WhisperCode için bildirimleri açın",
+    "iPhone Ayarlar uygulamasından Anemos için bildirimleri açın",
   "settings.general.notifications.push.permission.registering":
-    "İzin verildi. WhisperCode, Apple ile kaydı tamamlıyor.",
+    "İzin verildi. Anemos, Apple ile kaydı tamamlıyor.",
   "settings.general.notifications.push.permission.authorized": "Bu iPhone'da genel bildirimler için hazır",
   "settings.general.notifications.push.permission.provisional": "Bu iPhone'da sessiz genel bildirimler için hazır",
   "settings.general.notifications.push.permission.ephemeral": "Bu iPhone'da geçici genel bildirimler için hazır",
@@ -778,7 +778,7 @@ export const dict = {
   "settings.general.notifications.push.generic.value": "Yalnızca genel",
   "settings.general.notifications.push.test.title": "Test bildirimi gönder",
   "settings.general.notifications.push.test.description":
-    "Bağlı OpenCode ana bilgisayarından röle destekli bir bildirim gönderin ve dokunduğunuzda WhisperCode'a geri dönüp dönmediğini doğrulayın",
+    "Bağlı OpenCode ana bilgisayarından röle destekli bir bildirim gönderin ve dokunduğunuzda Anemos'a geri dönüp dönmediğini doğrulayın",
   "settings.general.notifications.push.relay.title": "Push rölesi",
   "settings.general.notifications.push.relay.description.custom":
     "Eşleştirme ve arka plan push teslimi için özel bir röle URL'si kullanılıyor: {url}",
@@ -791,13 +791,13 @@ export const dict = {
   "settings.general.notifications.push.pairing.pending":
     "Bu iPhone'un bir push kanalına eşleştirilip eşleştirilmediği kontrol ediliyor.",
   "settings.general.notifications.push.pairing.server":
-    "WhisperCode'un eşleştirmeyi tamamlayabilmesi için önce bir OpenCode sunucusuna bağlanın.",
+    "Anemos'un eşleştirmeyi tamamlayabilmesi için önce bir OpenCode sunucusuna bağlanın.",
   "settings.general.notifications.push.pairing.unpaired":
-    "Bir kez Kur'a dokunun; WhisperCode izin isteyecek, ana bilgisayar entegrasyonunu yükleyecek ve bu iPhone'u otomatik olarak eşleştirecektir.",
+    "Bir kez Kur'a dokunun; Anemos izin isteyecek, ana bilgisayar entegrasyonunu yükleyecek ve bu iPhone'u otomatik olarak eşleştirecektir.",
   "settings.general.notifications.push.pairing.paired":
-    "Bu iPhone, OpenCode ana bilgisayarınıza eşleştirildi. Bağlantı kayarsa WhisperCode otomatik olarak onaracaktır.",
+    "Bu iPhone, OpenCode ana bilgisayarınıza eşleştirildi. Bağlantı kayarsa Anemos otomatik olarak onaracaktır.",
   "settings.general.notifications.push.pairing.retry":
-    "WhisperCode bu iPhone için ana bilgisayar eşleştirmesini tamamlıyor ve başarılı olana kadar yeniden denemeye devam edecek.",
+    "Anemos bu iPhone için ana bilgisayar eşleştirmesini tamamlıyor ve başarılı olana kadar yeniden denemeye devam edecek.",
   "settings.general.notifications.push.pairing.step.permission": "iPhone Ayarlarından bildirim izni isteniyor.",
   "settings.general.notifications.push.pairing.step.register": "Apple push kaydının tamamlanması bekleniyor.",
   "settings.general.notifications.push.pairing.step.begin":
@@ -815,7 +815,7 @@ export const dict = {
     "Bu iPhone'dan depolanan push kanal kimlik bilgileri kaldırıldı.",
   "settings.general.notifications.push.pairing.toast.paired.title": "iPhone eşleştirildi",
   "settings.general.notifications.push.pairing.toast.paired.description":
-    "WhisperCode artık bu iPhone'u push teslimi için OpenCode ana bilgisayarına bağlı tutabilir.",
+    "Anemos artık bu iPhone'u push teslimi için OpenCode ana bilgisayarına bağlı tutabilir.",
   "settings.general.notifications.push.action.enable": "Etkinleştir",
   "settings.general.notifications.push.action.openSettings": "Ayarları Aç",
   "settings.general.notifications.push.action.enabled": "Etkin",
@@ -838,28 +838,28 @@ export const dict = {
   "settings.general.notifications.push.host.action.removing": "Kaldırılıyor...",
   "settings.general.notifications.push.host.toast.installed.title": "Ana bilgisayar eklentisi eklendi",
   "settings.general.notifications.push.host.toast.installed.description":
-    "OpenCode genel yapılandırması artık WhisperCode push eklentisini içeriyor.",
+    "OpenCode genel yapılandırması artık Anemos push eklentisini içeriyor.",
   "settings.general.notifications.push.host.toast.removed.title": "Ana bilgisayar eklentisi kaldırıldı",
   "settings.general.notifications.push.host.toast.removed.description":
-    "OpenCode genel yapılandırması artık WhisperCode push eklentisini içermiyor.",
+    "OpenCode genel yapılandırması artık Anemos push eklentisini içermiyor.",
   "settings.general.notifications.push.host.toast.copied.title": "Yükleyici komutu kopyalandı",
   "settings.general.notifications.push.host.toast.copied.description":
     "Kopyalanan komutu OpenCode'u barındıran makinede çalıştırın.",
   "settings.general.notifications.push.host.toast.copyFailed.title": "Yükleyici komutu kopyalanamadı",
   "settings.general.notifications.push.host.toast.copyFailed.description":
-    "Komutu WhisperCode'dan elle kopyalayın ve OpenCode ana bilgisayarında çalıştırın.",
+    "Komutu Anemos'dan elle kopyalayın ve OpenCode ana bilgisayarında çalıştırın.",
   "settings.general.notifications.push.toast.sent.title": "Test bildirimi planlandı",
   "settings.general.notifications.push.toast.sent.description":
     "Başlığı ve dokunma akışını doğrulamak için iPhone'unuzu kilitleyin veya uygulamayı açık tutun.",
   "settings.general.notifications.push.toast.failed.title": "Test bildirimi gönderilemedi",
   "settings.general.notifications.push.toast.failed.description":
-    "WhisperCode için iPhone bildirimlerini etkinleştirin ve tekrar deneyin.",
+    "Anemos için iPhone bildirimlerini etkinleştirin ve tekrar deneyin.",
 
   "notification.push.route.title": "OpenCode bildirimi",
-  "notification.push.route.server": "WhisperCode bu bildirimi henüz bağlı bir sunucuyla eşleştiremedi.",
+  "notification.push.route.server": "Anemos bu bildirimi henüz bağlı bir sunucuyla eşleştiremedi.",
   "notification.push.route.session":
-    "WhisperCode o oturumu henüz geri yükleyemedi, bu yüzden sunucu ana sayfasını açtı.",
-  "settings.whispercode.mobile.unavailable": "Bu sekme WhisperCode mobil yapılarında kullanılabilir.",
+    "Anemos o oturumu henüz geri yükleyemedi, bu yüzden sunucu ana sayfasını açtı.",
+  "settings.whispercode.mobile.unavailable": "Bu sekme Anemos mobil yapılarında kullanılabilir.",
 
   "settings.general.sounds.agent.title": "Ajan",
   "settings.general.sounds.agent.description": "Ajan tamamlandığında veya dikkat gerektirdiğinde ses çal",
