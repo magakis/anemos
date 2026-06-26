@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Android app icon PNGs from the iOS icon assets.
+"""Generate Android app icon PNGs for Anemos from the iOS icon assets.
 
 Resizes the iOS AppIcon PNGs into all 5 mipmap densities for:
   - ic_launcher_foreground.png (tinted icon on transparent bg, 108dp adaptive canvas)
@@ -18,7 +18,7 @@ import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 IOS_ICON_DIR = os.path.join(
-    SCRIPT_DIR, "..", "ios", "WhisperCode", "WhisperCode",
+    SCRIPT_DIR, "..", "ios", "OpenCode", "OpenCode",
     "Assets.xcassets", "AppIcon.appiconset",
 )
 

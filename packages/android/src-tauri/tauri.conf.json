@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "WhisperCode"
+        "title": "Anemos"
       }
     ],
     "withGlobalTauri": true,
@@ -23,6 +23,6 @@
   },
   "bundle": {
     "active": false,
-    "icon": ["../../ios/WhisperCode/WhisperCode/Assets.xcassets/AppIcon.appiconset/AppIcon-dark.png"]
+    "icon": ["../../ios/src/app-icon.png"]
   }
 }
