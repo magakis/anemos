@@ -5,7 +5,7 @@ import { checkin } from "./checkin.js"
 import { cut, merge, name, read, write } from "./config.js"
 import { logFile, stateFile } from "./path.js"
 import { claim, devices as relayDevices, publish, removeDevice as relayRemoveDevice } from "./relay.js"
-import { append, load, next, save, type Data } from "./state.js"
+import { append, load, next, save, withStateLock, type Data } from "./state.js"
 
 export type Cmd = "install" | "pair" | "status" | "test" | "unpair" | "devices" | "remove-device"
 
@@ -43,14 +43,24 @@ export async function run(cmd: string | undefined, opts: Opts) {
 export async function install(opts: Opts) {
   const cfg = await read()
   const list = merge(cfg.data.plugin ?? [], opts.plugin)
-  const data = await load()
+  let data!: Data
+  await withStateLock(async () => {
+    data = await load()
+  })
 
   if (opts.pair) {
     await claimPair(opts, data)
   }
 
-  data.updated_at = Date.now()
-  await save(data)
+  await withStateLock(async () => {
+    const fresh = await load()
+    fresh.updated_at = Date.now()
+    if (opts.pair && data.mode === "relay" && data.relay) {
+      fresh.mode = data.mode
+      fresh.relay = data.relay
+    }
+    await save(fresh)
+  })
 
   if (opts.pair && data.mode === "relay" && data.relay) {
     await checkin(data, "install")
@@ -75,10 +85,18 @@ export async function pair(opts: Opts) {
     return out(opts, { ok: false, error: "missing_pair_token" })
   }
 
-  const data = await load()
+  let data!: Data
+  await withStateLock(async () => {
+    data = await load()
+  })
   await claimPair(opts, data)
-  data.updated_at = Date.now()
-  await save(data)
+  await withStateLock(async () => {
+    const fresh = await load()
+    fresh.mode = "relay"
+    fresh.relay = data.relay
+    fresh.updated_at = Date.now()
+    await save(fresh)
+  })
 
   if (data.mode === "relay" && data.relay) {
     await checkin(data, "pair")
@@ -125,11 +143,16 @@ export async function status(opts: Opts) {
 }
 
 export async function test(opts: Opts) {
-  const data = await load()
-  const item = next("test")
+  let data!: Data
+  let item!: Awaited<ReturnType<typeof next>>
+  await withStateLock(async () => {
+    data = await load()
+    item = next("test")
+    data.last = item
+    data.updated_at = Date.now()
+    await save(data)
+  })
   let sent: "accepted" | "suppressed" | undefined
-  data.last = item
-  data.updated_at = Date.now()
   await append(item)
 
   if (data.mode === "relay" && data.relay) {
@@ -156,10 +179,13 @@ export async function test(opts: Opts) {
             err: err instanceof Error ? err.message : String(err),
           }
         })
+      await withStateLock(async () => {
+        const fresh = await load()
+        fresh.relay = data.relay!
+        await save(fresh)
+      })
     }
   }
-
-  await save(data)
 
   return out(opts, {
     ok: true,

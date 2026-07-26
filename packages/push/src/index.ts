@@ -2,7 +2,7 @@ import type { Plugin } from "@opencode-ai/plugin"
 import { checkin } from "./checkin.js"
 import { record } from "./event.js"
 import { publish } from "./relay.js"
-import { load, save } from "./state.js"
+import { load, save, withStateLock, type Data, type Item } from "./state.js"
 
 const plugin: Plugin = async () => {
   const boot = load()
@@ -21,8 +21,13 @@ const plugin: Plugin = async () => {
       run = run
         .then(async () => {
           await boot
-          const data = await load()
-          const item = await record(data, event as never)
+          let data!: Data
+          let item: Item | undefined
+          await withStateLock(async () => {
+            data = await load()
+            item = await record(data, event as never)
+            await save(data)
+          })
           if (item && data.mode === "relay" && data.relay) {
             const relay = data.relay
             await publish(data, item)
@@ -49,8 +54,12 @@ const plugin: Plugin = async () => {
                 }
                 // console.warn("anemos-push: publish failed", data.relay.err)
               })
+            await withStateLock(async () => {
+              const fresh = await load()
+              fresh.relay = data.relay!
+              await save(fresh)
+            })
           }
-          await save(data)
         })
         .catch(() => {
           // console.error("anemos-push: event failed")

@@ -63,10 +63,57 @@ export async function load() {
 export async function save(data: Data) {
   await fs.mkdir(stateDir(), { recursive: true })
   const file = stateFile()
-  await fs.writeFile(file, JSON.stringify(data, null, 2) + "\n", "utf8")
-  await fs.chmod(file, 0o600).catch(() => {
+  const tmp = file + ".tmp"
+  await fs.writeFile(tmp, JSON.stringify(data, null, 2) + "\n", "utf8")
+  await fs.chmod(tmp, 0o600).catch(() => {
     // console.warn("push: failed to set permissions on state file")
   })
+  await fs.rename(tmp, file)
+}
+
+const LOCK_MS = 20000
+const WAIT_MS = 250
+const STEP_MS = 25
+
+function stateLockFile() {
+  return stateFile() + ".lock"
+}
+
+async function acquireStateLock(): Promise<(() => Promise<void>) | undefined> {
+  const file = stateLockFile()
+  const stop = Date.now() + WAIT_MS
+  await fs.mkdir(stateDir(), { recursive: true }).catch(() => undefined)
+  for (;;) {
+    const found = await fs.stat(file).then((i) => i).catch(() => undefined)
+    if (found && Date.now() - found.mtimeMs > LOCK_MS) {
+      const gone = await fs.rm(file, { force: true }).then(() => true).catch(() => false)
+      if (!gone) return undefined
+      continue
+    }
+    const lock = await fs.open(file, "wx").then((i) => i).catch((err: unknown) => {
+      if ((err as NodeJS.ErrnoException)?.code === "EEXIST") return undefined
+      throw err
+    })
+    if (lock) {
+      await lock.writeFile(String(process.pid))
+      return async () => {
+        await lock.close().catch(() => undefined)
+        await fs.rm(file, { force: true }).catch(() => undefined)
+      }
+    }
+    if (Date.now() >= stop) return undefined
+    await new Promise((done) => setTimeout(done, STEP_MS))
+  }
+}
+
+export async function withStateLock(fn: () => Promise<void>) {
+  const release = await acquireStateLock()
+  if (!release) return
+  try {
+    await fn()
+  } finally {
+    await release()
+  }
 }
 
 export async function append(item: Item) {
