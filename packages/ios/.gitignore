@@ -1,4 +1,6 @@
 WebAssets/
+OpenCode.xcodeproj/
+DerivedData/
 xcuserdata/
 *.xcuserstate
 .beam.env

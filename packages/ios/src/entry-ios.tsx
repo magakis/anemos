@@ -33,6 +33,7 @@ const App = () => {
     return { text: text ?? "" } satisfies VoiceStopResult
   }
 
+  // SIDELOAD: push methods intentionally omitted — free Apple ID has no APNS. Re-enable via native bridge in the paid Apple Developer Program build.
   const platform: Platform = {
     platform: "ios",
     os: "ios",

@@ -1,0 +1,63 @@
+name: iOS Sideload
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-15
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build web assets (WebAssets/)
+        run: bun run --cwd packages/ios build
+
+      - name: Verify WebAssets present
+        run: test -f packages/ios/WebAssets/index.html
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: packages/ios
+        run: xcodegen generate
+
+      - name: Build (unsigned, Release)
+        working-directory: packages/ios
+        run: |
+          xcodebuild -project OpenCode.xcodeproj -scheme OpenCode \
+            -destination 'generic/platform=iOS' -configuration Release build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            CURRENT_PROJECT_VERSION=$(git rev-parse --short HEAD) SYMROOT=build
+
+      - name: Strip debug dylibs
+        run: |
+          find packages/ios/build/Release-iphoneos/Anemos.app -name "*.debug.dylib" -delete
+          find packages/ios/build/Release-iphoneos/Anemos.app -name "__preview.dylib" -delete
+
+      - name: Verify WebAssets embedded in .app
+        run: test -f packages/ios/build/Release-iphoneos/Anemos.app/WebAssets/index.html
+
+      - name: Package .ipa (unsigned — on-device signing by SideStore)
+        run: |
+          mkdir -p Payload
+          cp -r packages/ios/build/Release-iphoneos/Anemos.app Payload/
+          zip -r Anemos.ipa Payload/
+
+      - name: Upload .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: Anemos.ipa
+          path: Anemos.ipa
+          retention-days: 7
