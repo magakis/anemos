@@ -38,7 +38,7 @@ import { fileURLToPath } from 'node:url';
 const REPO = 'magakis/anemos';
 const BRANCH = 'main';
 const ARTIFACT_NAME = 'Anemos.ipa';
-const WORKFLOW_FILE = '.github/workflows/ios-sideload.yml';
+const WORKFLOW_FILE = 'ios-sideload.yml';
 const TOKEN_PATH = join(homedir(), '.config/opencode/gh-token');
 const DEPLOY_DIR = '/tmp/anemos-deploy';
 const BUNDLE_ID = 'com.anemos.app';
