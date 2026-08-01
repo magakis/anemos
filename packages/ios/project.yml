@@ -10,11 +10,6 @@ settings:
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: ""
 
-packages:
-  WhisperKit:
-    url: https://github.com/argmaxinc/whisperkit
-    from: 0.18.0
-
 targets:
   OpenCode:
     type: application
@@ -24,8 +19,6 @@ targets:
       - path: WebAssets
         type: folder
         buildPhase: resources
-    dependencies:
-      - package: WhisperKit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.anemos.app
