@@ -116,6 +116,10 @@ Authoritative docs: `IOS_BEAM.md` and `ANDROID_BUILD.md` at repo root.
 - `packages/ios`: `bun run --cwd packages/ios beam` uploads a **private TestFlight** build, not a public App Store release. See `IOS_BEAM.md` for required env vars (`ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_PATH`, `IOS_BUNDLE_ID`).
 - `packages/android`: Tauri Android build; requires Android NDK `27.0.12077973`, JDK 21, and a release keystore. See `ANDROID_BUILD.md`.
 
+### Sideload deploy (`scripts/deploy-ipa.mjs`)
+
+`node scripts/deploy-ipa.mjs deploy` waits for the `ios-sideload.yml` GitHub Actions run whose `head_sha` matches the current local commit, then downloads and serves the `Anemos.ipa` over HTTP for SideStore installation. It prints `Ensure you have pushed to main to trigger a CI build.` then polls the Actions API every 10 s for 15 min. **You must `git push origin main` first** — with no push there is no CI run for `HEAD`, so the script silently polls until it times out (`Timed out waiting for workflow run to appear`) with no useful feedback. After pushing, re-run the script; it finds the run within seconds.
+
 ## Style
 
 - **Formatting**: Prettier config lives inline in root `package.json` (`semi: false`, `printWidth: 120`); 2-space indent, LF. There is no `.prettierrc`.
