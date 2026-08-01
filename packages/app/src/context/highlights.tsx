@@ -61,42 +61,87 @@ function parseHighlight(value: unknown): Highlight | undefined {
   return { title, description, media }
 }
 
-function parseRelease(value: unknown): ParsedRelease | undefined {
+function parseRelease(value: unknown, platform: string): ParsedRelease | undefined {
   if (!isRecord(value)) return
   const tag = getText(value.tag) ?? getText(value.tag_name) ?? getText(value.name)
 
-  if (!Array.isArray(value.highlights)) {
-    return { tag, highlights: [] }
+  // Old format: value.highlights with source+items groups
+  if (Array.isArray(value.highlights) && value.highlights.length > 0) {
+    const h = value.highlights.flatMap((group) => {
+      if (!isRecord(group)) return []
+
+      const source = getText(group.source)
+      if (!source) return []
+      if (!source.toLowerCase().includes("desktop")) return []
+
+      if (Array.isArray(group.items)) {
+        return group.items.map((item) => parseHighlight(item)).filter((item): item is Highlight => item !== undefined)
+      }
+
+      const item = parseHighlight(group)
+      if (!item) return []
+      return [item]
+    })
+
+    return { tag, highlights: h }
   }
 
-  const highlights = value.highlights.flatMap((group) => {
-    if (!isRecord(group)) return []
+  // New format: value.sections with title+items arrays
+  if (Array.isArray(value.sections)) {
+    const hasMobileSection = value.sections.some((s) => {
+      if (!isRecord(s)) return false
+      const t = getText(s.title)?.toLowerCase()
+      return t ? ["mobile", "ios", "android"].some((kw) => t.includes(kw)) : false
+    })
 
-    const source = getText(group.source)
-    if (!source) return []
-    if (!source.toLowerCase().includes("desktop")) return []
+    const h = value.sections.flatMap((section) => {
+      if (!isRecord(section)) return []
+      const title = getText(section.title)
+      if (!title) return []
+      if (!Array.isArray(section.items)) return []
 
-    if (Array.isArray(group.items)) {
-      return group.items.map((item) => parseHighlight(item)).filter((item): item is Highlight => item !== undefined)
-    }
+      const items = section.items
+        .map((item) => {
+          const text = getText(item)
+          if (!text) return undefined
+          return { title, description: text } as Highlight
+        })
+        .filter((item): item is Highlight => item !== undefined)
 
-    const item = parseHighlight(group)
-    if (!item) return []
-    return [item]
-  })
+      if (items.length === 0) return []
 
-  return { tag, highlights }
+      const tl = title.toLowerCase()
+      switch (platform) {
+        case "desktop":
+          return tl.includes("desktop") || tl === "core" ? items : []
+        case "web":
+          return tl === "core" ? items : []
+        case "ios":
+        case "android":
+          if (hasMobileSection) {
+            return ["mobile", "ios", "android"].some((kw) => tl.includes(kw)) ? items : []
+          }
+          return items
+        default:
+          return items
+      }
+    })
+
+    return { tag, highlights: h }
+  }
+
+  return { tag, highlights: [] }
 }
 
-function parseChangelog(value: unknown): ParsedRelease[] | undefined {
+function parseChangelog(value: unknown, platform: string): ParsedRelease[] | undefined {
   if (Array.isArray(value)) {
-    return value.map(parseRelease).filter((release): release is ParsedRelease => release !== undefined)
+    return value.map((v) => parseRelease(v, platform)).filter((release): release is ParsedRelease => release !== undefined)
   }
 
   if (!isRecord(value)) return
   if (!Array.isArray(value.releases)) return
 
-  return value.releases.map(parseRelease).filter((release): release is ParsedRelease => release !== undefined)
+  return value.releases.map((v) => parseRelease(v, platform)).filter((release): release is ParsedRelease => release !== undefined)
 }
 
 function sliceHighlights(input: { releases: ParsedRelease[]; current?: string; previous?: string }) {
@@ -131,8 +176,8 @@ function dedupeKey(highlight: Highlight) {
   return [highlight.title, highlight.description, highlight.media?.type ?? "", highlight.media?.src ?? ""].join("\n")
 }
 
-function loadReleaseHighlights(value: unknown, current?: string, previous?: string) {
-  const releases = parseChangelog(value)
+function loadReleaseHighlights(value: unknown, current?: string, previous?: string, platform?: string) {
+  const releases = parseChangelog(value, platform ?? "")
   if (!releases?.length) return []
   return sliceHighlights({ releases, current, previous })
 }
@@ -184,7 +229,7 @@ export const { use: useHighlights, provider: HighlightsProvider } = createSimple
         .then((response) => (response.ok ? (response.json() as Promise<unknown>) : undefined))
         .then((json) => {
           if (!json) return
-          const highlights = loadReleaseHighlights(json, platform.version, previous)
+          const highlights = loadReleaseHighlights(json, platform.version, previous, platform.platform)
           if (controller.signal.aborted) return
 
           if (highlights.length === 0) {
