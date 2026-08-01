@@ -22,7 +22,7 @@ import { Button } from "@opencode-ai/ui/button"
 import { showToast } from "@opencode-ai/ui/toast"
 import { base64Encode, checksum } from "@opencode-ai/shared/util/encode"
 import { useNavigate, useParams, useSearchParams } from "@solidjs/router"
-import { NewSessionView, SessionHeader } from "@/components/session"
+import { NewSessionView, SessionContextTab, SessionHeader } from "@/components/session"
 import { useComments } from "@/context/comments"
 import { useGlobalSync } from "@/context/global-sync"
 import { useLanguage } from "@/context/language"
@@ -435,7 +435,7 @@ export default function Page() {
 
   const [store, setStore] = createStore({
     messageId: undefined as string | undefined,
-    mobileTab: "session" as "session" | "changes",
+    mobileTab: "session" as "session" | "changes" | "context",
     changes: "session" as "session" | "turn",
     newSessionWorktree: "main",
     deferRender: false,
@@ -1244,12 +1244,18 @@ export default function Page() {
           reviewCount={reviewCount()}
           onSession={() => setStore("mobileTab", "session")}
           onChanges={() => setStore("mobileTab", "changes")}
+          onContext={() => setStore("mobileTab", "context")}
         />
 
         {/* Session panel */}
         <div class="flex-1 min-h-0 flex flex-col bg-background-stronger">
           <div class="flex-1 min-h-0 overflow-hidden">
             <Switch>
+              <Match when={store.mobileTab === "context" && !!params.id}>
+                <div class="relative h-full">
+                  <SessionContextTab />
+                </div>
+              </Match>
               <Match when={params.id}>
                 <Show when={activeMessage()}>
                   <MessageTimeline
@@ -1308,24 +1314,26 @@ export default function Page() {
             </Switch>
           </div>
 
-          <SessionComposerRegion
-            state={composer}
-            ready={!store.deferRender && messagesReady()}
-            centered={false}
-            inputRef={(el) => {
-              inputRef = el
-            }}
-            newSessionWorktree={newSessionWorktree()}
-            onNewSessionWorktreeReset={() => setStore("newSessionWorktree", "main")}
-            onSubmit={() => {
-              comments.clear()
-              resumeScroll()
-            }}
-            onResponseSubmit={resumeScroll}
-            setPromptDockRef={(el) => {
-              promptDock = el
-            }}
-          />
+          <Show when={store.mobileTab !== "context"}>
+            <SessionComposerRegion
+              state={composer}
+              ready={!store.deferRender && messagesReady()}
+              centered={false}
+              inputRef={(el) => {
+                inputRef = el
+              }}
+              newSessionWorktree={newSessionWorktree()}
+              onNewSessionWorktreeReset={() => setStore("newSessionWorktree", "main")}
+              onSubmit={() => {
+                comments.clear()
+                resumeScroll()
+              }}
+              onResponseSubmit={resumeScroll}
+              setPromptDockRef={(el) => {
+                promptDock = el
+              }}
+            />
+          </Show>
         </div>
       </div>
 

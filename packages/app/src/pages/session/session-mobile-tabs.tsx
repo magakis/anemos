@@ -5,11 +5,12 @@ import { usePlatform } from "@/context/platform"
 
 export function SessionMobileTabs(props: {
   open: boolean
-  mobileTab: "session" | "changes"
+  mobileTab: "session" | "changes" | "context"
   hasReview: boolean
   reviewCount: number
   onSession: () => void
   onChanges: () => void
+  onContext: () => void
 }) {
   const language = useLanguage()
   const platform = usePlatform()
@@ -22,6 +23,10 @@ export function SessionMobileTabs(props: {
     platform.haptic?.("light")
     props.onChanges()
   }
+  const handleContext = () => {
+    platform.haptic?.("light")
+    props.onContext()
+  }
 
   return (
     <Show when={props.open}>
@@ -29,7 +34,7 @@ export function SessionMobileTabs(props: {
         <Tabs.List class="!h-9">
           <Tabs.Trigger
             value="session"
-            class="!w-1/2 !max-w-none"
+            class="!w-1/3 !max-w-none"
             classes={{ button: "w-full" }}
             onClick={handleSession}
           >
@@ -37,13 +42,21 @@ export function SessionMobileTabs(props: {
           </Tabs.Trigger>
           <Tabs.Trigger
             value="changes"
-            class="!w-1/2 !max-w-none !border-r-0"
+            class="!w-1/3 !max-w-none"
             classes={{ button: "w-full" }}
             onClick={handleChanges}
           >
             {props.hasReview
               ? language.t("session.review.filesChanged", { count: props.reviewCount })
               : language.t("session.review.change.other")}
+          </Tabs.Trigger>
+          <Tabs.Trigger
+            value="context"
+            class="!w-1/3 !max-w-none !border-r-0"
+            classes={{ button: "w-full" }}
+            onClick={handleContext}
+          >
+            {language.t("session.tab.context")}
           </Tabs.Trigger>
         </Tabs.List>
       </Tabs>
