@@ -11,13 +11,43 @@ import { ServerHealthIndicator, ServerRow } from "@/components/server/server-row
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { normalizeServerUrl, ServerConnection, useServer } from "@/context/server"
-import { type ServerHealth, useCheckServerHealth } from "@/utils/server-health"
+import { type ServerHealth } from "@/utils/server-health"
+
+async function checkHealth(url: string, username?: string, password?: string): Promise<boolean> {
+  const base = url.replace(/\/+$/, "")
+  const headers: HeadersInit = {}
+  if (password) {
+    headers["Authorization"] = `Basic ${btoa(`${username || "opencode"}:${password}`)}`
+  }
+  const primary = await fetch(`${base}/global/health`, { headers, signal: AbortSignal.timeout(3000) })
+    .then((r) => r.ok)
+    .catch(() => false)
+  if (primary) return true
+  return fetch(`${base}/health`, { headers, signal: AbortSignal.timeout(3000) })
+    .then((r) => r.ok)
+    .catch(() => false)
+}
+
+// TEMP DEBUG — strip after diagnosis
+async function diagnose(url: string, username?: string, password?: string): Promise<string> {
+  const base = url.replace(/\/+$/, "")
+  const headers: HeadersInit = {}
+  if (password) headers["Authorization"] = `Basic ${btoa(`${username || "opencode"}:${password}`)}`
+  try {
+    const res = await fetch(`${base}/global/health`, { headers, signal: AbortSignal.timeout(5000) })
+    const acao = res.headers.get("access-control-allow-origin") ?? "(none)"
+    const ct = res.headers.get("content-type") ?? "(none)"
+    const body = (await res.text()).slice(0, 500)
+    return `status=${res.status} ACAO=${acao} content-type=${ct} body=${body}`
+  } catch (e) {
+    return `fetch threw: ${(e as Error)?.message ?? String(e)}`
+  }
+}
 
 export function ServerConfigScreen() {
   const language = useLanguage()
   const server = useServer()
   const platform = usePlatform()
-  const checkServerHealth = useCheckServerHealth()
   const [store, setStore] = createStore({
     status: {} as Record<ServerConnection.Key, ServerHealth | undefined>,
     mode: (server.list.length > 0 ? "list" : "add") as "list" | "add" | "edit",
@@ -28,6 +58,7 @@ export function ServerConfigScreen() {
       username: DEFAULT_USERNAME,
       password: "",
       error: "",
+      diagnostic: "",
       busy: false,
       status: undefined as boolean | undefined,
     },
@@ -98,7 +129,9 @@ export function ServerConfigScreen() {
     const results: Record<ServerConnection.Key, ServerHealth> = {}
     await Promise.all(
       items().map(async (conn) => {
-        results[ServerConnection.key(conn)] = await checkServerHealth(conn.http)
+        results[ServerConnection.key(conn)] = {
+          healthy: await checkHealth(conn.http.url, conn.http.username, conn.http.password),
+        }
       }),
     )
     setStore("status", reconcile(results))
@@ -130,11 +163,8 @@ export function ServerConfigScreen() {
     if (!looksComplete(value)) return
     const normalized = normalizeServerUrl(value)
     if (!normalized) return
-    const http: ServerConnection.HttpBase = { url: normalized }
-    if (username) http.username = username
-    if (password) http.password = password
-    const result = await checkServerHealth(http)
-    setStore("form", { status: result.healthy })
+    const ok = await checkHealth(normalized, username, password)
+    setStore("form", { status: ok })
   }
 
   const resetForm = () => {
@@ -146,6 +176,7 @@ export function ServerConfigScreen() {
       username: DEFAULT_USERNAME,
       password: "",
       error: "",
+      diagnostic: "",
       busy: false,
       status: undefined,
     })
@@ -160,6 +191,7 @@ export function ServerConfigScreen() {
       username: conn.http.username ?? "",
       password: conn.http.password ?? "",
       error: "",
+      diagnostic: "",
       busy: false,
       status: store.status[ServerConnection.key(conn)]?.healthy,
     })
@@ -176,24 +208,24 @@ export function ServerConfigScreen() {
 
   const handleChange = (value: string) => {
     if (store.form.busy) return
-    setStore("form", { url: value, error: "" })
+    setStore("form", { url: value, error: "", diagnostic: "" })
     void previewStatus(value, store.form.username, store.form.password)
   }
 
   const handleNameChange = (value: string) => {
     if (store.form.busy) return
-    setStore("form", { name: value, error: "" })
+    setStore("form", { name: value, error: "", diagnostic: "" })
   }
 
   const handleUsernameChange = (value: string) => {
     if (store.form.busy) return
-    setStore("form", { username: value, error: "" })
+    setStore("form", { username: value, error: "", diagnostic: "" })
     void previewStatus(store.form.url, value, store.form.password)
   }
 
   const handlePasswordChange = (value: string) => {
     if (store.form.busy) return
-    setStore("form", { password: value, error: "" })
+    setStore("form", { password: value, error: "", diagnostic: "" })
     void previewStatus(store.form.url, store.form.username, value)
   }
 
@@ -217,10 +249,11 @@ export function ServerConfigScreen() {
       if (store.form.name.trim()) conn.displayName = store.form.name.trim()
       if (store.form.password) conn.http.password = store.form.password
       if (store.form.password && store.form.username) conn.http.username = store.form.username
-      setStore("form", { busy: true, error: "" })
-      const result = await checkServerHealth(conn.http)
-      if (!result.healthy) {
-        setStore("form", { busy: false, error: language.t("dialog.server.add.error") })
+      setStore("form", { busy: true, error: "", diagnostic: "" })
+      const ok = await checkHealth(normalized, store.form.username, store.form.password)
+      if (!ok) {
+        const diagnostic = await diagnose(normalized, store.form.username, store.form.password)
+        setStore("form", { busy: false, error: language.t("dialog.server.add.error"), diagnostic })
         return
       }
 
@@ -248,10 +281,11 @@ export function ServerConfigScreen() {
       displayName: name,
       http: { url: normalized, username, password },
     }
-    setStore("form", { busy: true, error: "" })
-    const result = await checkServerHealth(conn.http)
-    if (!result.healthy) {
-      setStore("form", { busy: false, error: language.t("dialog.server.add.error") })
+    setStore("form", { busy: true, error: "", diagnostic: "" })
+    const ok = await checkHealth(normalized, store.form.username, store.form.password)
+    if (!ok) {
+      const diagnostic = await diagnose(normalized, store.form.username, store.form.password)
+      setStore("form", { busy: false, error: language.t("dialog.server.add.error"), diagnostic })
       return
     }
     if (normalized === original.http.url) {
@@ -396,6 +430,11 @@ export function ServerConfigScreen() {
             onSubmit={submit}
             onBack={resetForm}
           />
+          <Show when={store.form.diagnostic}>
+            <div class="rounded-lg bg-surface-base px-3 py-2 text-12-mono text-text-dimmed break-all whitespace-pre-wrap">
+              [debug] {store.form.diagnostic}
+            </div>
+          </Show>
           <div class="flex justify-center">
             <Button variant="primary" size="large" onClick={submit} disabled={formBusy()} class="px-3 py-1.5">
               {formBusy()
