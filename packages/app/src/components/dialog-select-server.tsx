@@ -576,7 +576,7 @@ export function DialogSelectServer() {
             <Show when={platform.platform === "ios"}>
               <p class="text-text-dimmed text-12-regular mt-2">
                 Don't see your server? Make sure you're serving with CORS:{" "}
-                <code class="bg-surface-raised-base text-text-secondary-base px-1.5 py-0.5 rounded-sm break-all">opencode serve --hostname 0.0.0.0 --cors app-local://localhost</code>
+                <code class="bg-surface-raised-base text-text-secondary-base px-1.5 py-0.5 rounded-sm break-all">opencode serve --hostname 0.0.0.0 --cors tauri://localhost</code>
               </p>
             </Show>
           </Show>
