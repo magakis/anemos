@@ -952,6 +952,8 @@ export const dict = {
   "app.server.unreachable": "无法连接到 {{server}}",
   "app.server.retrying": "正在自动重试...",
   "app.server.otherServers": "其他服务器",
+  "server.setup.title": "添加服务器",
+  "server.setup.subtitle": "输入 opencode 服务器地址以开始使用",
   "dialog.server.add.usernamePlaceholder": "用户名",
   "dialog.server.add.passwordPlaceholder": "密码",
   "server.row.noUsername": "无用户名",

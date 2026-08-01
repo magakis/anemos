@@ -5,36 +5,17 @@ import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { List } from "@opencode-ai/ui/list"
-import { TextField } from "@opencode-ai/ui/text-field"
 import { useMutation } from "@tanstack/solid-query"
 import { showToast } from "@opencode-ai/ui/toast"
 import { useNavigate } from "@solidjs/router"
 import { createEffect, createMemo, createResource, onCleanup, Show } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
+import { DEFAULT_USERNAME, ServerForm } from "@/components/server/server-form"
 import { ServerHealthIndicator, ServerRow } from "@/components/server/server-row"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { normalizeServerUrl, ServerConnection, useServer } from "@/context/server"
 import { type ServerHealth, useCheckServerHealth } from "@/utils/server-health"
-
-const DEFAULT_USERNAME = "opencode"
-
-interface ServerFormProps {
-  value: string
-  name: string
-  username: string
-  password: string
-  placeholder: string
-  busy: boolean
-  error: string
-  status: boolean | undefined
-  onChange: (value: string) => void
-  onNameChange: (value: string) => void
-  onUsernameChange: (value: string) => void
-  onPasswordChange: (value: string) => void
-  onSubmit: () => void
-  onBack: () => void
-}
 
 function showRequestError(language: ReturnType<typeof useLanguage>, err: unknown) {
   showToast({
@@ -104,71 +85,6 @@ function useServerPreview() {
   }
 
   return { previewStatus }
-}
-
-function ServerForm(props: ServerFormProps) {
-  const language = useLanguage()
-  const keyDown = (event: KeyboardEvent) => {
-    event.stopPropagation()
-    if (event.key === "Escape") {
-      event.preventDefault()
-      props.onBack()
-      return
-    }
-    if (event.key !== "Enter" || event.isComposing) return
-    event.preventDefault()
-    props.onSubmit()
-  }
-
-  return (
-    <div class="px-5">
-      <div class="bg-surface-base rounded-md p-5 flex flex-col gap-3">
-        <div class="flex-1 min-w-0 [&_[data-slot=input-wrapper]]:relative">
-          <TextField
-            type="text"
-            label={language.t("dialog.server.add.url")}
-            placeholder={props.placeholder}
-            value={props.value}
-            autofocus
-            validationState={props.error ? "invalid" : "valid"}
-            error={props.error}
-            disabled={props.busy}
-            onChange={props.onChange}
-            onKeyDown={keyDown}
-          />
-        </div>
-        <TextField
-          type="text"
-          label={language.t("dialog.server.add.name")}
-          placeholder={language.t("dialog.server.add.namePlaceholder")}
-          value={props.name}
-          disabled={props.busy}
-          onChange={props.onNameChange}
-          onKeyDown={keyDown}
-        />
-        <div class="grid grid-cols-2 gap-2 min-w-0">
-          <TextField
-            type="text"
-            label={language.t("dialog.server.add.username")}
-            placeholder={language.t("dialog.server.add.usernamePlaceholder")}
-            value={props.username}
-            disabled={props.busy}
-            onChange={props.onUsernameChange}
-            onKeyDown={keyDown}
-          />
-          <TextField
-            type="password"
-            label={language.t("dialog.server.add.password")}
-            placeholder={language.t("dialog.server.add.passwordPlaceholder")}
-            value={props.password}
-            disabled={props.busy}
-            onChange={props.onPasswordChange}
-            onKeyDown={keyDown}
-          />
-        </div>
-      </div>
-    </div>
-  )
 }
 
 export function DialogSelectServer() {

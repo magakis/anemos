@@ -26,6 +26,7 @@ import {
   Suspense,
 } from "solid-js"
 import { Dynamic } from "solid-js/web"
+import { ServerConfigScreen } from "@/components/server/server-config-screen"
 import { CommandProvider } from "@/context/command"
 import { CommentsProvider } from "@/context/comments"
 import { FileProvider } from "@/context/file"
@@ -288,6 +289,24 @@ function ServerKey(props: ParentProps) {
   )
 }
 
+function ServerRequiredGate(props: ParentProps) {
+  const server = useServer()
+  return (
+    <Show
+      when={server.ready()}
+      fallback={
+        <div class="h-dvh w-screen flex flex-col items-center justify-center bg-background-base">
+          <Splash class="w-16 h-20 opacity-50 animate-pulse" />
+        </div>
+      }
+    >
+      <Show when={server.current} fallback={<ServerConfigScreen />}>
+        {props.children}
+      </Show>
+    </Show>
+  )
+}
+
 export function AppInterface(props: {
   children?: JSX.Element
   defaultServer: ServerConnection.Key
@@ -301,26 +320,28 @@ export function AppInterface(props: {
       disableHealthCheck={props.disableHealthCheck}
       servers={props.servers}
     >
-      <ConnectionGate disableHealthCheck={props.disableHealthCheck}>
-        <ServerKey>
-          <QueryProvider>
-            <GlobalSDKProvider>
-              <GlobalSyncProvider>
-                <Dynamic
-                  component={props.router ?? Router}
-                  root={(routerProps) => <RouterRoot appChildren={props.children}>{routerProps.children}</RouterRoot>}
-                >
-                  <Route path="/" component={HomeRoute} />
-                  <Route path="/:dir" component={DirectoryLayout}>
-                    <Route path="/" component={SessionIndexRoute} />
-                    <Route path="/session/:id?" component={SessionRoute} />
-                  </Route>
-                </Dynamic>
-              </GlobalSyncProvider>
-            </GlobalSDKProvider>
-          </QueryProvider>
-        </ServerKey>
-      </ConnectionGate>
+      <ServerRequiredGate>
+        <ConnectionGate disableHealthCheck={props.disableHealthCheck}>
+          <ServerKey>
+            <QueryProvider>
+              <GlobalSDKProvider>
+                <GlobalSyncProvider>
+                  <Dynamic
+                    component={props.router ?? Router}
+                    root={(routerProps) => <RouterRoot appChildren={props.children}>{routerProps.children}</RouterRoot>}
+                  >
+                    <Route path="/" component={HomeRoute} />
+                    <Route path="/:dir" component={DirectoryLayout}>
+                      <Route path="/" component={SessionIndexRoute} />
+                      <Route path="/session/:id?" component={SessionRoute} />
+                    </Route>
+                  </Dynamic>
+                </GlobalSyncProvider>
+              </GlobalSDKProvider>
+            </QueryProvider>
+          </ServerKey>
+        </ConnectionGate>
+      </ServerRequiredGate>
     </ServerProvider>
   )
 }
