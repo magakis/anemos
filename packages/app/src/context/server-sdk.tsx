@@ -325,6 +325,18 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
   onMount(() => {
     makeEventListener(window, "pagehide", stop)
     makeEventListener(window, "pageshow", (event) => resumeStreamAfterPageShow(event, start))
+    // Mobile resume: iOS/Android entry points dispatch "opencode:resume" on
+    // foreground. The webview's fetch stream can survive app suspension as a
+    // zombie (started=true, no error, no events) that idempotent start() cannot
+    // recover — force stop()+start(). Also restart on "online" for immediate
+    // recovery after network drops. No-ops on desktop/web (opencode:resume is
+    // never dispatched there). The generation counter makes rapid re-entry safe.
+    const resumeStream = () => {
+      stop()
+      void start()
+    }
+    makeEventListener(window, "opencode:resume", resumeStream)
+    makeEventListener(window, "online", resumeStream)
   })
 
   onCleanup(() => {

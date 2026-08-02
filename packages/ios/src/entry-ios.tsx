@@ -20,6 +20,10 @@ const App = () => {
     window.dispatchEvent(new CustomEvent("opencode:transcription", { detail: { text, isFinal } }))
   }
 
+  const emitResume = () => {
+    window.dispatchEvent(new Event("opencode:resume"))
+  }
+
   const startVoiceInput = () => {
     setRecording(true)
     bridge.send("startRecording")
@@ -108,9 +112,19 @@ const App = () => {
       document.execCommand("insertLineBreak")
     })
 
+    const onFocus = () => emitResume()
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return
+      emitResume()
+    }
+
     document.addEventListener("click", handleClick)
+    window.addEventListener("focus", onFocus)
+    document.addEventListener("visibilitychange", onVisible)
     onCleanup(() => {
       document.removeEventListener("click", handleClick)
+      window.removeEventListener("focus", onFocus)
+      document.removeEventListener("visibilitychange", onVisible)
       stopListening()
       stopKeyboardNav()
       stopKeyboardClear()
