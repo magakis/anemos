@@ -101,6 +101,7 @@ export const dict = {
   "dialog.provider.empty": "Ingen leverandører funnet",
   "dialog.provider.group.popular": "Populære",
   "dialog.provider.group.other": "Andre",
+  "dialog.provider.custom.label": "Custom OpenAI-compatible provider",
   "dialog.provider.tag.recommended": "Anbefalt",
   "dialog.provider.opencode.note": "Utvalgte modeller inkludert Claude, GPT, Gemini og mer",
   "dialog.provider.opencode.tagline": "Pålitelige, optimaliserte modeller",
@@ -121,6 +122,7 @@ export const dict = {
 
   "dialog.model.unpaid.freeModels.title": "Gratis modeller levert av OpenCode",
   "dialog.model.unpaid.addMore.title": "Legg til flere modeller fra populære leverandører",
+  "dialog.model.unpaid.viewMoreProviders": "See 70+ more providers",
 
   "dialog.provider.viewAll": "Vis flere leverandører",
 
@@ -635,6 +637,12 @@ export const dict = {
   "settings.section.server": "Server",
   "settings.tab.general": "Generelt",
   "settings.tab.shortcuts": "Snarveier",
+
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.mobile": "Mobil",
+  "settings.tab.phone": "Telefon",
+  "settings.title.phone": "Phone Notifications",
+  "settings.anemos.mobile.unavailable": "Denne fanen er tilgjengelig på Anemos mobile bygg.",
   "settings.desktop.section.wsl": "WSL",
   "settings.desktop.wsl.title": "WSL-integrasjon",
   "settings.desktop.wsl.description": "Kjør OpenCode-serveren i WSL på Windows.",
@@ -741,6 +749,66 @@ export const dict = {
   "settings.general.notifications.permissions.description": "Vis systemvarsel når en tillatelse er påkrevd",
   "settings.general.notifications.errors.title": "Feil",
   "settings.general.notifications.errors.description": "Vis systemvarsel når det oppstår en feil",
+
+  // UPSTREAM-DIVERGENCE: Fork-only mobile push permission, relay, pairing, diagnostics, and routing
+  // strings used by the shared app package and native wrappers.
+  "settings.general.notifications.push.permission.title": "Push-tillatelse",
+  "settings.general.notifications.push.permission.pending": "Sjekker om Anemos kan vise varsler på denne iPhone",
+  "settings.general.notifications.push.permission.notDetermined":
+    "Aktiver generiske varsler for svar, godkjenninger, spørsmål og feil",
+  "settings.general.notifications.push.permission.denied":
+    "Slå på varsler for Anemos i iPhone Innstillinger-appen",
+  "settings.general.notifications.push.permission.registering":
+    "Tillatelse er gitt. Anemos fullfører registreringen hos Apple.",
+  "settings.general.notifications.push.permission.authorized": "Klar for generiske varsler på denne iPhone",
+  "settings.general.notifications.push.permission.provisional": "Klar for stille generiske varsler på denne iPhone",
+  "settings.general.notifications.push.permission.ephemeral": "Klar for midlertidige generiske varsler på denne iPhone",
+  "settings.general.notifications.push.permission.unsupported": "Varsler er ikke tilgjengelig på denne enheten",
+  "settings.general.notifications.push.permission.ios":
+    "If you skipped notification setup during onboarding, you can finish it here. Anemos will guide you through permissions and install an OpenCode plugin on your server.",
+  "settings.general.notifications.push.test.title": "Send testvarsel",
+  "settings.general.notifications.push.test.description":
+    "Send et relé-støttet varsel fra den tilkoblede OpenCode-verten og bekreft at trykk tar deg tilbake til Anemos",
+  "settings.general.notifications.push.pairing.title": "Telefonparing",
+  "settings.general.notifications.push.pairing.pending": "Sjekker om denne iPhone er paret til en push-kanal.",
+  "settings.general.notifications.push.pairing.server":
+    "Koble til en OpenCode-server først slik at Anemos kan fullføre paringen.",
+  "settings.general.notifications.push.pairing.unpaired":
+    "Trykk Konfigurer én gang, og Anemos vil be om tillatelse, installere vertsintegrasjon og pare denne iPhone automatisk.",
+  "settings.general.notifications.push.pairing.paired":
+    "Denne iPhone er paret til din OpenCode-vert. Anemos vil reparere tilkoblingen automatisk hvis den svikter.",
+  "settings.general.notifications.push.pairing.retry":
+    "Anemos fullfører vertsparing for denne iPhone og vil fortsette å prøve til det fungerer.",
+  "settings.general.notifications.push.pairing.step.permission": "Ber om varslingstillatelse fra iPhone Innstillinger.",
+  "settings.general.notifications.push.pairing.step.register": "Venter på at Apple push-registrering skal fullføres.",
+  "settings.general.notifications.push.pairing.step.begin": "Forbereder en sikker paringsforespørsel for denne iPhone.",
+  "settings.general.notifications.push.pairing.step.claim": "Kobler denne iPhone til OpenCode-verten.",
+  "settings.general.notifications.push.pairing.step.finish": "Fullfører paring på denne iPhone.",
+  "settings.general.notifications.push.pairing.action.setup": "Konfigurer",
+  "settings.general.notifications.push.pairing.action.finish": "Fullfør oppsett",
+  "settings.general.notifications.push.pairing.action.repair": "Reparer",
+  "settings.general.notifications.push.pairing.action.pairing": "Parer...",
+  "settings.general.notifications.push.pairing.action.clear": "Fjern paring",
+  "settings.general.notifications.push.pairing.action.clearing": "Fjerner...",
+  "settings.general.notifications.push.pairing.toast.cleared.title": "Paring fjernet",
+  "settings.general.notifications.push.pairing.toast.cleared.description":
+    "Lagrede push-kanallegitimasjoner ble fjernet fra denne iPhone.",
+  "settings.general.notifications.push.pairing.toast.paired.title": "iPhone paret",
+  "settings.general.notifications.push.pairing.toast.paired.description":
+    "Anemos kan nå holde denne iPhone tilkoblet OpenCode-verten for push-levering.",
+  "settings.general.notifications.push.action.enable": "Aktiver",
+  "settings.general.notifications.push.action.openSettings": "Åpne innstillinger",
+  "settings.general.notifications.push.action.enabled": "Aktivert",
+  "settings.general.notifications.push.action.unavailable": "Utilgjengelig",
+  "settings.general.notifications.push.action.checking": "Sjekker...",
+  "settings.general.notifications.push.action.test": "Send test",
+  "settings.general.notifications.push.action.sending": "Sender...",
+  "settings.general.notifications.push.toast.sent.title": "Testvarsel planlagt",
+  "settings.general.notifications.push.toast.sent.description":
+    "Lås iPhone eller la appen stå åpen for å verifisere banneret og trykk-flyten.",
+  "settings.general.notifications.push.toast.failed.title": "Kunne ikke sende testvarsel",
+  "settings.general.notifications.push.toast.failed.description":
+    "Aktiver iPhone-varsler for Anemos og prøv igjen.",
 
   "settings.general.sounds.agent.title": "Agent",
   "settings.general.sounds.agent.description": "Spill av lyd når agenten er ferdig eller trenger oppmerksomhet",
@@ -872,6 +940,8 @@ export const dict = {
   "app.server.unreachable": "Kunne ikke nå {{server}}",
   "app.server.retrying": "Prøver på nytt automatisk...",
   "app.server.otherServers": "Andre servere",
+  "server.setup.title": "Add your server",
+  "server.setup.subtitle": "Enter your opencode server address to get started",
   "dialog.server.add.usernamePlaceholder": "brukernavn",
   "dialog.server.add.passwordPlaceholder": "passord",
   "server.row.noUsername": "inget brukernavn",
@@ -884,6 +954,9 @@ export const dict = {
   "session.header.open.finder": "Finder",
   "session.header.open.fileExplorer": "Filutforsker",
   "session.header.open.fileManager": "Filbehandler",
+  "session.header.reveal.finder": "Reveal in Finder",
+  "session.header.reveal.fileExplorer": "Reveal in File Explorer",
+  "session.header.reveal.containingFolder": "Open containing folder",
   "session.header.open.app.vscode": "VS Code",
   "session.header.open.app.cursor": "Cursor",
   "session.header.open.app.zed": "Zed",
@@ -897,6 +970,7 @@ export const dict = {
   "session.header.open.app.androidStudio": "Android Studio",
   "session.header.open.app.powershell": "PowerShell",
   "session.header.open.app.sublimeText": "Sublime Text",
+  "session.header.refresh": "Oppdater",
   "debugBar.ariaLabel": "Utviklingsytelsesdiagnostikk",
   "debugBar.na": "i/t",
   "debugBar.nav.label": "NAV",

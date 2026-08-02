@@ -106,6 +106,7 @@ export const dict = {
   "dialog.provider.empty": "Sağlayıcı bulunamadı",
   "dialog.provider.group.popular": "Popüler",
   "dialog.provider.group.other": "Diğer",
+  "dialog.provider.custom.label": "Custom OpenAI-compatible provider",
   "dialog.provider.tag.recommended": "Önerilen",
   "dialog.provider.opencode.note": "Claude, GPT, Gemini ve daha fazlasını içeren seçilmiş modeller",
   "dialog.provider.opencode.tagline": "Güvenilir optimize edilmiş modeller",
@@ -126,6 +127,7 @@ export const dict = {
 
   "dialog.model.unpaid.freeModels.title": "OpenCode tarafından sunulan ücretsiz modeller",
   "dialog.model.unpaid.addMore.title": "Popüler sağlayıcılardan daha fazla model ekleyin",
+  "dialog.model.unpaid.viewMoreProviders": "See 70+ more providers",
 
   "dialog.provider.viewAll": "Daha fazla sağlayıcı göster",
 
@@ -759,6 +761,12 @@ export const dict = {
   "settings.section.server": "Sunucu",
   "settings.tab.general": "Genel",
   "settings.tab.shortcuts": "Kısayollar",
+
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.mobile": "Mobil",
+  "settings.tab.phone": "Telefon",
+  "settings.title.phone": "Phone Notifications",
+  "settings.anemos.mobile.unavailable": "Bu sekme Anemos mobil yapılarında kullanılabilir.",
   "settings.desktop.section.wsl": "WSL",
   "settings.desktop.wsl.title": "WSL entegrasyonu",
   "settings.desktop.wsl.description": "OpenCode sunucusunu Windows'ta WSL içinde çalıştırın.",
@@ -905,6 +913,69 @@ export const dict = {
   "settings.general.notifications.errors.title": "Hatalar",
   "settings.general.notifications.errors.description": "Hata oluştuğunda sistem bildirimi göster",
 
+  // UPSTREAM-DIVERGENCE: Fork-only mobile push permission, relay, pairing, diagnostics, and routing
+  // strings used by the shared app package and native wrappers.
+  "settings.general.notifications.push.permission.title": "Push izni",
+  "settings.general.notifications.push.permission.pending":
+    "Anemos'un bu iPhone'da bildirim gösterip gösteremeyeceği kontrol ediliyor",
+  "settings.general.notifications.push.permission.notDetermined":
+    "Yanıtlar, onaylar, sorular ve hatalar için genel bildirimleri etkinleştirin",
+  "settings.general.notifications.push.permission.denied":
+    "iPhone Ayarlar uygulamasından Anemos için bildirimleri açın",
+  "settings.general.notifications.push.permission.registering":
+    "İzin verildi. Anemos, Apple ile kaydı tamamlıyor.",
+  "settings.general.notifications.push.permission.authorized": "Bu iPhone'da genel bildirimler için hazır",
+  "settings.general.notifications.push.permission.provisional": "Bu iPhone'da sessiz genel bildirimler için hazır",
+  "settings.general.notifications.push.permission.ephemeral": "Bu iPhone'da geçici genel bildirimler için hazır",
+  "settings.general.notifications.push.permission.unsupported": "Bu cihazda bildirimler kullanılamıyor",
+  "settings.general.notifications.push.permission.ios":
+    "If you skipped notification setup during onboarding, you can finish it here. Anemos will guide you through permissions and install an OpenCode plugin on your server.",
+  "settings.general.notifications.push.test.title": "Test bildirimi gönder",
+  "settings.general.notifications.push.test.description":
+    "Bağlı OpenCode ana bilgisayarından röle destekli bir bildirim gönderin ve dokunduğunuzda Anemos'a geri dönüp dönmediğini doğrulayın",
+  "settings.general.notifications.push.pairing.title": "Telefon eşleştirme",
+  "settings.general.notifications.push.pairing.pending":
+    "Bu iPhone'un bir push kanalına eşleştirilip eşleştirilmediği kontrol ediliyor.",
+  "settings.general.notifications.push.pairing.server":
+    "Anemos'un eşleştirmeyi tamamlayabilmesi için önce bir OpenCode sunucusuna bağlanın.",
+  "settings.general.notifications.push.pairing.unpaired":
+    "Bir kez Kur'a dokunun; Anemos izin isteyecek, ana bilgisayar entegrasyonunu yükleyecek ve bu iPhone'u otomatik olarak eşleştirecektir.",
+  "settings.general.notifications.push.pairing.paired":
+    "Bu iPhone, OpenCode ana bilgisayarınıza eşleştirildi. Bağlantı kayarsa Anemos otomatik olarak onaracaktır.",
+  "settings.general.notifications.push.pairing.retry":
+    "Anemos bu iPhone için ana bilgisayar eşleştirmesini tamamlıyor ve başarılı olana kadar yeniden denemeye devam edecek.",
+  "settings.general.notifications.push.pairing.step.permission": "iPhone Ayarlarından bildirim izni isteniyor.",
+  "settings.general.notifications.push.pairing.step.register": "Apple push kaydının tamamlanması bekleniyor.",
+  "settings.general.notifications.push.pairing.step.begin":
+    "Bu iPhone için güvenli bir eşleştirme isteği hazırlanıyor.",
+  "settings.general.notifications.push.pairing.step.claim": "Bu iPhone, OpenCode ana bilgisayarına bağlanıyor.",
+  "settings.general.notifications.push.pairing.step.finish": "Bu iPhone'da eşleştirme tamamlanıyor.",
+  "settings.general.notifications.push.pairing.action.setup": "Kur",
+  "settings.general.notifications.push.pairing.action.finish": "Kurulumu Tamamla",
+  "settings.general.notifications.push.pairing.action.repair": "Onar",
+  "settings.general.notifications.push.pairing.action.pairing": "Eşleştiriliyor...",
+  "settings.general.notifications.push.pairing.action.clear": "Eşleştirmeyi Kaldır",
+  "settings.general.notifications.push.pairing.action.clearing": "Kaldırılıyor...",
+  "settings.general.notifications.push.pairing.toast.cleared.title": "Eşleştirme kaldırıldı",
+  "settings.general.notifications.push.pairing.toast.cleared.description":
+    "Bu iPhone'dan depolanan push kanal kimlik bilgileri kaldırıldı.",
+  "settings.general.notifications.push.pairing.toast.paired.title": "iPhone eşleştirildi",
+  "settings.general.notifications.push.pairing.toast.paired.description":
+    "Anemos artık bu iPhone'u push teslimi için OpenCode ana bilgisayarına bağlı tutabilir.",
+  "settings.general.notifications.push.action.enable": "Etkinleştir",
+  "settings.general.notifications.push.action.openSettings": "Ayarları Aç",
+  "settings.general.notifications.push.action.enabled": "Etkin",
+  "settings.general.notifications.push.action.unavailable": "Kullanılamıyor",
+  "settings.general.notifications.push.action.checking": "Kontrol ediliyor...",
+  "settings.general.notifications.push.action.test": "Test gönder",
+  "settings.general.notifications.push.action.sending": "Gönderiliyor...",
+  "settings.general.notifications.push.toast.sent.title": "Test bildirimi planlandı",
+  "settings.general.notifications.push.toast.sent.description":
+    "Başlığı ve dokunma akışını doğrulamak için iPhone'unuzu kilitleyin veya uygulamayı açık tutun.",
+  "settings.general.notifications.push.toast.failed.title": "Test bildirimi gönderilemedi",
+  "settings.general.notifications.push.toast.failed.description":
+    "Anemos için iPhone bildirimlerini etkinleştirin ve tekrar deneyin.",
+
   "settings.general.sounds.agent.title": "Ajan",
   "settings.general.sounds.agent.description": "Ajan tamamlandığında veya dikkat gerektirdiğinde ses çal",
   "settings.general.sounds.permissions.title": "İzinler",
@@ -1034,6 +1105,8 @@ export const dict = {
   "app.server.unreachable": "{{server}} sunucusuna ulaşılamadı",
   "app.server.retrying": "Otomatik olarak tekrar deneniyor...",
   "app.server.otherServers": "Diğer sunucular",
+  "server.setup.title": "Add your server",
+  "server.setup.subtitle": "Enter your opencode server address to get started",
   "dialog.server.add.usernamePlaceholder": "kullanıcı adı",
   "dialog.server.add.passwordPlaceholder": "parola",
   "server.row.noUsername": "kullanıcı adı yok",
@@ -1046,6 +1119,9 @@ export const dict = {
   "session.header.open.finder": "Finder",
   "session.header.open.fileExplorer": "Dosya Gezgini",
   "session.header.open.fileManager": "Dosya Yöneticisi",
+  "session.header.reveal.finder": "Reveal in Finder",
+  "session.header.reveal.fileExplorer": "Reveal in File Explorer",
+  "session.header.reveal.containingFolder": "Open containing folder",
   "session.header.open.app.vscode": "VS Code",
   "session.header.open.app.cursor": "Cursor",
   "session.header.open.app.zed": "Zed",
@@ -1059,6 +1135,7 @@ export const dict = {
   "session.header.open.app.androidStudio": "Android Studio",
   "session.header.open.app.powershell": "PowerShell",
   "session.header.open.app.sublimeText": "Sublime Text",
+  "session.header.refresh": "Yenile",
   "debugBar.ariaLabel": "Geliştirme performansı teşhisi",
   "debugBar.na": "yok",
   "debugBar.nav.label": "NAV",

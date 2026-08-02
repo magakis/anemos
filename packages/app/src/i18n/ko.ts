@@ -90,6 +90,7 @@ export const dict = {
   "dialog.provider.empty": "공급자 없음",
   "dialog.provider.group.popular": "인기",
   "dialog.provider.group.other": "기타",
+  "dialog.provider.custom.label": "Custom OpenAI-compatible provider",
   "dialog.provider.tag.recommended": "추천",
   "dialog.provider.opencode.note": "Claude, GPT, Gemini 등을 포함한 엄선된 모델",
   "dialog.provider.opencode.tagline": "신뢰할 수 있는 최적화 모델",
@@ -108,6 +109,7 @@ export const dict = {
   "dialog.model.manage.provider.toggle": "모든 {{provider}} 모델 토글",
   "dialog.model.unpaid.freeModels.title": "OpenCode에서 제공하는 무료 모델",
   "dialog.model.unpaid.addMore.title": "인기 공급자의 모델 추가",
+  "dialog.model.unpaid.viewMoreProviders": "See 70+ more providers",
   "dialog.provider.viewAll": "더 많은 공급자 보기",
   "provider.connect.title": "{{provider}} 연결",
   "provider.connect.title.anthropicProMax": "Claude Pro/Max로 로그인",
@@ -563,6 +565,12 @@ export const dict = {
   "settings.section.server": "서버",
   "settings.tab.general": "일반",
   "settings.tab.shortcuts": "단축키",
+
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.mobile": "모바일",
+  "settings.tab.phone": "휴대폰",
+  "settings.title.phone": "Phone Notifications",
+  "settings.anemos.mobile.unavailable": "이 탭은 Anemos 모바일 빌드에서 사용할 수 있습니다.",
   "settings.desktop.section.wsl": "WSL",
   "settings.desktop.wsl.title": "WSL 통합",
   "settings.desktop.wsl.description": "Windows의 WSL 내부에서 OpenCode 서버를 실행합니다.",
@@ -664,6 +672,67 @@ export const dict = {
   "settings.general.notifications.permissions.description": "권한이 필요할 때 시스템 알림 표시",
   "settings.general.notifications.errors.title": "오류",
   "settings.general.notifications.errors.description": "오류가 발생했을 때 시스템 알림 표시",
+
+  // UPSTREAM-DIVERGENCE: Fork-only mobile push permission, relay, pairing, diagnostics, and routing
+  // strings used by the shared app package and native wrappers.
+  "settings.general.notifications.push.permission.title": "푸시 알림 권한",
+  "settings.general.notifications.push.permission.pending":
+    "Anemos가 이 iPhone에서 알림을 표시할 수 있는지 확인 중입니다",
+  "settings.general.notifications.push.permission.notDetermined":
+    "응답, 승인, 질문 및 오류에 대한 일반 알림을 활성화합니다",
+  "settings.general.notifications.push.permission.denied": "iPhone 설정 앱에서 Anemos 알림을 켜세요",
+  "settings.general.notifications.push.permission.registering":
+    "권한이 부여되었습니다. Anemos가 Apple 등록을 완료하고 있습니다.",
+  "settings.general.notifications.push.permission.authorized": "이 iPhone에서 일반 알림을 받을 준비가 되었습니다",
+  "settings.general.notifications.push.permission.provisional":
+    "이 iPhone에서 조용한 일반 알림을 받을 준비가 되었습니다",
+  "settings.general.notifications.push.permission.ephemeral": "이 iPhone에서 임시 일반 알림을 받을 준비가 되었습니다",
+  "settings.general.notifications.push.permission.unsupported": "이 기기에서는 알림을 사용할 수 없습니다",
+  "settings.general.notifications.push.permission.ios":
+    "If you skipped notification setup during onboarding, you can finish it here. Anemos will guide you through permissions and install an OpenCode plugin on your server.",
+  "settings.general.notifications.push.test.title": "테스트 알림 보내기",
+  "settings.general.notifications.push.test.description":
+    "연결된 OpenCode 호스트에서 릴레이 기반 알림을 보내고, 탭하면 Anemos로 돌아오는지 확인합니다",
+  "settings.general.notifications.push.pairing.title": "휴대폰 페어링",
+  "settings.general.notifications.push.pairing.pending": "이 iPhone이 푸시 채널에 페어링되어 있는지 확인 중입니다.",
+  "settings.general.notifications.push.pairing.server":
+    "Anemos가 페어링을 완료할 수 있도록 먼저 OpenCode 서버에 연결하세요.",
+  "settings.general.notifications.push.pairing.unpaired":
+    "설정을 한 번 탭하면 Anemos가 권한 요청, 호스트 통합 설치, 이 iPhone 페어링을 자동으로 수행합니다.",
+  "settings.general.notifications.push.pairing.paired":
+    "이 iPhone은 OpenCode 호스트에 페어링되어 있습니다. 연결이 끊어지면 Anemos가 자동으로 복구합니다.",
+  "settings.general.notifications.push.pairing.retry":
+    "Anemos가 이 iPhone의 호스트 페어링을 완료하고 있으며, 성공할 때까지 계속 재시도합니다.",
+  "settings.general.notifications.push.pairing.step.permission": "iPhone 설정에서 알림 권한을 요청하고 있습니다.",
+  "settings.general.notifications.push.pairing.step.register": "Apple 푸시 등록이 완료되기를 기다리고 있습니다.",
+  "settings.general.notifications.push.pairing.step.begin": "이 iPhone을 위한 보안 페어링 요청을 준비하고 있습니다.",
+  "settings.general.notifications.push.pairing.step.claim": "이 iPhone을 OpenCode 호스트에 연결하고 있습니다.",
+  "settings.general.notifications.push.pairing.step.finish": "이 iPhone에서 페어링을 완료하고 있습니다.",
+  "settings.general.notifications.push.pairing.action.setup": "설정",
+  "settings.general.notifications.push.pairing.action.finish": "설정 완료",
+  "settings.general.notifications.push.pairing.action.repair": "복구",
+  "settings.general.notifications.push.pairing.action.pairing": "페어링 중...",
+  "settings.general.notifications.push.pairing.action.clear": "페어링 제거",
+  "settings.general.notifications.push.pairing.action.clearing": "제거 중...",
+  "settings.general.notifications.push.pairing.toast.cleared.title": "페어링이 제거되었습니다",
+  "settings.general.notifications.push.pairing.toast.cleared.description":
+    "저장된 푸시 채널 자격 증명이 이 iPhone에서 제거되었습니다.",
+  "settings.general.notifications.push.pairing.toast.paired.title": "iPhone이 페어링되었습니다",
+  "settings.general.notifications.push.pairing.toast.paired.description":
+    "Anemos가 이제 이 iPhone을 OpenCode 호스트에 연결하여 푸시 전달을 유지할 수 있습니다.",
+  "settings.general.notifications.push.action.enable": "활성화",
+  "settings.general.notifications.push.action.openSettings": "설정 열기",
+  "settings.general.notifications.push.action.enabled": "활성화됨",
+  "settings.general.notifications.push.action.unavailable": "사용 불가",
+  "settings.general.notifications.push.action.checking": "확인 중...",
+  "settings.general.notifications.push.action.test": "테스트 보내기",
+  "settings.general.notifications.push.action.sending": "보내는 중...",
+  "settings.general.notifications.push.toast.sent.title": "테스트 알림이 예약되었습니다",
+  "settings.general.notifications.push.toast.sent.description":
+    "iPhone을 잠그거나 앱을 열어둔 채로 배너와 탭 동작을 확인하세요.",
+  "settings.general.notifications.push.toast.failed.title": "테스트 알림을 보낼 수 없습니다",
+  "settings.general.notifications.push.toast.failed.description":
+    "Anemos의 iPhone 알림을 활성화하고 다시 시도하세요.",
   "settings.general.sounds.agent.title": "에이전트",
   "settings.general.sounds.agent.description": "에이전트가 완료되거나 주의가 필요할 때 소리 재생",
   "settings.general.sounds.permissions.title": "권한",
@@ -785,6 +854,8 @@ export const dict = {
   "app.server.unreachable": "{{server}}에 연결할 수 없습니다",
   "app.server.retrying": "자동으로 재시도 중...",
   "app.server.otherServers": "다른 서버",
+  "server.setup.title": "Add your server",
+  "server.setup.subtitle": "Enter your opencode server address to get started",
   "dialog.server.add.usernamePlaceholder": "사용자 이름",
   "dialog.server.add.passwordPlaceholder": "비밀번호",
   "server.row.noUsername": "사용자 이름 없음",
@@ -797,6 +868,9 @@ export const dict = {
   "session.header.open.finder": "Finder",
   "session.header.open.fileExplorer": "파일 탐색기",
   "session.header.open.fileManager": "파일 관리자",
+  "session.header.reveal.finder": "Reveal in Finder",
+  "session.header.reveal.fileExplorer": "Reveal in File Explorer",
+  "session.header.reveal.containingFolder": "Open containing folder",
   "session.header.open.app.vscode": "VS Code",
   "session.header.open.app.cursor": "Cursor",
   "session.header.open.app.zed": "Zed",
@@ -810,6 +884,7 @@ export const dict = {
   "session.header.open.app.androidStudio": "Android Studio",
   "session.header.open.app.powershell": "PowerShell",
   "session.header.open.app.sublimeText": "Sublime Text",
+  "session.header.refresh": "새로고침",
   "debugBar.ariaLabel": "개발 성능 진단",
   "debugBar.na": "해당 없음",
   "debugBar.nav.label": "NAV",

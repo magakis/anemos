@@ -94,6 +94,7 @@ export const dict = {
   "dialog.provider.empty": "لم يتم العثور على موفرين",
   "dialog.provider.group.popular": "شائع",
   "dialog.provider.group.other": "آخر",
+  "dialog.provider.custom.label": "Custom OpenAI-compatible provider",
   "dialog.provider.tag.recommended": "موصى به",
   "dialog.provider.opencode.note": "نماذج مختارة تتضمن Claude و GPT و Gemini والمزيد",
   "dialog.provider.opencode.tagline": "نماذج موثوقة ومحسنة",
@@ -112,6 +113,7 @@ export const dict = {
   "dialog.model.manage.provider.toggle": "تبديل جميع نماذج {{provider}}",
   "dialog.model.unpaid.freeModels.title": "نماذج مجانية مقدمة من OpenCode",
   "dialog.model.unpaid.addMore.title": "إضافة المزيد من النماذج من موفرين مشهورين",
+  "dialog.model.unpaid.viewMoreProviders": "See 70+ more providers",
   "dialog.provider.viewAll": "عرض المزيد من الموفرين",
   "provider.connect.title": "اتصال {{provider}}",
   "provider.connect.title.anthropicProMax": "تسجيل الدخول باستخدام Claude Pro/Max",
@@ -682,6 +684,12 @@ export const dict = {
   "settings.section.server": "الخادم",
   "settings.tab.general": "عام",
   "settings.tab.shortcuts": "اختصارات",
+
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.mobile": "الجوّال",
+  "settings.tab.phone": "الهاتف",
+  "settings.title.phone": "Phone Notifications",
+  "settings.anemos.mobile.unavailable": "هذا التبويب متاح في إصدارات Anemos للأجهزة المحمولة.",
   "settings.desktop.section.wsl": "WSL",
   "settings.desktop.wsl.title": "تكامل WSL",
   "settings.desktop.wsl.description": "تشغيل خادم OpenCode داخل WSL على Windows.",
@@ -815,6 +823,67 @@ export const dict = {
   "settings.general.notifications.permissions.description": "عرض إشعار النظام عند الحاجة إلى إذن",
   "settings.general.notifications.errors.title": "أخطاء",
   "settings.general.notifications.errors.description": "عرض إشعار النظام عند حدوث خطأ",
+
+  // UPSTREAM-DIVERGENCE: Fork-only mobile push permission, relay, pairing, diagnostics, and routing
+  // strings used by the shared app package and native wrappers.
+  "settings.general.notifications.push.permission.title": "إذن الإشعارات الفورية",
+  "settings.general.notifications.push.permission.pending":
+    "جارٍ التحقق مما إذا كان Anemos يمكنه عرض الإشعارات على هذا iPhone",
+  "settings.general.notifications.push.permission.notDetermined":
+    "تفعيل التنبيهات العامة للردود والموافقات والأسئلة والأخطاء",
+  "settings.general.notifications.push.permission.denied": "قم بتشغيل الإشعارات لتطبيق Anemos في إعدادات iPhone",
+  "settings.general.notifications.push.permission.registering":
+    "تم منح الإذن. Anemos يقوم بإنهاء التسجيل مع Apple.",
+  "settings.general.notifications.push.permission.authorized": "جاهز للتنبيهات العامة على هذا iPhone",
+  "settings.general.notifications.push.permission.provisional": "جاهز للتنبيهات العامة الهادئة على هذا iPhone",
+  "settings.general.notifications.push.permission.ephemeral": "جاهز للتنبيهات العامة المؤقتة على هذا iPhone",
+  "settings.general.notifications.push.permission.unsupported": "الإشعارات غير متاحة على هذا الجهاز",
+  "settings.general.notifications.push.permission.ios":
+    "If you skipped notification setup during onboarding, you can finish it here. Anemos will guide you through permissions and install an OpenCode plugin on your server.",
+  "settings.general.notifications.push.test.title": "إرسال إشعار تجريبي",
+  "settings.general.notifications.push.test.description":
+    "أرسل تنبيهًا عبر المرحّل من مضيف OpenCode المتصل وتحقق من أن النقر عليه يعيدك إلى Anemos",
+  "settings.general.notifications.push.pairing.title": "إقران الهاتف",
+  "settings.general.notifications.push.pairing.pending":
+    "جارٍ التحقق مما إذا كان هذا iPhone مقترنًا بقناة إشعارات فورية.",
+  "settings.general.notifications.push.pairing.server":
+    "اتصل بخادم OpenCode أولاً حتى يتمكن Anemos من إنهاء الإقران.",
+  "settings.general.notifications.push.pairing.unpaired":
+    "انقر على إعداد مرة واحدة وسيطلب Anemos الإذن ويثبّت تكامل المضيف ويقرن هذا iPhone تلقائيًا.",
+  "settings.general.notifications.push.pairing.paired":
+    "هذا iPhone مقترن بمضيف OpenCode الخاص بك. سيقوم Anemos بإصلاح الاتصال تلقائيًا إذا انحرف.",
+  "settings.general.notifications.push.pairing.retry":
+    "Anemos يقوم بإنهاء إقران المضيف لهذا iPhone وسيستمر في إعادة المحاولة حتى ينجح.",
+  "settings.general.notifications.push.pairing.step.permission": "طلب إذن الإشعارات من إعدادات iPhone.",
+  "settings.general.notifications.push.pairing.step.register": "في انتظار اكتمال تسجيل إشعارات Apple الفورية.",
+  "settings.general.notifications.push.pairing.step.begin": "تحضير طلب إقران آمن لهذا iPhone.",
+  "settings.general.notifications.push.pairing.step.claim": "توصيل هذا iPhone بمضيف OpenCode.",
+  "settings.general.notifications.push.pairing.step.finish": "إنهاء الإقران على هذا iPhone.",
+  "settings.general.notifications.push.pairing.action.setup": "إعداد",
+  "settings.general.notifications.push.pairing.action.finish": "إنهاء الإعداد",
+  "settings.general.notifications.push.pairing.action.repair": "إصلاح",
+  "settings.general.notifications.push.pairing.action.pairing": "جارٍ الإقران...",
+  "settings.general.notifications.push.pairing.action.clear": "إزالة الإقران",
+  "settings.general.notifications.push.pairing.action.clearing": "جارٍ الإزالة...",
+  "settings.general.notifications.push.pairing.toast.cleared.title": "تمت إزالة الإقران",
+  "settings.general.notifications.push.pairing.toast.cleared.description":
+    "تمت إزالة بيانات اعتماد قناة الإشعارات الفورية المخزنة من هذا iPhone.",
+  "settings.general.notifications.push.pairing.toast.paired.title": "تم إقران iPhone",
+  "settings.general.notifications.push.pairing.toast.paired.description":
+    "يمكن لـ Anemos الآن الحفاظ على اتصال هذا iPhone بمضيف OpenCode لتسليم الإشعارات الفورية.",
+  "settings.general.notifications.push.action.enable": "تفعيل",
+  "settings.general.notifications.push.action.openSettings": "فتح الإعدادات",
+  "settings.general.notifications.push.action.enabled": "مُفعّل",
+  "settings.general.notifications.push.action.unavailable": "غير متاح",
+  "settings.general.notifications.push.action.checking": "جارٍ التحقق...",
+  "settings.general.notifications.push.action.test": "إرسال تجريبي",
+  "settings.general.notifications.push.action.sending": "جارٍ الإرسال...",
+  "settings.general.notifications.push.toast.sent.title": "تمت جدولة إشعار تجريبي",
+  "settings.general.notifications.push.toast.sent.description":
+    "اقفل iPhone أو اترك التطبيق مفتوحًا للتحقق من الشعار وتدفق النقر.",
+  "settings.general.notifications.push.toast.failed.title": "تعذر إرسال إشعار تجريبي",
+  "settings.general.notifications.push.toast.failed.description":
+    "فعّل إشعارات iPhone لتطبيق Anemos وحاول مرة أخرى.",
   "settings.general.sounds.agent.title": "وكيل",
   "settings.general.sounds.agent.description": "تشغيل صوت عندما يكتمل الوكيل أو يحتاج إلى اهتمام",
   "settings.general.sounds.permissions.title": "أذونات",
@@ -937,6 +1006,8 @@ export const dict = {
   "app.server.unreachable": "تعذر الوصول إلى {{server}}",
   "app.server.retrying": "جاري إعادة المحاولة تلقائيًا...",
   "app.server.otherServers": "خوادم أخرى",
+  "server.setup.title": "Add your server",
+  "server.setup.subtitle": "Enter your opencode server address to get started",
   "dialog.server.add.usernamePlaceholder": "اسم المستخدم",
   "dialog.server.add.passwordPlaceholder": "كلمة المرور",
   "server.row.noUsername": "لا يوجد اسم مستخدم",
@@ -949,6 +1020,9 @@ export const dict = {
   "session.header.open.finder": "Finder",
   "session.header.open.fileExplorer": "مستكشف الملفات",
   "session.header.open.fileManager": "مدير الملفات",
+  "session.header.reveal.finder": "Reveal in Finder",
+  "session.header.reveal.fileExplorer": "Reveal in File Explorer",
+  "session.header.reveal.containingFolder": "Open containing folder",
   "session.header.open.app.vscode": "VS Code",
   "session.header.open.app.cursor": "Cursor",
   "session.header.open.app.zed": "Zed",
@@ -962,6 +1036,7 @@ export const dict = {
   "session.header.open.app.androidStudio": "Android Studio",
   "session.header.open.app.powershell": "PowerShell",
   "session.header.open.app.sublimeText": "Sublime Text",
+  "session.header.refresh": "تحديث",
   "debugBar.ariaLabel": "تشخيص أداء التطوير",
   "debugBar.na": "غير متاح",
   "debugBar.nav.label": "NAV",

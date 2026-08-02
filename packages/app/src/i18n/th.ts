@@ -102,6 +102,7 @@ export const dict = {
   "dialog.provider.empty": "ไม่พบผู้ให้บริการ",
   "dialog.provider.group.popular": "ยอดนิยม",
   "dialog.provider.group.other": "อื่น ๆ",
+  "dialog.provider.custom.label": "Custom OpenAI-compatible provider",
   "dialog.provider.tag.recommended": "แนะนำ",
   "dialog.provider.opencode.note": "โมเดลที่คัดสรร รวมถึง Claude, GPT, Gemini และอื่น ๆ",
   "dialog.provider.opencode.tagline": "โมเดลที่เชื่อถือได้และปรับให้เหมาะสม",
@@ -122,6 +123,7 @@ export const dict = {
 
   "dialog.model.unpaid.freeModels.title": "โมเดลฟรีที่จัดหาให้โดย OpenCode",
   "dialog.model.unpaid.addMore.title": "เพิ่มโมเดลเพิ่มเติมจากผู้ให้บริการยอดนิยม",
+  "dialog.model.unpaid.viewMoreProviders": "See 70+ more providers",
 
   "dialog.provider.viewAll": "แสดงผู้ให้บริการเพิ่มเติม",
 
@@ -747,6 +749,12 @@ export const dict = {
   "settings.section.server": "เซิร์ฟเวอร์",
   "settings.tab.general": "ทั่วไป",
   "settings.tab.shortcuts": "ทางลัด",
+
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.mobile": "มือถือ",
+  "settings.tab.phone": "โทรศัพท์",
+  "settings.title.phone": "Phone Notifications",
+  "settings.anemos.mobile.unavailable": "แท็บนี้ใช้งานได้เฉพาะบน Anemos เวอร์ชันมือถือ",
   "settings.desktop.section.wsl": "WSL",
   "settings.desktop.wsl.title": "การรวม WSL",
   "settings.desktop.wsl.description": "เรียกใช้เซิร์ฟเวอร์ OpenCode ภายใน WSL บน Windows",
@@ -885,6 +893,69 @@ export const dict = {
   "settings.general.notifications.errors.title": "ข้อผิดพลาด",
   "settings.general.notifications.errors.description": "แสดงการแจ้งเตือนระบบเมื่อเกิดข้อผิดพลาด",
 
+  // UPSTREAM-DIVERGENCE: Fork-only mobile push permission, relay, pairing, diagnostics, and routing
+  // strings used by the shared app package and native wrappers.
+  "settings.general.notifications.push.permission.title": "สิทธิ์การแจ้งเตือนแบบพุช",
+  "settings.general.notifications.push.permission.pending":
+    "กำลังตรวจสอบว่า Anemos สามารถแสดงการแจ้งเตือนบน iPhone เครื่องนี้ได้หรือไม่",
+  "settings.general.notifications.push.permission.notDetermined":
+    "เปิดใช้งานการแจ้งเตือนทั่วไปสำหรับการตอบกลับ การอนุมัติ คำถาม และข้อผิดพลาด",
+  "settings.general.notifications.push.permission.denied": "เปิดการแจ้งเตือนสำหรับ Anemos ในแอปการตั้งค่า iPhone",
+  "settings.general.notifications.push.permission.registering":
+    "ได้รับสิทธิ์แล้ว Anemos กำลังลงทะเบียนกับ Apple ให้เสร็จสิ้น",
+  "settings.general.notifications.push.permission.authorized": "พร้อมสำหรับการแจ้งเตือนทั่วไปบน iPhone เครื่องนี้",
+  "settings.general.notifications.push.permission.provisional":
+    "พร้อมสำหรับการแจ้งเตือนทั่วไปแบบเงียบบน iPhone เครื่องนี้",
+  "settings.general.notifications.push.permission.ephemeral":
+    "พร้อมสำหรับการแจ้งเตือนทั่วไปชั่วคราวบน iPhone เครื่องนี้",
+  "settings.general.notifications.push.permission.unsupported": "การแจ้งเตือนไม่สามารถใช้งานได้บนอุปกรณ์นี้",
+  "settings.general.notifications.push.permission.ios":
+    "If you skipped notification setup during onboarding, you can finish it here. Anemos will guide you through permissions and install an OpenCode plugin on your server.",
+  "settings.general.notifications.push.test.title": "ส่งการแจ้งเตือนทดสอบ",
+  "settings.general.notifications.push.test.description":
+    "ส่งการแจ้งเตือนผ่านรีเลย์จากโฮสต์ OpenCode ที่เชื่อมต่ออยู่ และตรวจสอบว่าเมื่อแตะแล้วจะนำคุณกลับมาที่ Anemos",
+  "settings.general.notifications.push.pairing.title": "การจับคู่โทรศัพท์",
+  "settings.general.notifications.push.pairing.pending":
+    "กำลังตรวจสอบว่า iPhone เครื่องนี้ถูกจับคู่กับช่องทางพุชหรือไม่",
+  "settings.general.notifications.push.pairing.server":
+    "เชื่อมต่อกับเซิร์ฟเวอร์ OpenCode ก่อนเพื่อให้ Anemos จับคู่ได้สำเร็จ",
+  "settings.general.notifications.push.pairing.unpaired":
+    "แตะตั้งค่าครั้งเดียวแล้ว Anemos จะขอสิทธิ์ ติดตั้งการรวมโฮสต์ และจับคู่ iPhone เครื่องนี้โดยอัตโนมัติ",
+  "settings.general.notifications.push.pairing.paired":
+    "iPhone เครื่องนี้ถูกจับคู่กับโฮสต์ OpenCode ของคุณแล้ว Anemos จะซ่อมแซมการเชื่อมต่อโดยอัตโนมัติหากเกิดการเปลี่ยนแปลง",
+  "settings.general.notifications.push.pairing.retry":
+    "Anemos กำลังจับคู่โฮสต์สำหรับ iPhone เครื่องนี้ให้เสร็จสิ้น และจะลองใหม่จนกว่าจะสำเร็จ",
+  "settings.general.notifications.push.pairing.step.permission": "กำลังขอสิทธิ์การแจ้งเตือนจากการตั้งค่า iPhone",
+  "settings.general.notifications.push.pairing.step.register": "กำลังรอการลงทะเบียนพุชจาก Apple ให้เสร็จสิ้น",
+  "settings.general.notifications.push.pairing.step.begin": "กำลังเตรียมคำขอจับคู่ที่ปลอดภัยสำหรับ iPhone เครื่องนี้",
+  "settings.general.notifications.push.pairing.step.claim": "กำลังเชื่อมต่อ iPhone เครื่องนี้กับโฮสต์ OpenCode",
+  "settings.general.notifications.push.pairing.step.finish": "กำลังจับคู่บน iPhone เครื่องนี้ให้เสร็จสิ้น",
+  "settings.general.notifications.push.pairing.action.setup": "ตั้งค่า",
+  "settings.general.notifications.push.pairing.action.finish": "ตั้งค่าให้เสร็จสิ้น",
+  "settings.general.notifications.push.pairing.action.repair": "ซ่อมแซม",
+  "settings.general.notifications.push.pairing.action.pairing": "กำลังจับคู่...",
+  "settings.general.notifications.push.pairing.action.clear": "ลบการจับคู่",
+  "settings.general.notifications.push.pairing.action.clearing": "กำลังลบ...",
+  "settings.general.notifications.push.pairing.toast.cleared.title": "ลบการจับคู่แล้ว",
+  "settings.general.notifications.push.pairing.toast.cleared.description":
+    "ข้อมูลรับรองช่องทางพุชที่จัดเก็บไว้ถูกลบออกจาก iPhone เครื่องนี้แล้ว",
+  "settings.general.notifications.push.pairing.toast.paired.title": "จับคู่ iPhone แล้ว",
+  "settings.general.notifications.push.pairing.toast.paired.description":
+    "ตอนนี้ Anemos สามารถเชื่อมต่อ iPhone เครื่องนี้กับโฮสต์ OpenCode สำหรับการส่งพุชได้แล้ว",
+  "settings.general.notifications.push.action.enable": "เปิดใช้งาน",
+  "settings.general.notifications.push.action.openSettings": "เปิดการตั้งค่า",
+  "settings.general.notifications.push.action.enabled": "เปิดใช้งานแล้ว",
+  "settings.general.notifications.push.action.unavailable": "ไม่พร้อมใช้งาน",
+  "settings.general.notifications.push.action.checking": "กำลังตรวจสอบ...",
+  "settings.general.notifications.push.action.test": "ส่งทดสอบ",
+  "settings.general.notifications.push.action.sending": "กำลังส่ง...",
+  "settings.general.notifications.push.toast.sent.title": "กำหนดเวลาส่งการแจ้งเตือนทดสอบแล้ว",
+  "settings.general.notifications.push.toast.sent.description":
+    "ล็อก iPhone ของคุณหรือเปิดแอปไว้เพื่อตรวจสอบแบนเนอร์และขั้นตอนการแตะ",
+  "settings.general.notifications.push.toast.failed.title": "ไม่สามารถส่งการแจ้งเตือนทดสอบ",
+  "settings.general.notifications.push.toast.failed.description":
+    "เปิดการแจ้งเตือน iPhone สำหรับ Anemos แล้วลองอีกครั้ง",
+
   "settings.general.sounds.agent.title": "เอเจนต์",
   "settings.general.sounds.agent.description": "เล่นเสียงเมื่อเอเจนต์เสร็จสิ้นหรือต้องการความสนใจ",
   "settings.general.sounds.permissions.title": "สิทธิ์",
@@ -1014,6 +1085,8 @@ export const dict = {
   "app.server.unreachable": "ไม่สามารถติดต่อ {{server}}",
   "app.server.retrying": "กำลังลองใหม่โดยอัตโนมัติ...",
   "app.server.otherServers": "เซิร์ฟเวอร์อื่น ๆ",
+  "server.setup.title": "Add your server",
+  "server.setup.subtitle": "Enter your opencode server address to get started",
   "dialog.server.add.usernamePlaceholder": "ชื่อผู้ใช้",
   "dialog.server.add.passwordPlaceholder": "รหัสผ่าน",
   "server.row.noUsername": "ไม่มีชื่อผู้ใช้",
@@ -1026,6 +1099,9 @@ export const dict = {
   "session.header.open.finder": "Finder",
   "session.header.open.fileExplorer": "File Explorer",
   "session.header.open.fileManager": "File Manager",
+  "session.header.reveal.finder": "Reveal in Finder",
+  "session.header.reveal.fileExplorer": "Reveal in File Explorer",
+  "session.header.reveal.containingFolder": "Open containing folder",
   "session.header.open.app.vscode": "VS Code",
   "session.header.open.app.cursor": "Cursor",
   "session.header.open.app.zed": "Zed",
@@ -1039,6 +1115,7 @@ export const dict = {
   "session.header.open.app.androidStudio": "Android Studio",
   "session.header.open.app.powershell": "PowerShell",
   "session.header.open.app.sublimeText": "Sublime Text",
+  "session.header.refresh": "รีเฟรช",
   "debugBar.ariaLabel": "การวินิจฉัยประสิทธิภาพการพัฒนา",
   "debugBar.na": "n/a",
   "debugBar.nav.label": "NAV",

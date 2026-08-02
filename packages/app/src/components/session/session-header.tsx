@@ -281,6 +281,11 @@ export function SessionHeader() {
       .catch((err: unknown) => showRequestError(language, err))
   }
 
+  const refresh = () => {
+    if (!params.id) return
+    void sync().session.sync(params.id, { force: true })
+  }
+
   const [centerMount, setCenterMount] = createSignal<HTMLElement | null>(null)
   const rightMount = useTitlebarRightMount()
   onMount(() => {
@@ -322,6 +327,16 @@ export function SessionHeader() {
       <Show when={rightMount()} keyed>
         {(mount) => (
           <Portal mount={mount}>
+            <Show when={!isDesktop()}>
+              <IconButton
+                icon="reset"
+                variant="ghost"
+                class="titlebar-icon w-6 h-6 p-0 box-border shrink-0"
+                onClick={refresh}
+                aria-label={language.t("session.header.refresh")}
+                data-action="session-refresh"
+              />
+            </Show>
             <Show
               when={isV2}
               fallback={

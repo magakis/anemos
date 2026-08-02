@@ -102,6 +102,7 @@ export const dict = {
   "dialog.provider.empty": "Nema pronađenih provajdera",
   "dialog.provider.group.popular": "Popularno",
   "dialog.provider.group.other": "Ostalo",
+  "dialog.provider.custom.label": "Custom OpenAI-compatible provider",
   "dialog.provider.tag.recommended": "Preporučeno",
   "dialog.provider.opencode.note": "Kurirani modeli uključujući Claude, GPT, Gemini i druge",
   "dialog.provider.opencode.tagline": "Pouzdani optimizovani modeli",
@@ -122,6 +123,7 @@ export const dict = {
 
   "dialog.model.unpaid.freeModels.title": "Besplatni modeli koje obezbjeđuje OpenCode",
   "dialog.model.unpaid.addMore.title": "Dodaj još modela od popularnih provajdera",
+  "dialog.model.unpaid.viewMoreProviders": "See 70+ more providers",
 
   "dialog.provider.viewAll": "Prikaži više provajdera",
 
@@ -754,6 +756,12 @@ export const dict = {
   "settings.section.server": "Server",
   "settings.tab.general": "Opšte",
   "settings.tab.shortcuts": "Prečice",
+
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.mobile": "Mobilno",
+  "settings.tab.phone": "Telefon",
+  "settings.title.phone": "Phone Notifications",
+  "settings.anemos.mobile.unavailable": "Ova kartica je dostupna na Anemos mobilnim verzijama.",
   "settings.desktop.section.wsl": "WSL",
   "settings.desktop.wsl.title": "WSL integracija",
   "settings.desktop.wsl.description": "Pokreni OpenCode server unutar WSL-a na Windowsu.",
@@ -897,6 +905,67 @@ export const dict = {
   "settings.general.notifications.errors.title": "Greške",
   "settings.general.notifications.errors.description": "Prikaži sistemsku obavijest kada dođe do greške",
 
+  // UPSTREAM-DIVERGENCE: Fork-only mobile push permission, relay, pairing, diagnostics, and routing
+  // strings used by the shared app package and native wrappers.
+  "settings.general.notifications.push.permission.title": "Push dozvola",
+  "settings.general.notifications.push.permission.pending":
+    "Provjeravanje da li Anemos može prikazivati obavijesti na ovom iPhone-u",
+  "settings.general.notifications.push.permission.notDetermined":
+    "Omogući generička upozorenja za odgovore, odobrenja, pitanja i greške",
+  "settings.general.notifications.push.permission.denied": "Uključi obavijesti za Anemos u iPhone Postavkama",
+  "settings.general.notifications.push.permission.registering":
+    "Dozvola je odobrena. Anemos završava registraciju kod Apple-a.",
+  "settings.general.notifications.push.permission.authorized": "Spremno za generička upozorenja na ovom iPhone-u",
+  "settings.general.notifications.push.permission.provisional": "Spremno za tiha generička upozorenja na ovom iPhone-u",
+  "settings.general.notifications.push.permission.ephemeral":
+    "Spremno za privremena generička upozorenja na ovom iPhone-u",
+  "settings.general.notifications.push.permission.unsupported": "Obavijesti nisu dostupne na ovom uređaju",
+  "settings.general.notifications.push.permission.ios":
+    "If you skipped notification setup during onboarding, you can finish it here. Anemos will guide you through permissions and install an OpenCode plugin on your server.",
+  "settings.general.notifications.push.test.title": "Pošalji probnu obavijest",
+  "settings.general.notifications.push.test.description":
+    "Pošalji upozorenje putem releja sa povezanog OpenCode hosta i provjeri da li te dodirivanje vraća u Anemos",
+  "settings.general.notifications.push.pairing.title": "Uparivanje telefona",
+  "settings.general.notifications.push.pairing.pending": "Provjeravanje da li je ovaj iPhone uparen sa push kanalom.",
+  "settings.general.notifications.push.pairing.server":
+    "Prvo se poveži na OpenCode server kako bi Anemos mogao završiti uparivanje.",
+  "settings.general.notifications.push.pairing.unpaired":
+    "Dodirni Postavi jednom i Anemos će zatražiti dozvolu, instalirati integraciju hosta i automatski upariti ovaj iPhone.",
+  "settings.general.notifications.push.pairing.paired":
+    "Ovaj iPhone je uparen sa tvojim OpenCode hostom. Anemos će automatski popraviti vezu ako se izgubi.",
+  "settings.general.notifications.push.pairing.retry":
+    "Anemos završava uparivanje hosta za ovaj iPhone i nastavit će pokušavati dok ne uspije.",
+  "settings.general.notifications.push.pairing.step.permission": "Traži dozvolu za obavijesti od iPhone Postavki.",
+  "settings.general.notifications.push.pairing.step.register": "Čekanje da Apple push registracija završi.",
+  "settings.general.notifications.push.pairing.step.begin": "Priprema sigurnog zahtjeva za uparivanje za ovaj iPhone.",
+  "settings.general.notifications.push.pairing.step.claim": "Povezivanje ovog iPhone-a sa OpenCode hostom.",
+  "settings.general.notifications.push.pairing.step.finish": "Završavanje uparivanja na ovom iPhone-u.",
+  "settings.general.notifications.push.pairing.action.setup": "Postavi",
+  "settings.general.notifications.push.pairing.action.finish": "Završi postavljanje",
+  "settings.general.notifications.push.pairing.action.repair": "Popravi",
+  "settings.general.notifications.push.pairing.action.pairing": "Uparivanje...",
+  "settings.general.notifications.push.pairing.action.clear": "Ukloni uparivanje",
+  "settings.general.notifications.push.pairing.action.clearing": "Uklanjanje...",
+  "settings.general.notifications.push.pairing.toast.cleared.title": "Uparivanje uklonjeno",
+  "settings.general.notifications.push.pairing.toast.cleared.description":
+    "Pohranjeni kredencijali push kanala su uklonjeni sa ovog iPhone-a.",
+  "settings.general.notifications.push.pairing.toast.paired.title": "iPhone uparen",
+  "settings.general.notifications.push.pairing.toast.paired.description":
+    "Anemos sada može održavati vezu ovog iPhone-a sa OpenCode hostom za isporuku push obavijesti.",
+  "settings.general.notifications.push.action.enable": "Omogući",
+  "settings.general.notifications.push.action.openSettings": "Otvori Postavke",
+  "settings.general.notifications.push.action.enabled": "Omogućeno",
+  "settings.general.notifications.push.action.unavailable": "Nedostupno",
+  "settings.general.notifications.push.action.checking": "Provjera...",
+  "settings.general.notifications.push.action.test": "Pošalji test",
+  "settings.general.notifications.push.action.sending": "Slanje...",
+  "settings.general.notifications.push.toast.sent.title": "Probna obavijest zakazana",
+  "settings.general.notifications.push.toast.sent.description":
+    "Zaključaj iPhone ili ostavi aplikaciju otvorenu da provjeriš baner i tok dodirivanja.",
+  "settings.general.notifications.push.toast.failed.title": "Nije moguće poslati probnu obavijest",
+  "settings.general.notifications.push.toast.failed.description":
+    "Omogući iPhone obavijesti za Anemos i pokušaj ponovo.",
+
   "settings.general.sounds.agent.title": "Agent",
   "settings.general.sounds.agent.description": "Pusti zvuk kada agent završi ili zahtijeva pažnju",
   "settings.general.sounds.permissions.title": "Dozvole",
@@ -1027,6 +1096,8 @@ export const dict = {
   "app.server.unreachable": "Nije moguće pristupiti {{server}}",
   "app.server.retrying": "Automatski ponovni pokušaj...",
   "app.server.otherServers": "Drugi serveri",
+  "server.setup.title": "Add your server",
+  "server.setup.subtitle": "Enter your opencode server address to get started",
   "dialog.server.add.usernamePlaceholder": "korisničko ime",
   "dialog.server.add.passwordPlaceholder": "lozinka",
   "server.row.noUsername": "nema korisničkog imena",
@@ -1039,6 +1110,9 @@ export const dict = {
   "session.header.open.finder": "Finder",
   "session.header.open.fileExplorer": "File Explorer",
   "session.header.open.fileManager": "File Manager",
+  "session.header.reveal.finder": "Reveal in Finder",
+  "session.header.reveal.fileExplorer": "Reveal in File Explorer",
+  "session.header.reveal.containingFolder": "Open containing folder",
   "session.header.open.app.vscode": "VS Code",
   "session.header.open.app.cursor": "Cursor",
   "session.header.open.app.zed": "Zed",
@@ -1052,6 +1126,7 @@ export const dict = {
   "session.header.open.app.androidStudio": "Android Studio",
   "session.header.open.app.powershell": "PowerShell",
   "session.header.open.app.sublimeText": "Sublime Text",
+  "session.header.refresh": "Osvježi",
   "debugBar.ariaLabel": "Dijagnostika performansi razvoja",
   "debugBar.na": "n/a",
   "debugBar.nav.label": "NAV",

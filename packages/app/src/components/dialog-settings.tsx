@@ -1,4 +1,4 @@
-import { Component, createSignal, startTransition } from "solid-js"
+import { Component, Show, createSignal, startTransition } from "solid-js"
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { Tabs } from "@opencode-ai/ui/tabs"
 import { Icon } from "@opencode-ai/ui/icon"
@@ -7,6 +7,7 @@ import { usePlatform } from "@/context/platform"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { SettingsGeneral } from "./settings-general"
 import { SettingsKeybinds } from "./settings-keybinds"
+import { SettingsMobileNotifications } from "./settings-mobile-notifications"
 import { SettingsProviders } from "./settings-providers"
 import { SettingsModels } from "./settings-models"
 import { SettingsServers } from "./settings-servers"
@@ -65,6 +66,20 @@ export const DialogSettings: Component<{ defaultValue?: string }> = (props) => {
                     </Tabs.Trigger>
                   </div>
                 </div>
+
+                {/* UPSTREAM-DIVERGENCE: The phone tab anchors the fork's mobile notification setup UI
+                    inside the shared settings dialog. It only renders on iOS/Android builds. */}
+                <Show when={platform.platform === "ios" || platform.platform === "android"}>
+                  <div class="flex flex-col gap-1.5">
+                    <Tabs.SectionTitle>{language.t("settings.section.mobile")}</Tabs.SectionTitle>
+                    <div class="flex flex-col gap-1.5 w-full">
+                      <Tabs.Trigger value="mobile-notifications">
+                        <Icon name="settings-gear" />
+                        {language.t("settings.tab.phone")}
+                      </Tabs.Trigger>
+                    </div>
+                  </div>
+                </Show>
               </div>
             </div>
             <div class="flex flex-col gap-1 pl-1 py-1 text-12-medium text-text-weak">
@@ -88,6 +103,11 @@ export const DialogSettings: Component<{ defaultValue?: string }> = (props) => {
         <Tabs.Content value="models" class="no-scrollbar">
           <SettingsModels />
         </Tabs.Content>
+        <Show when={platform.platform === "ios" || platform.platform === "android"}>
+          <Tabs.Content value="mobile-notifications" class="no-scrollbar">
+            <SettingsMobileNotifications />
+          </Tabs.Content>
+        </Show>
       </Tabs>
     </Dialog>
   )

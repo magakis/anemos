@@ -102,6 +102,7 @@ export const dict = {
   "dialog.provider.empty": "Провайдерів не знайдено",
   "dialog.provider.group.popular": "Популярні",
   "dialog.provider.group.other": "Інші",
+  "dialog.provider.custom.label": "Custom OpenAI-compatible provider",
   "dialog.provider.tag.recommended": "Рекомендовані",
   "dialog.provider.opencode.note": "Відібрані моделі, включаючи Claude, GPT, Gemini та інші",
   "dialog.provider.opencode.tagline": "Надійні оптимізовані моделі",
@@ -122,6 +123,7 @@ export const dict = {
 
   "dialog.model.unpaid.freeModels.title": "Безкоштовні моделі від OpenCode",
   "dialog.model.unpaid.addMore.title": "Додати більше моделей від популярних провайдерів",
+  "dialog.model.unpaid.viewMoreProviders": "See 70+ more providers",
 
   "dialog.provider.viewAll": "Показати більше провайдерів",
 
@@ -336,6 +338,8 @@ export const dict = {
   "app.server.unreachable": "Не вдалося досягти {{server}}",
   "app.server.retrying": "Автоматичне повторення...",
   "app.server.otherServers": "Інші сервери",
+  "server.setup.title": "Add your server",
+  "server.setup.subtitle": "Enter your opencode server address to get started",
 
   "dialog.server.title": "Сервери",
   "dialog.server.description": "Перемкніть сервер OpenCode, до якого підключається ця програма.",
@@ -717,6 +721,9 @@ export const dict = {
   "session.header.open.finder": "Finder",
   "session.header.open.fileExplorer": "Провідник файлів",
   "session.header.open.fileManager": "Файловий менеджер",
+  "session.header.reveal.finder": "Reveal in Finder",
+  "session.header.reveal.fileExplorer": "Reveal in File Explorer",
+  "session.header.reveal.containingFolder": "Open containing folder",
   "session.header.open.app.vscode": "VS Code",
   "session.header.open.app.cursor": "Cursor",
   "session.header.open.app.zed": "Zed",
@@ -730,6 +737,7 @@ export const dict = {
   "session.header.open.app.androidStudio": "Android Studio",
   "session.header.open.app.powershell": "PowerShell",
   "session.header.open.app.sublimeText": "Sublime Text",
+  "session.header.refresh": "Refresh",
 
   "status.popover.trigger": "Статус",
   "status.popover.ariaLabel": "Конфігурації серверів",
@@ -847,6 +855,12 @@ export const dict = {
   "settings.section.server": "Сервер",
   "settings.tab.general": "Загальні",
   "settings.tab.shortcuts": "Скорочення",
+
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.mobile": "Mobile",
+  "settings.tab.phone": "Phone",
+  "settings.title.phone": "Phone Notifications",
+  "settings.anemos.mobile.unavailable": "This tab is available on Anemos mobile builds.",
   "settings.desktop.section.wsl": "WSL",
   "settings.desktop.wsl.title": "Інтеграція WSL",
   "settings.desktop.wsl.description": "Запускати сервер OpenCode всередині WSL на Windows.",
@@ -988,6 +1002,68 @@ export const dict = {
   "settings.general.notifications.permissions.description": "Показувати системне сповіщення, коли потрібен дозвіл",
   "settings.general.notifications.errors.title": "Помилки",
   "settings.general.notifications.errors.description": "Показувати системне сповіщення, коли виникає помилка",
+
+  // UPSTREAM-DIVERGENCE: Fork-only mobile push permission, relay, pairing, diagnostics, and routing
+  // strings used by the shared app package and native wrappers.
+  "settings.general.notifications.push.permission.title": "Push permission",
+  "settings.general.notifications.push.permission.pending":
+    "Checking whether Anemos can show notifications on this iPhone",
+  "settings.general.notifications.push.permission.notDetermined":
+    "Enable generic alerts for responses, approvals, questions, and errors",
+  "settings.general.notifications.push.permission.denied":
+    "Turn on notifications for Anemos in the iPhone Settings app",
+  "settings.general.notifications.push.permission.registering":
+    "Permission is granted. Anemos is finishing registration with Apple.",
+  "settings.general.notifications.push.permission.authorized": "Ready for generic alerts on this iPhone",
+  "settings.general.notifications.push.permission.provisional": "Ready for quiet generic alerts on this iPhone",
+  "settings.general.notifications.push.permission.ephemeral": "Ready for temporary generic alerts on this iPhone",
+  "settings.general.notifications.push.permission.unsupported": "Notifications are unavailable on this device",
+  "settings.general.notifications.push.permission.ios":
+    "If you skipped notification setup during onboarding, you can finish it here. Anemos will guide you through permissions and install an OpenCode plugin on your server.",
+  "settings.general.notifications.push.test.title": "Send test notification",
+  "settings.general.notifications.push.test.description":
+    "Send a relay-backed alert from the connected OpenCode host and verify that tapping it brings you back to Anemos",
+  "settings.general.notifications.push.pairing.title": "Phone pairing",
+  "settings.general.notifications.push.pairing.pending": "Checking whether this iPhone is paired to a push channel.",
+  "settings.general.notifications.push.pairing.server":
+    "Connect to an OpenCode server first so Anemos can finish pairing.",
+  "settings.general.notifications.push.pairing.unpaired":
+    "Tap Set Up once and Anemos will request permission, install an OpenCode plugin on your server, and pair this iPhone automatically.",
+  "settings.general.notifications.push.pairing.paired":
+    "This iPhone is paired to your OpenCode host. Anemos will repair the connection automatically if it drifts.",
+  "settings.general.notifications.push.pairing.retry":
+    "Anemos has a pending pair request for this iPhone. Tap Finish Setup to resume and verify the host install.",
+  "settings.general.notifications.push.pairing.step.permission":
+    "Requesting notification permission from iPhone Settings.",
+  "settings.general.notifications.push.pairing.step.register": "Waiting for Apple push registration to finish.",
+  "settings.general.notifications.push.pairing.step.begin": "Preparing a secure pairing request for this iPhone.",
+  "settings.general.notifications.push.pairing.step.claim": "Connecting this iPhone to the OpenCode host.",
+  "settings.general.notifications.push.pairing.step.finish": "Finishing pairing on this iPhone.",
+  "settings.general.notifications.push.pairing.action.setup": "Set Up",
+  "settings.general.notifications.push.pairing.action.finish": "Finish Setup",
+  "settings.general.notifications.push.pairing.action.repair": "Repair",
+  "settings.general.notifications.push.pairing.action.pairing": "Pairing...",
+  "settings.general.notifications.push.pairing.action.clear": "Remove Pairing",
+  "settings.general.notifications.push.pairing.action.clearing": "Removing...",
+  "settings.general.notifications.push.pairing.toast.cleared.title": "Pairing removed",
+  "settings.general.notifications.push.pairing.toast.cleared.description":
+    "Stored push channel credentials were removed from this iPhone.",
+  "settings.general.notifications.push.pairing.toast.paired.title": "iPhone paired",
+  "settings.general.notifications.push.pairing.toast.paired.description":
+    "Anemos can now keep this iPhone connected to the OpenCode host for push delivery.",
+  "settings.general.notifications.push.action.enable": "Enable",
+  "settings.general.notifications.push.action.openSettings": "Open Settings",
+  "settings.general.notifications.push.action.enabled": "Enabled",
+  "settings.general.notifications.push.action.unavailable": "Unavailable",
+  "settings.general.notifications.push.action.checking": "Checking...",
+  "settings.general.notifications.push.action.test": "Send test",
+  "settings.general.notifications.push.action.sending": "Sending...",
+  "settings.general.notifications.push.toast.sent.title": "Test notification scheduled",
+  "settings.general.notifications.push.toast.sent.description":
+    "Lock your iPhone or leave the app open to verify the banner and tap flow.",
+  "settings.general.notifications.push.toast.failed.title": "Could not send test notification",
+  "settings.general.notifications.push.toast.failed.description":
+    "Enable iPhone notifications for Anemos and try again.",
 
   "settings.general.sounds.agent.title": "Агент",
   "settings.general.sounds.agent.description": "Відтворювати звук, коли агент завершує роботу або потребує уваги",

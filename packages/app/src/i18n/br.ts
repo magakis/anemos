@@ -94,6 +94,7 @@ export const dict = {
   "dialog.provider.empty": "Nenhum provedor encontrado",
   "dialog.provider.group.popular": "Popular",
   "dialog.provider.group.other": "Outro",
+  "dialog.provider.custom.label": "Custom OpenAI-compatible provider",
   "dialog.provider.tag.recommended": "Recomendado",
   "dialog.provider.opencode.note": "Modelos selecionados incluindo Claude, GPT, Gemini e mais",
   "dialog.provider.opencode.tagline": "Modelos otimizados e confiáveis",
@@ -112,6 +113,7 @@ export const dict = {
   "dialog.model.manage.provider.toggle": "Alternar todos os modelos {{provider}}",
   "dialog.model.unpaid.freeModels.title": "Modelos gratuitos fornecidos pelo OpenCode",
   "dialog.model.unpaid.addMore.title": "Adicionar mais modelos de provedores populares",
+  "dialog.model.unpaid.viewMoreProviders": "See 70+ more providers",
   "dialog.provider.viewAll": "Ver mais provedores",
   "provider.connect.title": "Conectar {{provider}}",
   "provider.connect.title.anthropicProMax": "Entrar com Claude Pro/Max",
@@ -691,6 +693,12 @@ export const dict = {
   "settings.section.server": "Servidor",
   "settings.tab.general": "Geral",
   "settings.tab.shortcuts": "Atalhos",
+
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.mobile": "Celular",
+  "settings.tab.phone": "Telefone",
+  "settings.title.phone": "Phone Notifications",
+  "settings.anemos.mobile.unavailable": "Esta aba está disponível nas versões móveis do Anemos.",
   "settings.desktop.section.wsl": "WSL",
   "settings.desktop.wsl.title": "Integração com WSL",
   "settings.desktop.wsl.description": "Executar o servidor OpenCode dentro do WSL no Windows.",
@@ -829,6 +837,70 @@ export const dict = {
     "Mostrar notificação do sistema quando uma permissão for necessária",
   "settings.general.notifications.errors.title": "Erros",
   "settings.general.notifications.errors.description": "Mostrar notificação do sistema quando ocorrer um erro",
+
+  // UPSTREAM-DIVERGENCE: Fork-only mobile push permission, relay, pairing, diagnostics, and routing
+  // strings used by the shared app package and native wrappers.
+  "settings.general.notifications.push.permission.title": "Permissão de push",
+  "settings.general.notifications.push.permission.pending":
+    "Verificando se o Anemos pode exibir notificações neste iPhone",
+  "settings.general.notifications.push.permission.notDetermined":
+    "Ativar alertas genéricos para respostas, aprovações, perguntas e erros",
+  "settings.general.notifications.push.permission.denied":
+    "Ative as notificações do Anemos no app Ajustes do iPhone",
+  "settings.general.notifications.push.permission.registering":
+    "Permissão concedida. O Anemos está finalizando o registro com a Apple.",
+  "settings.general.notifications.push.permission.authorized": "Pronto para alertas genéricos neste iPhone",
+  "settings.general.notifications.push.permission.provisional":
+    "Pronto para alertas genéricos silenciosos neste iPhone",
+  "settings.general.notifications.push.permission.ephemeral": "Pronto para alertas genéricos temporários neste iPhone",
+  "settings.general.notifications.push.permission.unsupported": "Notificações não estão disponíveis neste dispositivo",
+  "settings.general.notifications.push.permission.ios":
+    "If you skipped notification setup during onboarding, you can finish it here. Anemos will guide you through permissions and install an OpenCode plugin on your server.",
+  "settings.general.notifications.push.test.title": "Enviar notificação de teste",
+  "settings.general.notifications.push.test.description":
+    "Enviar um alerta via relay do host OpenCode conectado e verificar se tocar nele te traz de volta ao Anemos",
+  "settings.general.notifications.push.pairing.title": "Pareamento do telefone",
+  "settings.general.notifications.push.pairing.pending": "Verificando se este iPhone está pareado a um canal de push.",
+  "settings.general.notifications.push.pairing.server":
+    "Conecte-se a um servidor OpenCode primeiro para que o Anemos possa finalizar o pareamento.",
+  "settings.general.notifications.push.pairing.unpaired":
+    "Toque em Configurar uma vez e o Anemos solicitará permissão, instalará a integração do host e pareará este iPhone automaticamente.",
+  "settings.general.notifications.push.pairing.paired":
+    "Este iPhone está pareado ao seu host OpenCode. O Anemos reparará a conexão automaticamente se ela se desviar.",
+  "settings.general.notifications.push.pairing.retry":
+    "O Anemos está finalizando o pareamento do host para este iPhone e continuará tentando até conseguir.",
+  "settings.general.notifications.push.pairing.step.permission":
+    "Solicitando permissão de notificação dos Ajustes do iPhone.",
+  "settings.general.notifications.push.pairing.step.register": "Aguardando o registro de push da Apple finalizar.",
+  "settings.general.notifications.push.pairing.step.begin":
+    "Preparando uma solicitação de pareamento segura para este iPhone.",
+  "settings.general.notifications.push.pairing.step.claim": "Conectando este iPhone ao host OpenCode.",
+  "settings.general.notifications.push.pairing.step.finish": "Finalizando o pareamento neste iPhone.",
+  "settings.general.notifications.push.pairing.action.setup": "Configurar",
+  "settings.general.notifications.push.pairing.action.finish": "Finalizar Configuração",
+  "settings.general.notifications.push.pairing.action.repair": "Reparar",
+  "settings.general.notifications.push.pairing.action.pairing": "Pareando...",
+  "settings.general.notifications.push.pairing.action.clear": "Remover Pareamento",
+  "settings.general.notifications.push.pairing.action.clearing": "Removendo...",
+  "settings.general.notifications.push.pairing.toast.cleared.title": "Pareamento removido",
+  "settings.general.notifications.push.pairing.toast.cleared.description":
+    "As credenciais do canal de push armazenadas foram removidas deste iPhone.",
+  "settings.general.notifications.push.pairing.toast.paired.title": "iPhone pareado",
+  "settings.general.notifications.push.pairing.toast.paired.description":
+    "O Anemos agora pode manter este iPhone conectado ao host OpenCode para entrega de push.",
+  "settings.general.notifications.push.action.enable": "Ativar",
+  "settings.general.notifications.push.action.openSettings": "Abrir Ajustes",
+  "settings.general.notifications.push.action.enabled": "Ativado",
+  "settings.general.notifications.push.action.unavailable": "Indisponível",
+  "settings.general.notifications.push.action.checking": "Verificando...",
+  "settings.general.notifications.push.action.test": "Enviar teste",
+  "settings.general.notifications.push.action.sending": "Enviando...",
+  "settings.general.notifications.push.toast.sent.title": "Notificação de teste agendada",
+  "settings.general.notifications.push.toast.sent.description":
+    "Bloqueie seu iPhone ou deixe o app aberto para verificar o banner e o fluxo de toque.",
+  "settings.general.notifications.push.toast.failed.title": "Não foi possível enviar notificação de teste",
+  "settings.general.notifications.push.toast.failed.description":
+    "Ative as notificações do iPhone para o Anemos e tente novamente.",
   "settings.general.sounds.agent.title": "Agente",
   "settings.general.sounds.agent.description": "Reproduzir som quando o agente estiver completo ou precisar de atenção",
   "settings.general.sounds.permissions.title": "Permissões",
@@ -951,6 +1023,8 @@ export const dict = {
   "app.server.unreachable": "Não foi possível conectar a {{server}}",
   "app.server.retrying": "Tentando novamente automaticamente...",
   "app.server.otherServers": "Outros servidores",
+  "server.setup.title": "Add your server",
+  "server.setup.subtitle": "Enter your opencode server address to get started",
   "dialog.server.add.usernamePlaceholder": "nome de usuário",
   "dialog.server.add.passwordPlaceholder": "senha",
   "server.row.noUsername": "sem nome de usuário",
@@ -963,6 +1037,9 @@ export const dict = {
   "session.header.open.finder": "Finder",
   "session.header.open.fileExplorer": "Explorador de Arquivos",
   "session.header.open.fileManager": "Gerenciador de Arquivos",
+  "session.header.reveal.finder": "Reveal in Finder",
+  "session.header.reveal.fileExplorer": "Reveal in File Explorer",
+  "session.header.reveal.containingFolder": "Open containing folder",
   "session.header.open.app.vscode": "VS Code",
   "session.header.open.app.cursor": "Cursor",
   "session.header.open.app.zed": "Zed",
@@ -976,6 +1053,7 @@ export const dict = {
   "session.header.open.app.androidStudio": "Android Studio",
   "session.header.open.app.powershell": "PowerShell",
   "session.header.open.app.sublimeText": "Sublime Text",
+  "session.header.refresh": "Atualizar",
   "debugBar.ariaLabel": "Diagnóstico de desempenho de desenvolvimento",
   "debugBar.na": "n/a",
   "debugBar.nav.label": "NAV",

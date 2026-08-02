@@ -94,6 +94,7 @@ export const dict = {
   "dialog.provider.empty": "プロバイダーが見つかりません",
   "dialog.provider.group.popular": "人気",
   "dialog.provider.group.other": "その他",
+  "dialog.provider.custom.label": "Custom OpenAI-compatible provider",
   "dialog.provider.tag.recommended": "推奨",
   "dialog.provider.opencode.note": "Claude, GPT, Geminiなどを含む厳選されたモデル",
   "dialog.provider.opencode.tagline": "信頼性の高い最適化モデル",
@@ -112,6 +113,7 @@ export const dict = {
   "dialog.model.manage.provider.toggle": "すべての{{provider}}モデルを切り替え",
   "dialog.model.unpaid.freeModels.title": "OpenCodeが提供する無料モデル",
   "dialog.model.unpaid.addMore.title": "人気のプロバイダーからモデルを追加",
+  "dialog.model.unpaid.viewMoreProviders": "See 70+ more providers",
   "dialog.provider.viewAll": "さらにプロバイダーを表示",
   "provider.connect.title": "{{provider}}を接続",
   "provider.connect.title.anthropicProMax": "Claude Pro/Maxでログイン",
@@ -687,6 +689,12 @@ export const dict = {
   "settings.section.server": "サーバー",
   "settings.tab.general": "一般",
   "settings.tab.shortcuts": "ショートカット",
+
+  // UPSTREAM-DIVERGENCE: Fork-only settings navigation labels for the Anemos phone tab.
+  "settings.section.mobile": "モバイル",
+  "settings.tab.phone": "スマートフォン",
+  "settings.title.phone": "Phone Notifications",
+  "settings.anemos.mobile.unavailable": "このタブはAnemosモバイルビルドで利用可能です。",
   "settings.desktop.section.wsl": "WSL",
   "settings.desktop.wsl.title": "WSL連携",
   "settings.desktop.wsl.description": "WindowsのWSL環境でOpenCodeサーバーを実行します。",
@@ -823,6 +831,67 @@ export const dict = {
   "settings.general.notifications.permissions.description": "権限が必要な場合にシステム通知を表示します",
   "settings.general.notifications.errors.title": "エラー",
   "settings.general.notifications.errors.description": "エラーが発生した場合にシステム通知を表示します",
+
+  // UPSTREAM-DIVERGENCE: Fork-only mobile push permission, relay, pairing, diagnostics, and routing
+  // strings used by the shared app package and native wrappers.
+  "settings.general.notifications.push.permission.title": "プッシュ通知の許可",
+  "settings.general.notifications.push.permission.pending": "AnemosがこのiPhoneで通知を表示できるか確認中です",
+  "settings.general.notifications.push.permission.notDetermined":
+    "応答、承認、質問、エラーの汎用アラートを有効にします",
+  "settings.general.notifications.push.permission.denied": "iPhoneの設定アプリでAnemosの通知をオンにしてください",
+  "settings.general.notifications.push.permission.registering":
+    "許可が付与されました。AnemosがAppleへの登録を完了しています。",
+  "settings.general.notifications.push.permission.authorized": "このiPhoneで汎用アラートの準備ができています",
+  "settings.general.notifications.push.permission.provisional": "このiPhoneで静かな汎用アラートの準備ができています",
+  "settings.general.notifications.push.permission.ephemeral": "このiPhoneで一時的な汎用アラートの準備ができています",
+  "settings.general.notifications.push.permission.unsupported": "このデバイスでは通知を利用できません",
+  "settings.general.notifications.push.permission.ios":
+    "If you skipped notification setup during onboarding, you can finish it here. Anemos will guide you through permissions and install an OpenCode plugin on your server.",
+  "settings.general.notifications.push.test.title": "テスト通知を送信",
+  "settings.general.notifications.push.test.description":
+    "接続されたOpenCodeホストからリレー経由のアラートを送信し、タップするとAnemosに戻ることを確認します",
+  "settings.general.notifications.push.pairing.title": "スマートフォンのペアリング",
+  "settings.general.notifications.push.pairing.pending":
+    "このiPhoneがプッシュチャネルにペアリングされているか確認中です。",
+  "settings.general.notifications.push.pairing.server":
+    "Anemosがペアリングを完了できるよう、まずOpenCodeサーバーに接続してください。",
+  "settings.general.notifications.push.pairing.unpaired":
+    "「セットアップ」を一度タップすると、Anemosが許可の要求、ホスト連携のインストール、このiPhoneのペアリングを自動的に行います。",
+  "settings.general.notifications.push.pairing.paired":
+    "このiPhoneはOpenCodeホストにペアリングされています。接続がずれた場合、Anemosが自動的に修復します。",
+  "settings.general.notifications.push.pairing.retry":
+    "AnemosはこのiPhoneのホストペアリングを完了中で、定着するまで再試行を続けます。",
+  "settings.general.notifications.push.pairing.step.permission": "iPhoneの設定から通知許可を要求しています。",
+  "settings.general.notifications.push.pairing.step.register": "Appleプッシュ登録の完了を待っています。",
+  "settings.general.notifications.push.pairing.step.begin":
+    "このiPhoneのための安全なペアリングリクエストを準備しています。",
+  "settings.general.notifications.push.pairing.step.claim": "このiPhoneをOpenCodeホストに接続しています。",
+  "settings.general.notifications.push.pairing.step.finish": "このiPhoneでペアリングを完了しています。",
+  "settings.general.notifications.push.pairing.action.setup": "セットアップ",
+  "settings.general.notifications.push.pairing.action.finish": "セットアップを完了",
+  "settings.general.notifications.push.pairing.action.repair": "修復",
+  "settings.general.notifications.push.pairing.action.pairing": "ペアリング中...",
+  "settings.general.notifications.push.pairing.action.clear": "ペアリングを削除",
+  "settings.general.notifications.push.pairing.action.clearing": "削除中...",
+  "settings.general.notifications.push.pairing.toast.cleared.title": "ペアリングが削除されました",
+  "settings.general.notifications.push.pairing.toast.cleared.description":
+    "保存されたプッシュチャネルの認証情報がこのiPhoneから削除されました。",
+  "settings.general.notifications.push.pairing.toast.paired.title": "iPhoneがペアリングされました",
+  "settings.general.notifications.push.pairing.toast.paired.description":
+    "AnemosはこのiPhoneをOpenCodeホストに接続してプッシュ配信を維持できるようになりました。",
+  "settings.general.notifications.push.action.enable": "有効にする",
+  "settings.general.notifications.push.action.openSettings": "設定を開く",
+  "settings.general.notifications.push.action.enabled": "有効",
+  "settings.general.notifications.push.action.unavailable": "利用不可",
+  "settings.general.notifications.push.action.checking": "確認中...",
+  "settings.general.notifications.push.action.test": "テスト送信",
+  "settings.general.notifications.push.action.sending": "送信中...",
+  "settings.general.notifications.push.toast.sent.title": "テスト通知がスケジュールされました",
+  "settings.general.notifications.push.toast.sent.description":
+    "iPhoneをロックするかアプリを開いたままにして、バナーとタップの動作を確認してください。",
+  "settings.general.notifications.push.toast.failed.title": "テスト通知を送信できませんでした",
+  "settings.general.notifications.push.toast.failed.description":
+    "AnemosのiPhone通知を有効にしてから再度お試しください。",
   "settings.general.sounds.agent.title": "エージェント",
   "settings.general.sounds.agent.description": "エージェントが完了したか、注意が必要な場合に音を再生します",
   "settings.general.sounds.permissions.title": "権限",
@@ -944,6 +1013,8 @@ export const dict = {
   "app.server.unreachable": "{{server}} に到達できませんでした",
   "app.server.retrying": "自動的に再試行中...",
   "app.server.otherServers": "その他のサーバー",
+  "server.setup.title": "Add your server",
+  "server.setup.subtitle": "Enter your opencode server address to get started",
   "dialog.server.add.usernamePlaceholder": "ユーザー名",
   "dialog.server.add.passwordPlaceholder": "パスワード",
   "server.row.noUsername": "ユーザー名なし",
@@ -956,6 +1027,9 @@ export const dict = {
   "session.header.open.finder": "Finder",
   "session.header.open.fileExplorer": "エクスプローラー",
   "session.header.open.fileManager": "ファイルマネージャー",
+  "session.header.reveal.finder": "Reveal in Finder",
+  "session.header.reveal.fileExplorer": "Reveal in File Explorer",
+  "session.header.reveal.containingFolder": "Open containing folder",
   "session.header.open.app.vscode": "VS Code",
   "session.header.open.app.cursor": "Cursor",
   "session.header.open.app.zed": "Zed",
@@ -969,6 +1043,7 @@ export const dict = {
   "session.header.open.app.androidStudio": "Android Studio",
   "session.header.open.app.powershell": "PowerShell",
   "session.header.open.app.sublimeText": "Sublime Text",
+  "session.header.refresh": "更新",
   "debugBar.ariaLabel": "開発パフォーマンス診断",
   "debugBar.na": "n/a",
   "debugBar.nav.label": "NAV",
