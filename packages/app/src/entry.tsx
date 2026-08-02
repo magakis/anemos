@@ -53,7 +53,7 @@ const setStorage = (key: string, value: string | null) => {
 const readDefaultServerUrl = () => getStorage(DEFAULT_SERVER_URL_KEY)
 const writeDefaultServerUrl = (url: string | null) => setStorage(DEFAULT_SERVER_URL_KEY, url)
 
-const notify: Platform["notify"] = async (title, description, onClick) => {
+const notify: Platform["notify"] = async (title, description, opts) => {
   if (!("Notification" in window)) return
 
   const permission =
@@ -73,7 +73,7 @@ const notify: Platform["notify"] = async (title, description, onClick) => {
 
   notification.onclick = () => {
     window.focus()
-    onClick?.()
+    opts?.onClick?.()
     notification.close()
   }
 }
@@ -118,6 +118,7 @@ const platform: Platform = {
   platform: "web",
   version: pkg.version,
   openExternal,
+  openLink: openExternal,
   restart,
   notify,
   getDefaultServer: async () => {

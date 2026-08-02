@@ -18,6 +18,15 @@ export function authFromToken(token: string | null) {
   }
 }
 
+// UPSTREAM-DIVERGENCE: Server auth header generation is split out so the fork's push pairing helpers
+// reuse the exact same HTTP auth behavior as the shared SDK.
+export function serverAuthHeaders(server: ServerConnection.HttpBase) {
+  if (!server.password) return
+  return {
+    Authorization: `Basic ${authTokenFromCredentials({ username: server.username, password: server.password })}`,
+  }
+}
+
 export function createSdkForServer({
   server,
   ...config

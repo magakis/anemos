@@ -53,6 +53,8 @@ import { NotificationProvider } from "@/context/notification"
 import { PermissionProvider } from "@/context/permission"
 import { usePlatform } from "@/context/platform"
 import { PromptProvider } from "@/context/prompt"
+import { PushPairProvider } from "@/context/push-pair"
+import { PushRelayProvider } from "@/context/push-relay"
 import { ServerConnection, ServerProvider, serverName, useServer } from "@/context/server"
 import { SettingsProvider, useSettings } from "@/context/settings"
 import { TabsProvider, useTabs, type DraftTab } from "@/context/tabs"
@@ -583,13 +585,17 @@ export function AppInterface(props: {
                 root={(routerProps) => (
                   <TabsProvider>
                     <PermissionProvider>
-                      <NotificationProvider>
-                        <ServerShell>
-                          <Show when={useSettings().general.newLayoutDesigns()} fallback={routerProps.children}>
-                            <NewAppLayout serverScoped={props.serverScoped}>{routerProps.children}</NewAppLayout>
-                          </Show>
-                        </ServerShell>
-                      </NotificationProvider>
+                      <PushRelayProvider>
+                        <PushPairProvider>
+                          <NotificationProvider>
+                            <ServerShell>
+                              <Show when={useSettings().general.newLayoutDesigns()} fallback={routerProps.children}>
+                                <NewAppLayout serverScoped={props.serverScoped}>{routerProps.children}</NewAppLayout>
+                              </Show>
+                            </ServerShell>
+                          </NotificationProvider>
+                        </PushPairProvider>
+                      </PushRelayProvider>
                     </PermissionProvider>
                   </TabsProvider>
                 )}

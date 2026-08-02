@@ -16,7 +16,81 @@ type OpenAttachmentPickerOptions = {
   defaultPath?: string
 }
 type SaveFilePickerOptions = { title?: string; defaultPath?: string }
-type PlatformName = "web" | "desktop"
+
+// UPSTREAM-DIVERGENCE: These exported types are consumed across packages/app, packages/ios, and
+// packages/android to keep push notification permission, pairing, and relay state aligned.
+export type PushKind = "complete" | "error" | "approval" | "question" | "test"
+export type PushPerm = "unsupported" | "not-determined" | "denied" | "authorized" | "provisional" | "ephemeral"
+export type PushCred = {
+  channel: string
+  device?: string
+  secret?: string
+}
+export type PairState = "pending" | "claimed" | "active" | "expired" | "failed"
+export type PairInfo = {
+  id: string
+  status: PairState
+  token?: string
+  command?: string
+  expires?: string
+  channel?: string
+  device?: string
+  message?: string
+}
+export type PushPrefs = {
+  complete: boolean
+  approval: boolean
+  question: boolean
+  error: boolean
+}
+export type PushDiag = {
+  token?: boolean
+  tokenPending?: boolean
+  relay?: string
+  device?: string
+  pairID?: string
+  pairStatus?: PairState
+  pairExpires?: string
+  lastCode?: string
+  lastError?: string
+}
+export type PushState = {
+  supported: boolean
+  permission: PushPerm
+  allowed: boolean
+  registered: boolean
+  paired: boolean
+  generic: boolean
+  channel?: string
+  diag?: PushDiag
+}
+
+/** UPSTREAM-DIVERGENCE: Unified notify options carrying web (onClick) and mobile (kind/generic/href) concerns. */
+export type NotifyOpts = {
+  onClick?: () => void
+  href?: string
+  kind?: PushKind
+  generic?: boolean
+}
+
+export type VoiceState = "prewarming" | "ready" | "recording" | "processing" | "error"
+export type VoiceStatus = {
+  state: VoiceState
+  ready: boolean
+  message?: string
+}
+export type VoiceStartResult = {
+  ok: boolean
+  code?: string
+  message?: string
+}
+export type VoiceStopResult = {
+  text: string
+  code?: string
+  message?: string
+}
+
+type PlatformName = "web" | "desktop" | "ios" | "android"
 type DesktopOS = "macos" | "windows" | "linux"
 
 export type FatalRendererErrorLog = {
@@ -24,7 +98,7 @@ export type FatalRendererErrorLog = {
   url: string
   version?: string
   platform: PlatformName
-  os?: DesktopOS
+  os?: DesktopOS | "ios" | "android"
 }
 
 type PlatformBase = {
@@ -33,6 +107,9 @@ type PlatformBase = {
 
   /** Open a web or mail URL in the default system application */
   openExternal(url: string): void
+
+  /** UPSTREAM-DIVERGENCE: Fork alias retained for the iOS/Android wrappers; upstream renamed this to openExternal. */
+  openLink(url: string): void
 
   /** Open a local path in a local app (desktop only) */
   openPath?(path: string, app?: string): Promise<void>
@@ -46,8 +123,12 @@ type PlatformBase = {
   /** Restart the app  */
   restart(): Promise<void>
 
+  /** UPSTREAM-DIVERGENCE: Fork navigation methods retained for the iOS/Android wrappers' webview history. */
+  back?(): void
+  forward?(): void
+
   /** Send a system notification */
-  notify(title: string, description?: string, onClick?: () => void): Promise<void>
+  notify(title: string, description?: string, opts?: NotifyOpts): Promise<void>
 
   /** Open a native attachment picker and read selected files sequentially (desktop only) */
   openAttachmentPickerDialog?(
@@ -117,6 +198,62 @@ type PlatformBase = {
 
   /** Record a fatal renderer error in platform logs (desktop only) */
   recordFatalRendererError?(error: FatalRendererErrorLog): Promise<void>
+
+  // UPSTREAM-DIVERGENCE: Fork-only mobile methods keep the shared app package aware of native push,
+  // voice, haptic, and share state. Preserve this surface when reconciling upstream changes.
+  /** Read push notification state (optional native platforms) */
+  pushState?: Accessor<PushState | undefined>
+
+  /** Read push notification state (optional native platforms) */
+  getPushState?(): Promise<PushState>
+
+  /** Request push notification permission (optional native platforms) */
+  requestPushPermission?(): Promise<PushState>
+
+  /** Open the platform system settings app (optional native platforms) */
+  openSystemSettings?(): Promise<void>
+
+  /** Schedule a test push notification (optional native platforms) */
+  testPush?(href?: string): Promise<boolean>
+
+  /** Begin the hosted push pairing flow (optional native platforms) */
+  beginPushPairing?(): Promise<PairInfo>
+
+  /** Poll the hosted push pairing flow (optional native platforms) */
+  getPushPairing?(): Promise<PairInfo | undefined>
+
+  /** Update relay-backed push delivery preferences (optional native platforms) */
+  setPushPreferences?(prefs: PushPrefs): Promise<void>
+
+  /** Update the relay URL used by native push flows (optional native platforms) */
+  setPushRelayURL?(url?: string): Promise<void>
+
+  /** Store paired push credentials (optional native platforms) */
+  setPushCredentials?(input: PushCred): Promise<PushState>
+
+  /** Clear paired push credentials (optional native platforms) */
+  clearPushPairing?(): Promise<PushState>
+
+  /** Start voice input (mobile only) */
+  startVoiceInput?(): Promise<VoiceStartResult> | VoiceStartResult
+
+  /** Stop voice input and return transcription (mobile only) */
+  stopVoiceInput?(): Promise<VoiceStopResult> | VoiceStopResult
+
+  /** Current voice input status (mobile only) */
+  voiceStatus?: Accessor<VoiceStatus>
+
+  /** List supported speech locales (mobile only) */
+  getSpeechLocales?(): Promise<string[]>
+
+  /** Set active speech locale and return the applied locale (mobile only) */
+  setSpeechLocale?(locale: string): Promise<string> | string
+
+  /** Haptic feedback (mobile only) */
+  haptic?(style: "light" | "medium" | "heavy" | "success" | "warning" | "error"): void
+
+  /** Share content (mobile only) */
+  share?(data: { text?: string; url?: string }): Promise<boolean>
 }
 
 export type Platform = PlatformBase &
@@ -127,6 +264,8 @@ export type Platform = PlatformBase &
         os?: DesktopOS
         openDirectoryPickerDialog(opts?: OpenDirectoryPickerOptions): Promise<PickerPaths>
       }
+    | { platform: "ios"; os?: "ios" }
+    | { platform: "android"; os?: "android" }
   )
 
 export type DisplayBackend = "auto" | "wayland"

@@ -1,7 +1,7 @@
 // @refresh reload
 import { render } from "solid-js/web"
 import { createResource, createSignal, onCleanup, onMount, Show } from "solid-js"
-import { AppBaseProviders, AppInterface, PlatformProvider, ServerConnection, type Platform } from "@opencode-ai/app"
+import { AppBaseProviders, AppInterface, PlatformProvider, ServerConnection, type NotifyOpts, type Platform } from "@opencode-ai/app"
 import { showToast } from "@opencode-ai/ui/toast"
 import { requestPermissions } from "@tauri-apps/api/core"
 import { impactFeedback, notificationFeedback } from "@tauri-apps/plugin-haptics"
@@ -193,11 +193,13 @@ const App = () => {
     platform: "android",
     os: "android",
     version: pkg.version,
+    openExternal: (url: string) => {
+      void openUrl(url).catch(() => undefined)
+    },
     openLink: (url: string) => {
       void openUrl(url).catch(() => undefined)
     },
-    notify: async (title: string, description?: string, href?: string, opts?: unknown) => {
-      void href
+    notify: async (title: string, description?: string, opts?: NotifyOpts) => {
       void opts
       const granted = await isPermissionGranted().catch(() => false)
       const permission = granted ? "granted" : await requestPermission().catch(() => "denied")

@@ -446,13 +446,13 @@ export default function LegacyLayout(props: ParentProps) {
             void playSoundById(settings.sounds.permissions())
           }
           if (settings.notifications.permissions()) {
-            void platform.notify(title, description, () => navigate(href))
+            void platform.notify(title, description, { onClick: () => navigate(href), href, kind: "approval" })
           }
         }
 
         if (e.details.type === "question.asked") {
           if (settings.notifications.agent()) {
-            void platform.notify(title, description, () => navigate(href))
+            void platform.notify(title, description, { onClick: () => navigate(href), href, kind: "question" })
           }
         }
 

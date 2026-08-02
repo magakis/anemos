@@ -1,7 +1,7 @@
 // @refresh reload
 import { render } from "solid-js/web"
 import { createResource, createSignal, onCleanup, onMount } from "solid-js"
-import { AppBaseProviders, AppInterface, PlatformProvider, ServerConnection, type Platform, type VoiceStartResult, type VoiceStopResult } from "@opencode-ai/app"
+import { AppBaseProviders, AppInterface, PlatformProvider, ServerConnection, type NotifyOpts, type Platform, type VoiceStartResult, type VoiceStopResult } from "@opencode-ai/app"
 import { bridge } from "./bridge"
 import { createBridgeStorage } from "./ios-storage"
 import { VoiceInputOverlay } from "./voice-input"
@@ -38,9 +38,10 @@ const App = () => {
     platform: "ios",
     os: "ios",
     version: pkg.version,
+    openExternal: (url: string) => bridge.send("openLink", { url }),
     openLink: (url: string) => bridge.send("openLink", { url }),
-    notify: async (title: string, description?: string, href?: string) => {
-      await bridge.sendAsync("notify", { title, description, href })
+    notify: async (title: string, description?: string, opts?: NotifyOpts) => {
+      await bridge.sendAsync("notify", { title, description, href: opts?.href })
     },
     back: () => window.history.back(),
     forward: () => window.history.forward(),
