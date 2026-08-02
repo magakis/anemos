@@ -1,12 +1,7 @@
 {
-  "extends": "@tsconfig/node22/tsconfig.json",
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@tsconfig/bun/tsconfig.json",
   "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "target": "ESNext",
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true
-  },
-  "include": ["src"]
+    "noUncheckedIndexedAccess": false
+  }
 }

@@ -7,7 +7,7 @@
   "exports": { "./*": "./src/*.ts" },
   "scripts": { "typecheck": "tsgo --noEmit" },
   "devDependencies": {
-    "@tsconfig/node22": "catalog:",
-    "typescript": "catalog:"
+    "@tsconfig/bun": "catalog:",
+    "@types/bun": "catalog:"
   }
 }
