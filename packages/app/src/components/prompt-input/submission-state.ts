@@ -1,12 +1,13 @@
-import type { ContextItem, Prompt, usePrompt } from "@/context/prompt"
+import { type ContextItem, type Prompt, type usePrompt } from "@/context/prompt"
 
-type PromptTarget = ReturnType<typeof usePrompt>
+type PromptTarget = ReturnType<ReturnType<typeof usePrompt>["capture"]>
 
 export function createPromptSubmissionState(input: {
   target: PromptTarget
   prompt: Prompt
   context: (ContextItem & { key: string })[]
 }) {
+  const initial = input.target
   let target = input.target
   let cleared: Prompt | undefined
 
@@ -15,6 +16,7 @@ export function createPromptSubmissionState(input: {
     context: input.context,
     target: () => target,
     clear() {
+      if (initial !== target) initial.reset()
       target.reset()
       cleared = target.current()
     },

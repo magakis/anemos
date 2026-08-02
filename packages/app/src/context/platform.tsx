@@ -1,142 +1,74 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import type { AsyncStorage, SyncStorage } from "@solid-primitives/storage"
 import type { Accessor } from "solid-js"
+import type { DesktopMenuAction } from "../desktop-menu"
 import { ServerConnection } from "./server"
+import type { WslServersPlatform } from "../wsl/types"
+import type { UpdaterPlatform } from "../updater"
 
-// UPSTREAM-DIVERGENCE-FILE: This platform contract is extended by the fork's iOS/Android wrappers.
-// When merging upstream platform changes, preserve the push pairing, relay, and notification metadata
-// additions introduced after upstream sync 6b9ce5e63.
+type PickerPaths = string | string[] | null
+type OpenDirectoryPickerOptions = { title?: string; multiple?: boolean }
+type OpenAttachmentPickerOptions = {
+  title?: string
+  multiple?: boolean
+  accept?: string[]
+  extensions?: string[]
+  defaultPath?: string
+}
+type SaveFilePickerOptions = { title?: string; defaultPath?: string }
+type PlatformName = "web" | "desktop"
+type DesktopOS = "macos" | "windows" | "linux"
 
-// UPSTREAM-DIVERGENCE: These exported types are consumed across packages/app, packages/ios, and
-// packages/android to keep push notification permission, pairing, and relay state aligned.
-export type PushKind = "complete" | "error" | "approval" | "question" | "test"
-export type PushPerm = "unsupported" | "not-determined" | "denied" | "authorized" | "provisional" | "ephemeral"
-export type PushCred = {
-  channel: string
-  device?: string
-  secret?: string
-}
-export type PairState = "pending" | "claimed" | "active" | "expired" | "failed"
-export type PairInfo = {
-  id: string
-  status: PairState
-  token?: string
-  command?: string
-  expires?: string
-  channel?: string
-  device?: string
-  message?: string
-}
-export type PushPrefs = {
-  complete: boolean
-  approval: boolean
-  question: boolean
-  error: boolean
-}
-export type PushDiag = {
-  token?: boolean
-  tokenPending?: boolean
-  relay?: string
-  device?: string
-  pairID?: string
-  pairStatus?: PairState
-  pairExpires?: string
-  lastCode?: string
-  lastError?: string
-}
-export type PushState = {
-  supported: boolean
-  permission: PushPerm
-  allowed: boolean
-  registered: boolean
-  paired: boolean
-  generic: boolean
-  channel?: string
-  diag?: PushDiag
-}
-export type NotifyOpts = {
-  kind?: PushKind
-  generic?: boolean
-}
-export type VoiceState = "prewarming" | "ready" | "recording" | "processing" | "error"
-export type VoiceStatus = {
-  state: VoiceState
-  ready: boolean
-  message?: string
-}
-export type VoiceStartResult = {
-  ok: boolean
-  code?: string
-  message?: string
-}
-export type VoiceStopResult = {
-  text: string
-  code?: string
-  message?: string
+export type FatalRendererErrorLog = {
+  error: string
+  url: string
+  version?: string
+  platform: PlatformName
+  os?: DesktopOS
 }
 
-export type Platform = {
-  /** Platform discriminator */
-  platform: "web" | "desktop" | "ios" | "android"
-
-  /** Desktop OS (Tauri only) */
-  os?: "macos" | "windows" | "linux" | "ios" | "android"
-
+type PlatformBase = {
   /** App version */
   version?: string
 
-  /** Open a URL in the default browser */
-  openLink(url: string): void
+  /** Open a web or mail URL in the default system application */
+  openExternal(url: string): void
+
+  /** Open a local path in a local app (desktop only) */
+  openPath?(path: string, app?: string): Promise<void>
+
+  /** Open a local file URL in its default app (desktop only) */
+  openLocalFile?(url: string): void
+
+  /** Reveal a local path in the system file manager; false when the path does not exist (desktop only) */
+  revealPath?(path: string): Promise<boolean>
 
   /** Restart the app  */
   restart(): Promise<void>
 
-  /** Navigate back in history */
-  back(): void
+  /** Send a system notification */
+  notify(title: string, description?: string, onClick?: () => void): Promise<void>
 
-  /** Navigate forward in history */
-  forward(): void
+  /** Open a native attachment picker and read selected files sequentially (desktop only) */
+  openAttachmentPickerDialog?(
+    opts: OpenAttachmentPickerOptions,
+    onFile: (file: File) => Promise<unknown>,
+  ): Promise<void>
 
-  /** UPSTREAM-DIVERGENCE: Fork mobile builds attach notification kind metadata so native bridges can
-      choose generic push payloads while the web implementation safely ignores the extra options. */
-  notify(title: string, description?: string, href?: string, opts?: NotifyOpts): Promise<void>
+  /** Resolve the native source path for a desktop File. */
+  getPathForFile?(file: File): string
+
+  /** Open a native save file picker dialog (desktop only) */
+  saveFilePickerDialog?(opts?: SaveFilePickerOptions): Promise<string | null>
 
   /** Storage mechanism, defaults to localStorage */
   storage?: (name?: string) => SyncStorage | AsyncStorage
 
-  /** UPSTREAM-DIVERGENCE: Fork-only push methods keep the shared app package aware of native mobile
-      permission, relay, and pairing state. Preserve this surface when reconciling upstream changes. */
-  pushState?: Accessor<PushState | undefined>
+  /** Stable platform window identity for window-scoped persistence */
+  windowID?: string
 
-  /** Read push notification state (optional native platforms) */
-  getPushState?(): Promise<PushState>
-
-  /** Request push notification permission (optional native platforms) */
-  requestPushPermission?(): Promise<PushState>
-
-  /** Open the platform system settings app (optional native platforms) */
-  openSystemSettings?(): Promise<void>
-
-  /** Schedule a test push notification (optional native platforms) */
-  testPush?(href?: string): Promise<boolean>
-
-  /** Begin the hosted push pairing flow (optional native platforms) */
-  beginPushPairing?(): Promise<PairInfo>
-
-  /** Poll the hosted push pairing flow (optional native platforms) */
-  getPushPairing?(): Promise<PairInfo | undefined>
-
-  /** Update relay-backed push delivery preferences (optional native platforms) */
-  setPushPreferences?(prefs: PushPrefs): Promise<void>
-
-  /** Update the relay URL used by native push flows (optional native platforms) */
-  setPushRelayURL?(url?: string): Promise<void>
-
-  /** Store paired push credentials (optional native platforms) */
-  setPushCredentials?(input: PushCred): Promise<PushState>
-
-  /** Clear paired push credentials (optional native platforms) */
-  clearPushPairing?(): Promise<PushState>
+  /** Application-global desktop updater */
+  updater?: UpdaterPlatform
 
   /** Fetch override */
   fetch?: typeof fetch
@@ -147,27 +79,57 @@ export type Platform = {
   /** Set the default server URL to use on app startup (platform-specific) */
   setDefaultServer?(url: ServerConnection.Key | null): Promise<void> | void
 
-  /** Start voice input (mobile only) */
-  startVoiceInput?(): Promise<VoiceStartResult> | VoiceStartResult
+  /** Manage WSL sidecar servers (Electron on Windows only) */
+  wslServers?: WslServersPlatform
 
-  /** Stop voice input and return transcription (mobile only) */
-  stopVoiceInput?(): Promise<VoiceStopResult> | VoiceStopResult
+  /** Get the preferred display backend (desktop only) */
+  getDisplayBackend?(): Promise<DisplayBackend | null> | DisplayBackend | null
 
-  /** Current voice input status (mobile only) */
-  voiceStatus?: Accessor<VoiceStatus>
+  /** Set the preferred display backend (desktop only) */
+  setDisplayBackend?(backend: DisplayBackend): Promise<void>
 
-  /** List supported speech locales (mobile only) */
-  getSpeechLocales?(): Promise<string[]>
+  /** Webview zoom level (desktop only) */
+  webviewZoom?: Accessor<number>
 
-  /** Set active speech locale and return the applied locale (mobile only) */
-  setSpeechLocale?(locale: string): Promise<string> | string
+  /** Whether the native desktop window is fullscreen */
+  windowFullscreen?: Accessor<boolean>
 
-  /** Haptic feedback (mobile only) */
-  haptic?(style: "light" | "medium" | "heavy" | "success" | "warning" | "error"): void
+  /** Get whether native pinch/Ctrl-scroll zoom gestures are enabled (desktop only) */
+  getPinchZoomEnabled?(): Promise<boolean> | boolean
 
-  /** Share content (mobile only) */
-  share?(data: { text?: string; url?: string }): Promise<boolean>
+  /** Allow native pinch/Ctrl-scroll zoom gestures (desktop only) */
+  setPinchZoomEnabled?(enabled: boolean): Promise<void> | void
+
+  /** Run a desktop-only menu action from the app chrome */
+  runDesktopMenuAction?(action: DesktopMenuAction): Promise<void> | void
+
+  /** Check if an editor app exists (desktop only) */
+  checkAppExists?(appName: string): Promise<boolean>
+
+  /** Read image from clipboard (desktop only) */
+  readClipboardImage?(): Promise<File | null>
+
+  /** Export collected diagnostic logs (desktop only) */
+  exportDebugLogs?(): Promise<string>
+
+  /** Force focus styles on interactive elements through desktop devtools (desktop only) */
+  setForceFocus?(enabled: boolean): Promise<void>
+
+  /** Record a fatal renderer error in platform logs (desktop only) */
+  recordFatalRendererError?(error: FatalRendererErrorLog): Promise<void>
 }
+
+export type Platform = PlatformBase &
+  (
+    | { platform: "web"; os?: never }
+    | {
+        platform: "desktop"
+        os?: DesktopOS
+        openDirectoryPickerDialog(opts?: OpenDirectoryPickerOptions): Promise<PickerPaths>
+      }
+  )
+
+export type DisplayBackend = "auto" | "wayland"
 
 export const { use: usePlatform, provider: PlatformProvider } = createSimpleContext({
   name: "Platform",

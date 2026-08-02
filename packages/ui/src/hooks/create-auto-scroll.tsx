@@ -8,7 +8,6 @@ export interface AutoScrollOptions {
   onUserInteracted?: () => void
   overflowAnchor?: "none" | "auto" | "dynamic"
   bottomThreshold?: number
-  reverseScrollTop?: boolean
 }
 
 export function createAutoScroll(options: AutoScrollOptions) {
@@ -18,8 +17,6 @@ export function createAutoScroll(options: AutoScrollOptions) {
   let auto: { top: number; time: number } | undefined
 
   const threshold = () => options.bottomThreshold ?? 10
-  const reverseScrollTop = () => options.reverseScrollTop !== false
-  const bottomTarget = (el: HTMLElement) => (reverseScrollTop() ? 0 : Math.max(0, el.scrollHeight - el.clientHeight))
 
   const [store, setStore] = createStore({
     contentRef: undefined as HTMLElement | undefined,
@@ -30,7 +27,6 @@ export function createAutoScroll(options: AutoScrollOptions) {
   const active = () => options.working() || settling
 
   const distanceFromBottom = (el: HTMLElement) => {
-    if (reverseScrollTop()) return Math.abs(el.scrollTop)
     return el.scrollHeight - el.clientHeight - el.scrollTop
   }
 
@@ -44,7 +40,7 @@ export function createAutoScroll(options: AutoScrollOptions) {
   // the user scrolled.
   const markAuto = (el: HTMLElement) => {
     auto = {
-      top: bottomTarget(el),
+      top: Math.max(0, el.scrollHeight - el.clientHeight),
       time: Date.now(),
     }
 
@@ -71,14 +67,13 @@ export function createAutoScroll(options: AutoScrollOptions) {
     const el = store.scrollRef
     if (!el) return
     markAuto(el)
-    const target = bottomTarget(el)
     if (behavior === "smooth") {
-      el.scrollTo({ top: target, behavior })
+      el.scrollTo({ top: el.scrollHeight, behavior })
       return
     }
 
     // `scrollTop` assignment bypasses any CSS `scroll-behavior: smooth`.
-    el.scrollTop = target
+    el.scrollTop = el.scrollHeight
   }
 
   const scrollToBottom = (force: boolean) => {

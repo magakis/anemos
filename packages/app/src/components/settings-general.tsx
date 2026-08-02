@@ -1,11 +1,20 @@
-import { Component, createMemo, onMount, type JSX } from "solid-js"
+import { Component, Show, createMemo, createResource, onMount, type JSX } from "solid-js"
+import { Button } from "@opencode-ai/ui/button"
+import { Icon } from "@opencode-ai/ui/icon"
 import { Select } from "@opencode-ai/ui/select"
 import { Switch } from "@opencode-ai/ui/switch"
 import { TextField } from "@opencode-ai/ui/text-field"
+import { Tooltip } from "@opencode-ai/ui/tooltip"
+import { Tag } from "@opencode-ai/ui/v2/badge-v2"
 import { useTheme, type ColorScheme } from "@opencode-ai/ui/theme/context"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useParams } from "@solidjs/router"
 import { useLanguage } from "@/context/language"
 import { usePermission } from "@/context/permission"
+import { usePlatform, type DisplayBackend } from "@/context/platform"
+import { useServerSync } from "@/context/server-sync"
+import { useServerSDK } from "@/context/server-sdk"
+import { useUpdaterAction } from "./updater-action"
 import {
   monoDefault,
   monoFontFamily,
@@ -20,11 +29,8 @@ import {
 } from "@/context/settings"
 import { decode64 } from "@/utils/base64"
 import { playSoundById, SOUND_OPTIONS } from "@/utils/sound"
-import { Link } from "./link"
+import { ExternalLink } from "./external-link"
 import { SettingsList } from "./settings-list"
-
-// UPSTREAM-DIVERGENCE-FILE: General settings stays focused on shared desktop/server options after
-// upstream sync 6b9ce5e63 because the fork moved phone notification setup into its own tab.
 
 let demoSoundState = {
   cleanup: undefined as (() => void) | undefined,
@@ -35,6 +41,18 @@ let demoSoundState = {
 type ThemeOption = {
   id: string
   name: string
+}
+
+type ShellOption = {
+  path: string
+  name: string
+  acceptable: boolean
+}
+
+type ShellSelectOption = {
+  id: string
+  value: string
+  label: string
 }
 
 // To prevent audio from overlapping/playing very quickly when navigating the settings menus,
@@ -68,13 +86,14 @@ export const SettingsGeneral: Component = () => {
   const theme = useTheme()
   const language = useLanguage()
   const permission = usePermission()
+  const platform = usePlatform()
+  const dialog = useDialog()
   const params = useParams()
   const settings = useSettings()
 
-  onMount(() => {
-    void theme.loadThemes()
-  })
+  const updater = useUpdaterAction()
 
+  const linux = createMemo(() => platform.platform === "desktop" && platform.os === "linux")
   const dir = createMemo(() => decode64(params.dir))
   const accepting = createMemo(() => {
     const value = dir()
@@ -100,7 +119,89 @@ export const SettingsGeneral: Component = () => {
 
     permission.disableAutoAccept(params.id, value)
   }
+  const desktop = createMemo(() => platform.platform === "desktop")
+
   const themeOptions = createMemo<ThemeOption[]>(() => theme.ids().map((id) => ({ id, name: theme.name(id) })))
+
+  const serverSync = useServerSync()
+  const serverSdk = useServerSDK()
+
+  const [shells] = createResource(
+    async () => {
+      const sdk = serverSdk()
+      if ((await sdk.protocol) === "v1") {
+        return (await sdk.client.pty.shells()).data ?? []
+      }
+      // return (await sdk.api.pty.shells()).data
+      return [] as ShellOption[]
+    },
+    { initialValue: [] as ShellOption[] },
+  )
+
+  const [displayBackend, { refetch: refetchDisplayBackend }] = createResource(
+    () => (linux() && platform.getDisplayBackend ? true : false),
+    () => Promise.resolve(platform.getDisplayBackend?.() ?? null).catch(() => null as DisplayBackend | null),
+    { initialValue: null as DisplayBackend | null },
+  )
+
+  const [pinchZoom, { mutate: setPinchZoom }] = createResource(
+    () => (desktop() && platform.getPinchZoomEnabled ? true : false),
+    () => Promise.resolve(platform.getPinchZoomEnabled?.() ?? false).catch(() => false),
+    { initialValue: false },
+  )
+
+  onMount(() => {
+    void theme.loadThemes()
+  })
+
+  const autoOption = { id: "auto", value: "", label: language.t("settings.general.row.shell.autoDefault") }
+  const currentShell = createMemo(() => serverSync().data.config.shell ?? "")
+
+  const shellOptions = createMemo<ShellSelectOption[]>(() => {
+    const list = shells.latest
+    const current = serverSync().data.config.shell
+
+    const nameCounts = new Map<string, number>()
+    for (const s of list) {
+      nameCounts.set(s.name, (nameCounts.get(s.name) || 0) + 1)
+    }
+
+    const options = [
+      autoOption,
+      ...list.map((s) => {
+        const ambiguousName = (nameCounts.get(s.name) || 0) > 1
+        const text = ambiguousName ? s.path : s.name
+        const label = s.acceptable ? text : `${text} (${language.t("settings.general.row.shell.terminalOnly")})`
+        return {
+          id: s.path,
+          // Prefer name over path - "bash" is much cleaner than the explicit full route even when it may change due to PATH.
+          value: ambiguousName ? s.path : s.name,
+          label,
+        }
+      }),
+    ]
+
+    if (current && !options.some((o) => o.value === current)) {
+      options.push({ id: current, value: current, label: current })
+    }
+
+    return options
+  })
+
+  const onDisplayBackendChange = (checked: boolean) => {
+    const update = platform.setDisplayBackend?.(checked ? "wayland" : "auto")
+    if (!update) return
+    void update.finally(() => {
+      void refetchDisplayBackend()
+    })
+  }
+
+  const onPinchZoomChange = (checked: boolean) => {
+    setPinchZoom(checked)
+    const update = platform.setPinchZoomEnabled?.(checked)
+    if (!update) return
+    void update.catch(() => setPinchZoom(!checked))
+  }
 
   const colorSchemeOptions = createMemo((): { value: ColorScheme; label: string }[] => [
     { value: "system", label: language.t("theme.scheme.system") },
@@ -151,6 +252,50 @@ export const SettingsGeneral: Component = () => {
     triggerVariant: "settings" as const,
   })
 
+  const InterfaceSection = () => (
+    <div class="flex flex-col gap-1">
+      <SettingsList>
+        <SettingsRow
+          title={
+            <span class="flex items-center gap-2">
+              {language.t("settings.general.row.newInterface.title")}
+              <Tag variant="accent">{language.t("settings.general.row.newInterface.badge")}</Tag>
+            </span>
+          }
+          description={language.t("settings.general.row.newInterface.description")}
+        >
+          <div data-action="settings-new-layout-designs">
+            <Switch
+              checked={settings.general.newLayoutDesigns()}
+              onChange={(checked) => {
+                settings.general.setNewLayoutDesigns(checked)
+                if (!checked) return
+                void import("@/components/settings-v2").then((module) => {
+                  void dialog.show(() => <module.DialogSettings />)
+                })
+              }}
+            />
+          </div>
+        </SettingsRow>
+      </SettingsList>
+    </div>
+  )
+
+  const InterfaceNoticeSection = () => (
+    <div class="flex flex-col gap-1">
+      <SettingsList>
+        <SettingsRow
+          title={language.t("settings.general.row.newInterfaceNotice.title")}
+          description={language.t("settings.general.row.newInterfaceNotice.description")}
+        >
+          <Button size="small" variant="ghost" onClick={settings.general.dismissNewInterfaceNotice}>
+            {language.t("settings.general.row.newInterfaceNotice.dismiss")}
+          </Button>
+        </SettingsRow>
+      </SettingsList>
+    </div>
+  )
+
   const GeneralSection = () => (
     <div class="flex flex-col gap-1">
       <SettingsList>
@@ -178,6 +323,28 @@ export const SettingsGeneral: Component = () => {
           <div data-action="settings-auto-accept-permissions">
             <Switch checked={accepting()} disabled={!dir()} onChange={toggleAccept} />
           </div>
+        </SettingsRow>
+
+        <SettingsRow
+          title={language.t("settings.general.row.shell.title")}
+          description={language.t("settings.general.row.shell.description")}
+        >
+          <Select
+            data-action="settings-shell"
+            options={shellOptions()}
+            current={shellOptions().find((o) => o.value === currentShell()) ?? autoOption}
+            value={(o) => o.id}
+            label={(o) => o.label}
+            onSelect={(option) => {
+              if (!option) return
+              if (option.value === currentShell()) return
+              serverSync().updateConfig({ shell: option.value })
+            }}
+            variant="secondary"
+            size="small"
+            triggerVariant="settings"
+            triggerStyle={{ "min-width": "180px" }}
+          />
         </SettingsRow>
 
         <SettingsRow
@@ -215,15 +382,71 @@ export const SettingsGeneral: Component = () => {
             />
           </div>
         </SettingsRow>
+      </SettingsList>
+    </div>
+  )
+
+  const AdvancedSection = () => (
+    <div class="flex flex-col gap-1">
+      <h3 class="text-14-medium text-text-strong pb-2">{language.t("settings.general.section.advanced")}</h3>
+
+      <SettingsList>
+        <SettingsRow
+          title={language.t("settings.general.row.showFileTree.title")}
+          description={language.t("settings.general.row.showFileTree.description")}
+        >
+          <div data-action="settings-show-file-tree">
+            <Switch
+              checked={settings.general.showFileTree()}
+              onChange={(checked) => settings.general.setShowFileTree(checked)}
+            />
+          </div>
+        </SettingsRow>
 
         <SettingsRow
-          title={language.t("settings.general.row.showSessionProgressBar.title")}
-          description={language.t("settings.general.row.showSessionProgressBar.description")}
+          title={language.t("settings.general.row.showNavigation.title")}
+          description={language.t("settings.general.row.showNavigation.description")}
         >
-          <div data-action="settings-show-session-progress-bar">
+          <div data-action="settings-show-navigation">
             <Switch
-              checked={settings.general.showSessionProgressBar()}
-              onChange={(checked) => settings.general.setShowSessionProgressBar(checked)}
+              checked={settings.general.showNavigation()}
+              onChange={(checked) => settings.general.setShowNavigation(checked)}
+            />
+          </div>
+        </SettingsRow>
+
+        <SettingsRow
+          title={language.t("settings.general.row.showSearch.title")}
+          description={language.t("settings.general.row.showSearch.description")}
+        >
+          <div data-action="settings-show-search">
+            <Switch
+              checked={settings.general.showSearch()}
+              onChange={(checked) => settings.general.setShowSearch(checked)}
+            />
+          </div>
+        </SettingsRow>
+
+        <SettingsRow
+          title={language.t("settings.general.row.showStatus.title")}
+          description={language.t("settings.general.row.showStatus.description")}
+        >
+          <div data-action="settings-show-status">
+            <Switch
+              checked={settings.general.showStatus()}
+              onChange={(checked) => settings.general.setShowStatus(checked)}
+            />
+          </div>
+        </SettingsRow>
+
+        <SettingsRow
+          title={language.t("settings.general.row.showCustomAgents.title")}
+          description={language.t("settings.general.row.showCustomAgents.description")}
+        >
+          <div data-action="settings-show-custom-agents">
+            <Switch
+              checked={settings.general.showCustomAgents()}
+              onChange={(checked) => settings.general.setShowCustomAgents(checked)}
             />
           </div>
         </SettingsRow>
@@ -247,11 +470,6 @@ export const SettingsGeneral: Component = () => {
             value={(o) => o.value}
             label={(o) => o.label}
             onSelect={(option) => option && theme.setColorScheme(option.value)}
-            onHighlight={(option) => {
-              if (!option) return
-              theme.previewColorScheme(option.value)
-              return () => theme.cancelPreview()
-            }}
             variant="secondary"
             size="small"
             triggerVariant="settings"
@@ -264,7 +482,7 @@ export const SettingsGeneral: Component = () => {
           description={
             <>
               {language.t("settings.general.row.theme.description")}{" "}
-              <Link href="https://opencode.ai/docs/themes/">{language.t("common.learnMore")}</Link>
+              <ExternalLink href="https://opencode.ai/docs/themes/">{language.t("common.learnMore")}</ExternalLink>
             </>
           }
         >
@@ -277,11 +495,6 @@ export const SettingsGeneral: Component = () => {
             onSelect={(option) => {
               if (!option) return
               theme.setTheme(option.id)
-            }}
-            onHighlight={(option) => {
-              if (!option) return
-              theme.previewTheme(option.id)
-              return () => theme.cancelPreview()
             }}
             variant="secondary"
             size="small"
@@ -458,6 +671,74 @@ export const SettingsGeneral: Component = () => {
     </div>
   )
 
+  const UpdatesSection = () => (
+    <div class="flex flex-col gap-1">
+      <h3 class="text-14-medium text-text-strong pb-2">{language.t("settings.general.section.updates")}</h3>
+
+      <SettingsList>
+        <SettingsRow
+          title={language.t("settings.general.row.releaseNotes.title")}
+          description={language.t("settings.general.row.releaseNotes.description")}
+        >
+          <div data-action="settings-release-notes">
+            <Switch
+              checked={settings.general.releaseNotes()}
+              onChange={(checked) => settings.general.setReleaseNotes(checked)}
+            />
+          </div>
+        </SettingsRow>
+
+        <SettingsRow
+          title={language.t("settings.updates.row.check.title")}
+          description={language.t("settings.updates.row.check.description")}
+        >
+          <Button size="small" variant="secondary" disabled={!updater.action().run} onClick={updater.run}>
+            {language.t(updater.action().label)}
+          </Button>
+        </SettingsRow>
+      </SettingsList>
+    </div>
+  )
+
+  const DisplaySection = () => (
+    <Show when={desktop()}>
+      <div class="flex flex-col gap-1">
+        <h3 class="text-14-medium text-text-strong pb-2">{language.t("settings.general.section.display")}</h3>
+
+        <SettingsList>
+          <SettingsRow
+            title={language.t("settings.general.row.pinchZoom.title")}
+            description={language.t("settings.general.row.pinchZoom.description")}
+          >
+            <div data-action="settings-pinch-zoom">
+              <Switch checked={pinchZoom.latest} onChange={onPinchZoomChange} />
+            </div>
+          </SettingsRow>
+
+          <Show when={linux()}>
+            <SettingsRow
+              title={
+                <div class="flex items-center gap-2">
+                  <span>{language.t("settings.general.row.wayland.title")}</span>
+                  <Tooltip value={language.t("settings.general.row.wayland.tooltip")} placement="top">
+                    <span class="text-text-weak">
+                      <Icon name="help" size="small" />
+                    </span>
+                  </Tooltip>
+                </div>
+              }
+              description={language.t("settings.general.row.wayland.description")}
+            >
+              <div data-action="settings-wayland">
+                <Switch checked={displayBackend.latest === "wayland"} onChange={onDisplayBackendChange} />
+              </div>
+            </SettingsRow>
+          </Show>
+        </SettingsList>
+      </div>
+    </Show>
+  )
+
   return (
     <div class="flex flex-col h-full overflow-y-auto no-scrollbar px-4 pb-10 sm:px-10 sm:pb-10">
       <div class="sticky top-0 z-10 bg-[linear-gradient(to_bottom,var(--surface-stronger-non-alpha)_calc(100%_-_24px),transparent)]">
@@ -467,6 +748,14 @@ export const SettingsGeneral: Component = () => {
       </div>
 
       <div class="flex flex-col gap-8 w-full">
+        <Show when={settings.general.layoutTransitionAvailable()}>
+          <InterfaceSection />
+        </Show>
+
+        <Show when={settings.general.newInterfaceNoticeVisible()}>
+          <InterfaceNoticeSection />
+        </Show>
+
         <GeneralSection />
 
         <AppearanceSection />
@@ -474,6 +763,14 @@ export const SettingsGeneral: Component = () => {
         <NotificationsSection />
 
         <SoundsSection />
+
+        <UpdatesSection />
+
+        <DisplaySection />
+
+        <Show when={desktop()}>
+          <AdvancedSection />
+        </Show>
       </div>
     </div>
   )
