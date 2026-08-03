@@ -118,7 +118,7 @@ Authoritative docs: `IOS_BEAM.md` and `ANDROID_BUILD.md` at repo root.
 
 ### Sideload deploy (`scripts/deploy-ipa.mjs`)
 
-`node scripts/deploy-ipa.mjs deploy` waits for the `ios-sideload.yml` GitHub Actions run whose `head_sha` matches the current local commit, then downloads and serves the `Anemos.ipa` over HTTP for SideStore installation. It prints `Ensure you have pushed to main to trigger a CI build.` then polls the Actions API every 10 s for 15 min. **You must `git push origin main` first** — with no push there is no CI run for `HEAD`, so the script silently polls until it times out (`Timed out waiting for workflow run to appear`) with no useful feedback. After pushing, re-run the script; it finds the run within seconds.
+`node scripts/deploy-ipa.mjs deploy` auto-pushes local commits to `main` (fetches `origin/main`, rebases, then pushes `HEAD:main` using the gh-token credential helper), waits for the `ios-sideload.yml` GitHub Actions run whose `head_sha` matches the pushed commit, then downloads and serves the `Anemos.ipa` over HTTP for SideStore installation. It polls the Actions API every 10 s for 15 min. A standalone `push` subcommand is available to push without deploying; on a rebase conflict it aborts with a clear error directing you to resolve manually.
 
 ## Style
 

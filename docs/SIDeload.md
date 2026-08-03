@@ -34,7 +34,9 @@ SideStore installs and re-signs sideloaded apps on-device without a Mac.
 
 ### 1. Build the `.ipa` — push to `main`
 
-The **iOS Sideload** workflow (`.github/workflows/ios-sideload.yml`) builds the unsigned `.ipa` on every push to `main` (and can be triggered manually from the Actions tab). Push your changes:
+The **iOS Sideload** workflow (`.github/workflows/ios-sideload.yml`) builds the unsigned `.ipa` on every push to `main` (and can be triggered manually from the Actions tab). `node scripts/deploy-ipa.mjs deploy` handles the push for you — it fetches `origin/main`, rebases your local commits onto it, pushes them to `main`, then waits for the CI build, downloads the `.ipa`, and serves it in one step.
+
+Pushing manually is optional — use it if you prefer to review before deploying (you can then run the deploy script's `wait`, `download`, and `serve` steps instead of `deploy`):
 
 ```bash
 git push origin main
@@ -160,14 +162,15 @@ The **$99/year Apple Developer Program** removes this limitation — certificate
 
 | Subcommand | What it does |
 |------------|-------------|
-| `deploy` | Wait for the latest successful CI build → download → serve (the main command) |
+| `deploy` | Push → wait for CI build → download → serve (the main command) |
+| `push` | Push local commits to `origin/main` (rebases first); prints the resulting SHA |
 | `serve` | Start the LAN HTTP server from already-downloaded builds (auto-shutdown window, default 15 min; override with `ANEMOS_SERVE_MIN`) |
 | `refresh` | Re-download the latest `Anemos.ipa` + serve |
 | `list` | List locally stored builds (roll back to an older one on the phone if the latest is broken) |
 | `list-remote` | List the last N successful CI runs on GitHub |
 | `prune` | Delete old builds beyond the retention count (default 10) |
 
-Typical cycle: **push to `main` → `node scripts/deploy-ipa.mjs deploy` → tap Install on the phone.**
+Typical cycle: **`node scripts/deploy-ipa.mjs deploy` → tap Install on the phone.** (Run `node scripts/deploy-ipa.mjs push` standalone first if you want to review the pushed commit before deploying.)
 
 ---
 

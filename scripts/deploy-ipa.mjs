@@ -12,7 +12,7 @@
 // commit SHA, branch, message, author, and size.
 //
 // CLI entry points: download [runId], serve, list, list-remote [count],
-// deploy, refresh, wait [sha], prune
+// deploy, refresh, push, wait [sha], prune
 //   serve auto-shutdown: ANEMOS_SERVE_MIN (default 15 min fixed window)
 //   GET /sync: live on-demand build refresh during serve (distinct from CLI refresh)
 
@@ -32,7 +32,7 @@ import {
   copyFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { networkInterfaces, homedir } from 'node:os';
+import { tmpdir, networkInterfaces, homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const REPO = 'magakis/anemos';
@@ -328,6 +328,79 @@ function renderSyncPage(syncInfo) {
 // Subcommands
 // ---------------------------------------------------------------------------
 
+async function push() {
+  const token = readToken();
+  const tmpHelper = join(tmpdir(), `git-credential-helper-${Date.now()}.sh`);
+
+  try {
+    writeFileSync(
+      tmpHelper,
+      '#!/bin/sh\n' +
+        'echo "protocol=https"\n' +
+        'echo "host=github.com"\n' +
+        'echo "username=x-access-token"\n' +
+        `echo "password=${token}"\n`,
+      { mode: 0o500 },
+    );
+
+    const gitEnv = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+    const cred = `-c credential.helper="${tmpHelper}"`;
+
+    // Fetch the latest remote main so we can rebase onto it. This pulls in
+    // any commits pushed from other worktrees that this branch doesn't
+    // include yet. Without this, the push below would be rejected as
+    // non-fast-forward whenever branches have diverged.
+    execSync(`git ${cred} fetch origin ${BRANCH}`, {
+      cwd: REPO_DIR,
+      env: gitEnv,
+      stdio: 'inherit',
+    });
+
+    // Rebase the current branch's commits on top of origin/main. No-op when
+    // HEAD is already a descendant of origin/main. When branches diverged, it
+    // replays local commits on top of the latest remote commits so the push is
+    // a clean fast-forward. Aborts and surfaces a clear error on conflicts.
+    try {
+      execSync(`git rebase origin/${BRANCH}`, {
+        cwd: REPO_DIR,
+        env: gitEnv,
+        stdio: 'inherit',
+      });
+    } catch {
+      try {
+        execSync('git rebase --abort', { cwd: REPO_DIR, env: gitEnv, stdio: 'inherit' });
+      } catch { /* already cleaned up */ }
+      throw new Error(
+        `Rebase onto origin/${BRANCH} failed (likely merge conflicts). ` +
+        `Resolve manually in ${REPO_DIR}, then re-run deploy.`,
+      );
+    }
+
+    // Re-read HEAD — rebasing may have produced a new commit SHA.
+    const finalSha = execSync('git rev-parse HEAD', {
+      cwd: REPO_DIR,
+      encoding: 'utf8',
+    }).trim();
+
+    // Push HEAD (the rebased commit, regardless of branch/worktree) to remote
+    // main. Guaranteed fast-forward since we just rebased onto origin/main.
+    execSync(`git ${cred} push origin HEAD:${BRANCH}`, {
+      cwd: REPO_DIR,
+      env: gitEnv,
+      stdio: 'inherit',
+    });
+
+    console.log(`Pushed ${finalSha}`);
+    return finalSha;
+  } finally {
+    try {
+      unlinkSync(tmpHelper);
+    } catch {
+      // best-effort cleanup
+    }
+  }
+}
+
 async function wait(sha) {
   if (!sha) {
     sha = execSync('git rev-parse HEAD', {
@@ -509,11 +582,9 @@ async function listRemote(count) {
   }
 }
 
-// Push is the user's manual responsibility — this script never pushes. deploy
-// waits for the CI build triggered by the user's push, then downloads and serves.
 async function deploy() {
-  console.log('Ensure you have pushed to main to trigger a CI build.');
-  await wait();
+  const sha = await push();
+  await wait(sha);
   await download();
   await serve();
 }
@@ -708,9 +779,10 @@ async function serve() {
 // ---------------------------------------------------------------------------
 
 // CLI subcommands:
+//   push              Push local commits to origin main (rebase first) and print the resulting SHA
 //   wait [sha]        Wait for an in-progress build to finish
 //   download [runId]  Download latest (or specific <runId>) artifact into the versioned store
-//   deploy            Wait for build + download latest + serve (push is manual — commit and push to main first)
+//   deploy            Push → wait for CI build → download → serve (convenience combo)
 //   refresh           Re-download latest (replaces cached) + serve
 //   serve             Start HTTP server (reads from versioned store; ANEMOS_SERVE_MIN min auto-shutdown; GET /sync for live refresh)
 //   list              List locally-stored builds
@@ -720,6 +792,9 @@ const subcommand = process.argv[2];
 
 try {
   switch (subcommand) {
+    case 'push':
+      await push();
+      break;
     case 'wait':
       await wait(process.argv[3]);
       break;
@@ -774,7 +849,7 @@ try {
       break;
     default:
       console.error(
-        `Usage: node ${process.argv[1]} <wait [sha]|download [runId]|deploy|refresh|serve|list|list-remote [count]|prune>`,
+        `Usage: node ${process.argv[1]} <push|wait [sha]|download [runId]|deploy|refresh|serve|list|list-remote [count]|prune>`,
       );
       process.exit(1);
   }
