@@ -1,5 +1,5 @@
 import { createStore, produce, reconcile } from "solid-js/store"
-import { batch, createEffect, createMemo, onCleanup, onMount, type Accessor } from "solid-js"
+import { batch, createEffect, createMemo, createSignal, onCleanup, onMount, type Accessor } from "solid-js"
 import { useLocation } from "@solidjs/router"
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { makeEventListener } from "@solid-primitives/event-listener"
@@ -267,45 +267,63 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
       }
     }
 
-    const target = Persist.serverGlobal(serverSdk().scope, "layout", ["layout.v6"])
-    const [store, setStore, _, ready] = persisted(
-      { ...target, migrate },
-      createStore({
-        sidebar: {
-          opened: false,
-          width: DEFAULT_SIDEBAR_WIDTH,
-          workspaces: {} as Record<string, boolean>,
-          workspacesDefault: false,
-        },
-        terminal: {
-          height: DEFAULT_TERMINAL_HEIGHT,
-          opened: false,
-        },
-        review: {
-          diffStyle: "split" as ReviewDiffStyle,
-          panelOpened: DEFAULT_REVIEW_PANEL_OPENED,
-        },
-        fileTree: {
-          opened: false,
-          width: DEFAULT_FILE_TREE_WIDTH,
-          tab: "changes" as "changes" | "all",
-        },
-        session: {
-          width: DEFAULT_SESSION_WIDTH,
-        },
-        mobileSidebar: {
-          opened: false,
-        },
-        sessionTabs: {} as Record<string, SessionTabs>,
-        sessionView: {} as Record<string, SessionView>,
-        handoff: {
-          tabs: undefined as TabHandoff | undefined,
-        },
-        home: {
-          selection: { server: server.key } as HomeProjectSelection,
-        },
-      }),
+    const [store, rawSetStore] = createStore({
+      sidebar: {
+        opened: false,
+        width: DEFAULT_SIDEBAR_WIDTH,
+        workspaces: {} as Record<string, boolean>,
+        workspacesDefault: false,
+      },
+      terminal: {
+        height: DEFAULT_TERMINAL_HEIGHT,
+        opened: false,
+      },
+      review: {
+        diffStyle: "split" as ReviewDiffStyle,
+        panelOpened: DEFAULT_REVIEW_PANEL_OPENED,
+      },
+      fileTree: {
+        opened: false,
+        width: DEFAULT_FILE_TREE_WIDTH,
+        tab: "changes" as "changes" | "all",
+      },
+      session: {
+        width: DEFAULT_SESSION_WIDTH,
+      },
+      mobileSidebar: {
+        opened: false,
+      },
+      sessionTabs: {} as Record<string, SessionTabs>,
+      sessionView: {} as Record<string, SessionView>,
+      handoff: {
+        tabs: undefined as TabHandoff | undefined,
+      },
+      home: {
+        selection: { server: server.key } as HomeProjectSelection,
+      },
+    })
+    let setStore = rawSetStore
+
+    const [attachedReady, setAttachedReady] = createSignal<(() => boolean) | undefined>()
+    const ready = Object.assign(
+      () => {
+        const next = attachedReady()
+        return next ? next() : false
+      },
+      { promise: undefined as undefined | Promise<unknown> },
     )
+
+    createEffect(() => {
+      const sdk = serverSdk()
+      if (!sdk) return
+      const [, wiredSetStore, , nextReady] = persisted(
+        { ...Persist.serverGlobal(sdk.scope, "layout", ["layout.v6"]), migrate },
+        [store, rawSetStore],
+      )
+      setStore = wiredSetStore
+      setAttachedReady(() => nextReady)
+      ready.promise = nextReady.promise
+    })
     const [ephemeral, setEphemeral] = createStore({
       reviewPanelSource: "other" as ReviewPanelSource,
       sessionTabPreview: {} as Record<string, string | undefined>,
