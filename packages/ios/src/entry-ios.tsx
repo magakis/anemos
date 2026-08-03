@@ -1,6 +1,6 @@
 // @refresh reload
 import { render } from "solid-js/web"
-import { createResource, createSignal, onCleanup, onMount } from "solid-js"
+import { createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js"
 import { AppBaseProviders, AppInterface, PlatformProvider, ServerConnection, type NotifyOpts, type Platform, type VoiceStartResult, type VoiceStopResult } from "@opencode-ai/app"
 import { bridge } from "./bridge"
 import { createBridgeStorage } from "./ios-storage"
@@ -69,11 +69,16 @@ const App = () => {
     storage: (name?: string) => createBridgeStorage(name),
   }
 
-  const [defaultServer] = createResource(async () => {
-    if (!platform.getDefaultServer) return ServerConnection.Key.make("http://localhost:4096")
+  const [serverUrl] = createResource(async () => {
+    if (!platform.getDefaultServer) return "http://localhost:4096"
     const result = await Promise.resolve(platform.getDefaultServer?.()).catch(() => null)
-    return result ?? ServerConnection.Key.make("http://localhost:4096")
+    return result ?? "http://localhost:4096"
   })
+
+  const conn = createMemo((): ServerConnection.Http => ({
+    type: "http",
+    http: { url: serverUrl() ?? "http://localhost:4096" },
+  }))
 
   onMount(() => {
     const handleClick = (event: MouseEvent) => {
@@ -136,7 +141,11 @@ const App = () => {
     <PlatformProvider value={platform}>
       <AppBaseProviders>
         <VoiceInputOverlay active={recording} onStop={() => void stopVoiceInput()} />
-        <AppInterface defaultServer={defaultServer() ?? ServerConnection.Key.make("http://localhost:4096")} />
+        <AppInterface
+          defaultServer={ServerConnection.key(conn())}
+          canonicalLocalServer={ServerConnection.key(conn())}
+          servers={[conn()]}
+        />
       </AppBaseProviders>
     </PlatformProvider>
   )
