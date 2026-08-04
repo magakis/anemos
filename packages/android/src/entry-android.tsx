@@ -40,8 +40,15 @@ const settingsStore = Store.load(SETTINGS_STORE)
 
 type ServerConfig = { url: string; displayName?: string; username?: string; password?: string }
 
+// Strip invisible / format / control characters that keyboards and rich-text
+// paste can inject (e.g. U+200B zero-width space). Without this, a stray
+// zero-width char silently corrupts the server URL and the health check fails
+// with a confusing error. Does not affect any legitimate URL character.
+const INVISIBLE_CHARS = /[\u0000-\u001F\u007F-\u009F\u00AD\u200B-\u200F\u2028-\u202E\u2060-\u2064\u2066-\u206F\uFEFF]/g
+
 const normalizeServerUrl = (input: string) => {
-  const trimmed = input.trim()
+  const stripped = input.replace(INVISIBLE_CHARS, "")
+  const trimmed = stripped.trim()
   if (!trimmed) return
   const withProtocol = /^https?:\/\//.test(trimmed) ? trimmed : `http://${trimmed}`
   return withProtocol.replace(/\/+$/, "")
