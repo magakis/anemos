@@ -1,5 +1,5 @@
 import { createStore, produce, reconcile } from "solid-js/store"
-import { batch, createEffect, createMemo, createSignal, onCleanup, onMount, type Accessor } from "solid-js"
+import { batch, createEffect, createMemo, createRoot, createSignal, onCleanup, onMount, type Accessor } from "solid-js"
 import { useLocation } from "@solidjs/router"
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { makeEventListener } from "@solid-primitives/event-listener"
@@ -313,17 +313,23 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
       { promise: undefined as undefined | Promise<unknown> },
     )
 
+    let disposePersist: (() => void) | undefined
     createEffect(() => {
       const sdk = serverSdk()
       if (!sdk) return
-      const [, wiredSetStore, , nextReady] = persisted(
-        { ...Persist.serverGlobal(sdk.scope, "layout", ["layout.v6"]), migrate },
-        [store, rawSetStore],
-      )
-      setStore = wiredSetStore
-      setAttachedReady(() => nextReady)
-      ready.promise = nextReady.promise
+      disposePersist?.()
+      disposePersist = createRoot((dispose) => {
+        const [, wiredSetStore, , nextReady] = persisted(
+          { ...Persist.serverGlobal(sdk.scope, "layout", ["layout.v6"]), migrate },
+          [store, rawSetStore],
+        )
+        setStore = wiredSetStore
+        setAttachedReady(() => nextReady)
+        ready.promise = nextReady.promise
+        return dispose
+      })
     })
+    onCleanup(() => disposePersist?.())
     const [ephemeral, setEphemeral] = createStore({
       reviewPanelSource: "other" as ReviewPanelSource,
       sessionTabPreview: {} as Record<string, string | undefined>,
