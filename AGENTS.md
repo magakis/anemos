@@ -98,16 +98,38 @@ Notes:
 - Generated outputs: `packages/sdk/js/src/gen/` and `packages/sdk/js/src/v2/gen/` — **never hand-edit**.
 - Re-run codegen whenever the API/SDK surface changes.
 
-## Local UI Development
+## Local UI Development & Pre-Push Testing
 
-`opencode dev web` proxies `https://app.opencode.ai`, so local UI/CSS changes won't appear there. For local UI work, run the backend and the app separately:
+`packages/app` is a SolidJS web app wrapped in iOS/Android Tauri WebViews, so almost every bug — UI, state, network, content-type — reproduces in a desktop browser with a mobile viewport. Browser iteration is seconds; the CI → TestFlight → device loop is 10+ minutes and shows only a one-line toast. **Always test in the browser before pushing to CI/device** — treat device builds as verification, not experimentation.
+
+### Start the browser dev loop
+
+The app resolves its backend at boot from `VITE_OPENCODE_SERVER_HOST` / `VITE_OPENCODE_SERVER_PORT` (`packages/app/src/entry.tsx`; default `localhost:4096`). There is no Vite proxy — requests go direct to the backend. To target an already-running opencode server (the persistent one runs on `:42447`):
 
 ```bash
-opencode serve --port 4096                     # backend (the opencode CLI)
-bun run --cwd packages/app dev -- --port 4444  # app, targets backend at 4096
+VITE_OPENCODE_SERVER_PORT="42447" bun run --cwd packages/app dev -- --port 4445
 ```
 
-Never manually restart the app or server process during debugging.
+To start your own backend instead: `opencode serve --port 4096` and drop the env var (the app defaults to `:4096`). (`opencode dev web` proxies `https://app.opencode.ai`, so local UI/CSS changes won't appear there — always use the separate dev server above.) To keep the dev server alive after the shell exits, detach it: `setsid bash -c '… dev …' >/tmp/vite.log 2>&1 </dev/null &`.
+
+Open `http://127.0.0.1:4445`, enable the DevTools device toolbar, and pick an iPhone preset. Don't manually restart the app or server during debugging — Vite HMR handles reloads.
+
+### Verify before pushing
+
+1. **Reproduce/confirm in the browser** with the DevTools console + network tab — full stack traces, response headers, and content-types, far more than the device toast.
+2. **Run the narrowest test that proves the change** (see Testing Conventions):
+   - Unit (run from within `packages/app`): `bun test --conditions=solid --preload ./happydom.ts ./src/<file>.test.ts`. The `test:unit` script passes `--only-failures`, so appending a path does not scope it — use the direct command.
+   - E2e: `bun run --cwd packages/app test:e2e -- e2e/<spec>.spec.ts`.
+   - Never run tests from the repo root (`bunfig.toml` redirects `test.root`).
+3. **Only then** commit and push to CI/device.
+
+### Diagnostics when something looks wrong
+
+- **Two backends may be running** (`:4096` default, `:42447` persistent). A dev server started without `VITE_OPENCODE_SERVER_PORT` silently targets `:4096` — confirm which one you're hitting before trusting a result.
+- **Probe the backend directly** to inspect endpoint behaviour. `curl`/`wget`/`fetch`/`http.get` are blocked in the opencode sandbox; issue raw HTTP/1.1 via Node `net.createConnection` inside `ctx_execute(language: "javascript")` and print only status + content-type + body-shape. This is how a `text/html` response from a JSON endpoint (e.g. an incomplete v2 migration) gets spotted.
+- **Rendered-page inspection** — use `playwright-cli snapshot` (auto-saves to `.playwright-cli/page-*.yml`), then `ctx_index(path=…, source=…)` + `ctx_search(queries=…)`. Never `Read`/`grep` raw snapshot files (they flood context). Load the `playwright-cli` skill for the full pattern.
+- **Protocol-detection gotcha** — the app negotiates v1 vs v2 at boot (`packages/app/src/utils/server-protocol.ts`). A transient `/global/health` probe failure flips it to "default v2", and the server's v2 migration may be incomplete (e.g. `/api/config`, `/api/mcp` not yet registered → SPA `text/html`). If you see `UnsupportedContentType` / "Failed to reload", suspect this; the fork's resilient detector (`packages/app/src/utils/server-protocol-resilient.ts`) downgrades to v1 when v2 endpoints serve non-JSON.
+- **An "empty" session list may be correct** — the app shows sessions only for the directory it's scoped to. Before treating emptiness as a bug, check `GET /session` on the backend and compare directories; the active session may simply live elsewhere.
 
 ## Mobile Builds
 
