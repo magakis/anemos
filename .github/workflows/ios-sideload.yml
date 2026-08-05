@@ -22,6 +22,8 @@ jobs:
 
       - name: Build web assets (WebAssets/)
         run: bun run --cwd packages/ios build
+        env:
+          OPENCODE_CHANNEL: prod
 
       - name: Verify WebAssets present
         run: test -f packages/ios/WebAssets/index.html

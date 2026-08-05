@@ -27,6 +27,7 @@ platform :ios do
       UI.user_error!("ASC_KEY_PATH does not point to a file: #{key}")
     end
 
+    ENV["OPENCODE_CHANNEL"] = "prod"
     sh("bun run build")
 
     build_app(

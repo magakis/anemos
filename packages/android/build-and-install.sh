@@ -12,6 +12,7 @@ export JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
 export ANDROID_HOME="$HOME/Library/Android/sdk"
 export NDK_HOME="$ANDROID_HOME/ndk/27.0.12077973"
 export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
+export OPENCODE_CHANNEL=prod
 
 # Verify prerequisites
 if [ ! -d "$JAVA_HOME" ]; then
