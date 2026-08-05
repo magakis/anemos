@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate 1024x1024 app icon PNGs for Anemos.
 
-Draws the pixel-art "W" mark at 2x scale (512→1024) using Pillow.
+Draws the pixel-art "Gust-A" mark at 2x scale (512→1024) using Pillow.
 No SVG rasterizer needed — all shapes are axis-aligned rectangles.
 """
 
@@ -9,21 +9,36 @@ from PIL import Image, ImageDraw
 
 SCALE = 2  # 512 → 1024
 
-# W letter rectangles at 512×512 coordinates: (x1, y1, x2, y2)
-W_RECTS = [
-    (128, 96, 160, 320),   # Left outer leg
-    (352, 96, 384, 320),   # Right outer leg
-    (224, 224, 288, 288),  # Center peak
-    (192, 256, 224, 288),  # Left upper diag
-    (288, 256, 320, 288),  # Right upper diag
-    (160, 288, 192, 352),  # Left lower diag
-    (320, 288, 352, 352),  # Right lower diag
-    (192, 320, 224, 416),  # Left foot
-    (288, 320, 320, 416),  # Right foot
+# Gust-A letter rectangles at 512×512 coordinates: (x1, y1, x2, y2)
+# 8px grid cells, 3-cell stroke. The A body sits slightly left of center so
+# the combined A+gust glyph is optically centered; the crossbar trails
+# rightward into 3 staggered wind streaks of decreasing length.
+GUST_A_RECTS = [
+    (144, 72, 296, 96),    # Apex cap
+    (144, 96, 168, 144),   # Left leg, step 1
+    (136, 144, 160, 192),  # Left leg, step 2
+    (128, 192, 152, 240),  # Left leg, step 3
+    (120, 240, 144, 288),  # Left leg, step 4
+    (112, 288, 136, 336),  # Left leg, step 5
+    (104, 336, 128, 384),  # Left leg, step 6
+    (96, 384, 120, 448),   # Left leg, step 7
+    (272, 96, 296, 144),   # Right leg, step 1
+    (280, 144, 304, 192),  # Right leg, step 2
+    (288, 192, 312, 240),  # Right leg, step 3
+    (296, 240, 320, 288),  # Right leg, step 4
+    (304, 288, 328, 336),  # Right leg, step 5
+    (312, 336, 336, 384),  # Right leg, step 6
+    (320, 384, 344, 448),  # Right leg, step 7
+    (120, 272, 320, 296),  # Crossbar
+    (88, 416, 120, 448),   # Left foot
+    (320, 416, 352, 448),  # Right foot
+    (320, 280, 432, 304),  # Wind streak, long
+    (320, 272, 392, 296),  # Wind streak, medium
+    (320, 264, 360, 288),  # Wind streak, short
 ]
 
-# Shadow rectangle (below center peak, between diagonals)
-SHADOW_RECT = (224, 288, 288, 352)
+# Shadow rectangle (below the crossbar, between the legs)
+SHADOW_RECT = (152, 296, 272, 320)
 
 
 def scaled(rect):
@@ -32,7 +47,7 @@ def scaled(rect):
 
 
 def draw_icon(bg_color, letter_color, shadow_color, transparent_bg=False):
-    """Draw the W icon and return a PIL Image."""
+    """Draw the Gust-A icon and return a PIL Image."""
     size = 512 * SCALE
     if transparent_bg:
         img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
@@ -46,11 +61,48 @@ def draw_icon(bg_color, letter_color, shadow_color, transparent_bg=False):
         draw.rectangle([x1, y1, x2 - 1, y2 - 1], fill=shadow_color)
 
     # Draw letter rectangles
-    for rect in W_RECTS:
+    for rect in GUST_A_RECTS:
         x1, y1, x2, y2 = scaled(rect)
         draw.rectangle([x1, y1, x2 - 1, y2 - 1], fill=letter_color)
 
     return img
+
+
+def write_contents_json(out_dir):
+    """Write the asset catalog Contents.json for the AppIcon set."""
+    import json
+    import os
+
+    contents = {
+        "images": [
+            {
+                "filename": "AppIcon-light.png",
+                "idiom": "universal",
+                "platform": "ios",
+                "size": "1024x1024",
+            },
+            {
+                "appearances": [{"appearance": "luminosity", "value": "dark"}],
+                "filename": "AppIcon-dark.png",
+                "idiom": "universal",
+                "platform": "ios",
+                "size": "1024x1024",
+            },
+            {
+                "appearances": [{"appearance": "luminosity", "value": "tinted"}],
+                "filename": "AppIcon-tinted.png",
+                "idiom": "universal",
+                "platform": "ios",
+                "size": "1024x1024",
+            },
+        ],
+        "info": {"author": "xcode", "version": 1},
+    }
+
+    path = os.path.join(out_dir, "Contents.json")
+    with open(path, "w") as f:
+        json.dump(contents, f, indent=2)
+        f.write("\n")
 
 
 def main():
@@ -90,6 +142,9 @@ def main():
     )
     tinted.save(os.path.join(out_dir, "AppIcon-tinted.png"))
     print(f"Saved AppIcon-tinted.png ({tinted.size[0]}x{tinted.size[1]})")
+
+    write_contents_json(out_dir)
+    print("Saved Contents.json")
 
 
 if __name__ == "__main__":
