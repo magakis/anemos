@@ -39,3 +39,9 @@ script/deploy-relay
 
 # Binary artifacts
 *.apk
+
+# Playwright
+.playwright/
+.playwright-cli/
+blob-report/
+playwright/.cache/
