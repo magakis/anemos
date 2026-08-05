@@ -327,6 +327,7 @@ export function SessionHeader() {
       <Show when={rightMount()} keyed>
         {(mount) => (
           <Portal mount={mount}>
+            <>
             <Show when={!isDesktop()}>
               <IconButton
                 icon="reset"
@@ -524,6 +525,7 @@ export function SessionHeader() {
             >
               <SessionHeaderV2Actions state={v2ActionsState()} />
             </Show>
+            </>
           </Portal>
         )}
       </Show>
