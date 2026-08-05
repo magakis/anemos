@@ -11,7 +11,8 @@ import { ServerConnection, useServer } from "./server"
 import { createRefCountMap } from "@/utils/refcount"
 import { useGlobal } from "./global"
 import { ServerScope } from "@/utils/server-scope"
-import { detectServerProtocol, type ServerProtocol } from "@/utils/server-protocol"
+import { type ServerProtocol } from "@/utils/server-protocol"
+import { detectServerProtocolResilient } from "@/utils/server-protocol-resilient"
 import { createCompatibleApi, type CompatibleApi } from "@/utils/server-compat"
 
 const isAbortError = (error: unknown) =>
@@ -205,7 +206,9 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
     fetch: eventFetch,
     server: server.http,
   })
-  const protocol = detectServerProtocol(server.http, platform.fetch ?? globalThis.fetch)
+  // UPSTREAM-DIVERGENCE: Use the fork's resilient detector (retry + v2 JSON verify) so an incomplete-v2
+  // server falls back to v1 — see server-protocol-resilient.ts. Added after upstream sync 6b9ce5e63.
+  const protocol = detectServerProtocolResilient(server.http, platform.fetch ?? globalThis.fetch)
   const [protocolKind] = createResource(
     () => protocol,
     (value) => value,
