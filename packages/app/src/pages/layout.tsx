@@ -48,6 +48,7 @@ import { Worktree as WorktreeState } from "@/utils/worktree"
 import { setSessionHandoff } from "@/pages/session/handoff"
 import { SessionRouteKey, SessionStateKey } from "@/utils/server-scope"
 import { listAllSessions } from "@/utils/session"
+import { legacySessionHref } from "@/utils/session-route"
 
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useTheme, type ColorScheme } from "@opencode-ai/ui/theme/context"
@@ -70,6 +71,7 @@ import {
 import {
   collectNewSessionDeepLinks,
   collectOpenProjectDeepLinks,
+  collectOpenSessionDeepLinks,
   deepLinkEvent,
   drainPendingDeepLinks,
 } from "./layout/deep-links"
@@ -1277,6 +1279,11 @@ export default function LegacyLayout(props: ParentProps) {
       }
       const href = link.prompt ? `/${slug}/session?prompt=${encodeURIComponent(link.prompt)}` : `/${slug}/session`
       navigateWithSidebarReset(href)
+    }
+
+    for (const { directory, id } of collectOpenSessionDeepLinks(urls)) {
+      void openProject(directory, false)
+      navigateWithSidebarReset(legacySessionHref(directory, id))
     }
   }
 

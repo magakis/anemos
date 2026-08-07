@@ -2,9 +2,11 @@ import { describe, expect, test } from "bun:test"
 import {
   collectNewSessionDeepLinks,
   collectOpenProjectDeepLinks,
+  collectOpenSessionDeepLinks,
   drainPendingDeepLinks,
   parseDeepLink,
   parseNewSessionDeepLink,
+  parseOpenSessionDeepLink,
 } from "./deep-links"
 import { type Session } from "@opencode-ai/sdk/v2/client"
 import {
@@ -96,6 +98,42 @@ describe("layout deep links", () => {
       "opencode://new-session?directory=/c&prompt=ship%20it",
     ])
     expect(result).toEqual([{ directory: "/a" }, { directory: "/c", prompt: "ship it" }])
+  })
+
+  test("parses open-session deep links", () => {
+    expect(parseOpenSessionDeepLink("opencode://open-session?directory=/tmp/demo&id=session-1")).toEqual({
+      directory: "/tmp/demo",
+      id: "session-1",
+    })
+  })
+
+  test("ignores open-session deep links without directory or id", () => {
+    expect(parseOpenSessionDeepLink("opencode://open-session?id=session-1")).toBeUndefined()
+    expect(parseOpenSessionDeepLink("opencode://open-session?directory=/tmp/demo")).toBeUndefined()
+    expect(parseOpenSessionDeepLink("opencode://open-session")).toBeUndefined()
+  })
+
+  test("ignores open-session deep links on the wrong host", () => {
+    expect(parseOpenSessionDeepLink("opencode://other?directory=/tmp/demo&id=session-1")).toBeUndefined()
+    expect(parseOpenSessionDeepLink("https://example.com?directory=/tmp/demo&id=session-1")).toBeUndefined()
+  })
+
+  test("ignores malformed open-session deep links safely", () => {
+    expect(() => parseOpenSessionDeepLink("opencode://open-session/%E0%A4%A%")).not.toThrow()
+    expect(parseOpenSessionDeepLink("opencode://open-session/%E0%A4%A%")).toBeUndefined()
+  })
+
+  test("collects only valid open-session deep links", () => {
+    const result = collectOpenSessionDeepLinks([
+      "opencode://open-session?directory=/a&id=s1",
+      "opencode://open-project?directory=/b",
+      "opencode://open-session?directory=/c",
+      "opencode://open-session?directory=/d&id=s4",
+    ])
+    expect(result).toEqual([
+      { directory: "/a", id: "s1" },
+      { directory: "/d", id: "s4" },
+    ])
   })
 
   test("drains global deep links once", () => {

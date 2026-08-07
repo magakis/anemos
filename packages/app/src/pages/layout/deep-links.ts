@@ -33,6 +33,20 @@ export const parseNewSessionDeepLink = (input: string) => {
 export const collectOpenProjectDeepLinks = (urls: string[]) =>
   urls.map(parseDeepLink).filter((directory): directory is string => !!directory)
 
+export const parseOpenSessionDeepLink = (input: string) => {
+  const url = parseUrl(input)
+  if (!url) return
+  if (url.hostname !== "open-session") return
+  const directory = url.searchParams.get("directory")
+  if (!directory) return
+  const id = url.searchParams.get("id")
+  if (!id) return
+  return { directory, id }
+}
+
+export const collectOpenSessionDeepLinks = (urls: string[]) =>
+  urls.map(parseOpenSessionDeepLink).filter((link): link is { directory: string; id: string } => !!link)
+
 export const collectNewSessionDeepLinks = (urls: string[]) =>
   urls.map(parseNewSessionDeepLink).filter((link): link is { directory: string; prompt?: string } => !!link)
 
