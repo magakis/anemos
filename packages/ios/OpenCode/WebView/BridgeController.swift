@@ -121,6 +121,9 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
       self?.sendEvent(type: "keyboardNewline", payload: nil)
     }
     keyboard.onDismiss = { webView.endEditing(true) }
+    DeepLinkRelay.shared.onOpen = { [weak self] url in
+      self?.injectDeepLink(url)
+    }
     loadStartPage(in: webView)
   }
 
@@ -198,10 +201,30 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
     webView.evaluateJavaScript(script, completionHandler: nil)
   }
 
+  private func injectDeepLink(_ url: URL) {
+    guard let webView else { return }
+    guard let data = try? JSONSerialization.data(withJSONObject: url.absoluteString, options: []) else { return }
+    guard let json = String(data: data, encoding: .utf8) else { return }
+    let script = """
+    (() => {
+      window.__OPENCODE__ = window.__OPENCODE__ || {};
+      window.__OPENCODE__.deepLinks = window.__OPENCODE__.deepLinks || [];
+      const u = \(json);
+      window.__OPENCODE__.deepLinks.push(u);
+      window.dispatchEvent(new CustomEvent("opencode:deep-link", { detail: { urls: [u] } }));
+    })()
+    """
+    webView.evaluateJavaScript(script, completionHandler: nil)
+  }
+
   // MARK: - WKNavigationDelegate
 
   func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
     print("[OpenCode] Loaded: \(webView.url?.absoluteString ?? "nil")")
+    DeepLinkRelay.shared.pageLoaded = true
+    for url in DeepLinkRelay.shared.drain() {
+      injectDeepLink(url)
+    }
   }
 
   func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
