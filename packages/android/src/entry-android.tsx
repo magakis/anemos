@@ -4,6 +4,7 @@ import { createResource, createSignal, onCleanup, onMount, Show } from "solid-js
 import { AppBaseProviders, AppInterface, PlatformProvider, ServerConnection, type NotifyOpts, type Platform } from "@opencode-ai/app"
 import { showToast } from "@opencode-ai/ui/toast"
 import { requestPermissions } from "@tauri-apps/api/core"
+import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link"
 import { impactFeedback, notificationFeedback } from "@tauri-apps/plugin-haptics"
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification"
 import { openUrl } from "@tauri-apps/plugin-opener"
@@ -271,6 +272,36 @@ const App = () => {
     document.documentElement.dataset.platform = "android"
     void refreshVoice()
 
+    let deepLinksActive = true
+    let unlistenDeepLinks: (() => void) | null = null
+
+    const handleDeepLinkUrls = (urls: string[]) => {
+      if (!deepLinksActive) return
+      for (const url of urls) {
+        if (typeof url !== "string" || !url.startsWith("opencode://")) continue
+        window.__OPENCODE__ = window.__OPENCODE__ || {}
+        window.__OPENCODE__.deepLinks = window.__OPENCODE__.deepLinks || []
+        window.__OPENCODE__.deepLinks.push(url)
+        window.dispatchEvent(new CustomEvent("opencode:deep-link", { detail: { urls: [url] } }))
+      }
+    }
+
+    void getCurrent()
+      .then((urls) => {
+        if (urls) handleDeepLinkUrls(urls)
+      })
+      .catch(() => undefined)
+
+    void onOpenUrl(handleDeepLinkUrls)
+      .then((unlisten) => {
+        if (deepLinksActive) {
+          unlistenDeepLinks = unlisten
+          return
+        }
+        unlisten()
+      })
+      .catch(() => undefined)
+
     const handleClick = (event: MouseEvent) => {
       const link = (event.target as HTMLElement | null)?.closest("a.external-link") as HTMLAnchorElement | null
       if (!link?.href) return
@@ -305,6 +336,8 @@ const App = () => {
       document.removeEventListener("click", handleClick)
       window.removeEventListener("focus", onFocus)
       document.removeEventListener("visibilitychange", onVisible)
+      deepLinksActive = false
+      unlistenDeepLinks?.()
       stopListening()
       stopVoiceState()
     })

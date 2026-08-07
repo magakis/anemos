@@ -18,4 +18,5 @@ tauri-plugin-haptics = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-store = "2"
+tauri-plugin-deep-link = "2"
 tauri-plugin-mobile-bridge = { path = "mobile-bridge" }

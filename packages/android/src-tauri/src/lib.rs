@@ -5,6 +5,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_mobile_bridge::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application")
