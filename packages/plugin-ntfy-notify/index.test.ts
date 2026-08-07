@@ -54,10 +54,11 @@ describe("ntfy-notify plugin", () => {
     expect(call.url).toBe("https://ntfy.example.test/test-topic")
     const headers = call.init.headers as Record<string, string>
     expect(headers.Authorization).toBe("Bearer test-token")
-    expect(headers.Title).toBe("✅ Session finished")
+    expect(headers.Title).toBe("Session finished")
     expect(headers.Priority).toBe("default")
     expect(headers.Tags).toBe("white_check_mark")
     expect(headers.Click).toBe("opencode://open-session?directory=%2Ftmp%2Fproj&id=s1")
+    expect(headers.Actions).toBe("view, Open Anemos, opencode://open-session?directory=%2Ftmp%2Fproj&id=s1, clear=true")
     expect(call.init.body).toBe("proj · s1")
   })
 
@@ -91,6 +92,9 @@ describe("ntfy-notify plugin", () => {
     ])
     const headers = publishes[0].init.headers as Record<string, string>
     expect(headers.Click).toBe("opencode://open-session?directory=%2Fsrv%2Fother-project&id=s1")
+    expect(headers.Actions).toBe(
+      "view, Open Anemos, opencode://open-session?directory=%2Fsrv%2Fother-project&id=s1, clear=true",
+    )
     expect(publishes[0].init.body).toBe("other-project · s1")
   })
 
@@ -111,6 +115,9 @@ describe("ntfy-notify plugin", () => {
     ])
     const headers = publishes[0].init.headers as Record<string, string>
     expect(headers.Click).toBe("opencode://open-session?directory=%2Ftmp%2Fproj&id=abc%2Fdef%3Fx%3D1%26y%3D2")
+    expect(headers.Actions).toBe(
+      "view, Open Anemos, opencode://open-session?directory=%2Ftmp%2Fproj&id=abc%2Fdef%3Fx%3D1%26y%3D2, clear=true",
+    )
   })
 
   test("publishes error notification on session.error", async () => {
@@ -120,7 +127,7 @@ describe("ntfy-notify plugin", () => {
     ])
     expect(publishes.length).toBe(1)
     const headers = publishes[0].init.headers as Record<string, string>
-    expect(headers.Title).toBe("⛔ Session error")
+    expect(headers.Title).toBe("Session error")
     expect(headers.Priority).toBe("urgent")
     expect(headers.Tags).toBe("rotating_light")
   })
@@ -132,7 +139,7 @@ describe("ntfy-notify plugin", () => {
     ])
     expect(publishes.length).toBe(1)
     const headers = publishes[0].init.headers as Record<string, string>
-    expect(headers.Title).toBe("🔐 Approval needed")
+    expect(headers.Title).toBe("Approval needed")
     expect(headers.Priority).toBe("urgent")
     expect(headers.Tags).toBe("lock")
   })
@@ -144,7 +151,7 @@ describe("ntfy-notify plugin", () => {
     ])
     expect(publishes.length).toBe(1)
     const headers = publishes[0].init.headers as Record<string, string>
-    expect(headers.Title).toBe("❓ Question")
+    expect(headers.Title).toBe("Question")
     expect(headers.Priority).toBe("high")
     expect(headers.Tags).toBe("question")
   })
@@ -155,7 +162,7 @@ describe("ntfy-notify plugin", () => {
       evt("session.status", { sessionID: "s1", status: { type: "idle" } }),
     ])
     expect(publishes.length).toBe(1)
-    expect((publishes[0].init.headers as Record<string, string>).Title).toBe("✅ Session finished")
+    expect((publishes[0].init.headers as Record<string, string>).Title).toBe("Session finished")
   })
 
   test("ignores session.status busy", async () => {

@@ -17,11 +17,11 @@ const LOG_DIR = LOG_PATH.slice(0, LOG_PATH.lastIndexOf("/"))
 type Kind = "complete" | "error" | "approval" | "question" | "test"
 
 const KIND_META: Record<Kind, { title: string; priority: string; tags: string; cooldown: number }> = {
-  complete: { title: "✅ Session finished", priority: "default", tags: "white_check_mark", cooldown: 30_000 },
-  error: { title: "⛔ Session error", priority: "urgent", tags: "rotating_light", cooldown: 30_000 },
-  approval: { title: "🔐 Approval needed", priority: "urgent", tags: "lock", cooldown: 15_000 },
-  question: { title: "❓ Question", priority: "high", tags: "question", cooldown: 15_000 },
-  test: { title: "🧪 Test notification", priority: "default", tags: "test_tube", cooldown: 0 },
+  complete: { title: "Session finished", priority: "default", tags: "white_check_mark", cooldown: 30_000 },
+  error: { title: "Session error", priority: "urgent", tags: "rotating_light", cooldown: 30_000 },
+  approval: { title: "Approval needed", priority: "urgent", tags: "lock", cooldown: 15_000 },
+  question: { title: "Question", priority: "high", tags: "question", cooldown: 15_000 },
+  test: { title: "Test notification", priority: "default", tags: "test_tube", cooldown: 0 },
 }
 
 type BusEvent = {
@@ -42,6 +42,7 @@ async function logRecord(record: Record<string, unknown>) {
 async function publish(kind: Kind, sessionID: string, directory: string) {
   const meta = KIND_META[kind]
   const project = directory.split("/").filter(Boolean).pop() ?? directory
+  const deepLink = `opencode://open-session?directory=${encodeURIComponent(directory)}&id=${encodeURIComponent(sessionID)}`
   const res = await fetch(`${NTFY_URL}/${NTFY_TOPIC}`, {
     method: "POST",
     headers: {
@@ -49,7 +50,8 @@ async function publish(kind: Kind, sessionID: string, directory: string) {
       Title: meta.title,
       Priority: meta.priority,
       Tags: meta.tags,
-      Click: `opencode://open-session?directory=${encodeURIComponent(directory)}&id=${encodeURIComponent(sessionID)}`,
+      Click: deepLink,
+      Actions: `view, Open Anemos, ${deepLink}, clear=true`,
     },
     body: `${project} · ${sessionID.slice(0, 8)}`,
     signal: AbortSignal.timeout(10_000),
