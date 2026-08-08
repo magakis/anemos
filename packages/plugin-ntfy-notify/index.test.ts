@@ -23,15 +23,47 @@ process.env.NTFY_TOKEN = "test-token"
 delete process.env.NTFY_TEST
 const { default: plugin } = await import("./index.ts")
 
+const DEFAULT_SESSION = { id: "s1", title: "Fix the bug", directory: "/tmp/proj", projectID: "p1" }
+
+function makeClient(session?: Record<string, unknown> | undefined) {
+  return {
+    session: {
+      get: async () => ({ data: session ?? DEFAULT_SESSION }),
+    },
+  }
+}
+
+function makeShell(commonDir?: string) {
+  const promise = { text: async () => commonDir ?? "" }
+  const fn = (() => promise) as unknown as (strings: TemplateStringsArray, ...exprs: unknown[]) => typeof promise
+  const shell = Object.assign(fn, {
+    nothrow: () => shell,
+    quiet: () => shell,
+    cwd: () => shell,
+    env: () => shell,
+    throws: () => shell,
+  })
+  return shell
+}
+
+function makeInput(overrides: Record<string, unknown> = {}) {
+  return {
+    directory: "/tmp/proj",
+    client: makeClient(),
+    $: makeShell("/home/michael/IT/anemos/.git"),
+    ...overrides,
+  }
+}
+
 function evt(type: string, properties: Record<string, unknown>) {
   return { id: "evt-1", type, properties }
 }
 
 async function drive(
-  input: { directory: string },
+  input: Record<string, unknown>,
   events: Array<{ id: string; type: string; properties: Record<string, unknown> }>,
 ) {
-  const hooks = await plugin(input)
+  const hooks = await plugin(input as never)
   for (const event of events) {
     await hooks.event!({ event })
   }
@@ -43,8 +75,8 @@ afterEach(() => {
 })
 
 describe("ntfy-notify plugin", () => {
-  test("publishes complete notification on root session idle", async () => {
-    await drive({ directory: "/tmp/proj" }, [
+  test("publishes complete notification with project name title and worktree + session title body", async () => {
+    await drive(makeInput(), [
       evt("session.created", { info: { id: "s1", parentID: undefined } }),
       evt("session.idle", { sessionID: "s1" }),
     ])
@@ -54,16 +86,54 @@ describe("ntfy-notify plugin", () => {
     expect(call.url).toBe("https://ntfy.example.test/test-topic")
     const headers = call.init.headers as Record<string, string>
     expect(headers.Authorization).toBe("Bearer test-token")
-    expect(headers.Title).toBe("Session finished")
+    expect(headers.Title).toBe("anemos")
     expect(headers.Priority).toBe("default")
     expect(headers.Tags).toBe("white_check_mark")
     expect(headers.Click).toBe("opencode://open-session?directory=%2Ftmp%2Fproj&id=s1")
     expect(headers.Actions).toBe("view, Open Anemos, opencode://open-session?directory=%2Ftmp%2Fproj&id=s1, clear=true")
-    expect(call.init.body).toBe("proj · s1")
+    expect(call.init.body).toBe("proj — Fix the bug")
+  })
+
+  test("strips the auto-generated timestamp from the session title in the body", async () => {
+    await drive(
+      makeInput({ client: makeClient({ ...DEFAULT_SESSION, title: "New session - 2026-01-01T00:00:00.000Z" }) }),
+      [evt("session.created", { info: { id: "s1", parentID: undefined } }), evt("session.idle", { sessionID: "s1" })],
+    )
+    expect(publishes[0].init.body).toBe("proj — New session")
+  })
+
+  test("keeps user-edited session titles as-is in the body", async () => {
+    await drive(makeInput({ client: makeClient({ ...DEFAULT_SESSION, title: "My custom title" }) }), [
+      evt("session.created", { info: { id: "s1", parentID: undefined } }),
+      evt("session.idle", { sessionID: "s1" }),
+    ])
+    expect(publishes[0].init.body).toBe("proj — My custom title")
+  })
+
+  test("falls back to directory basename title and worktree body when session fetch fails", async () => {
+    const client = { session: { get: async () => Promise.reject(new Error("boom")) } }
+    await drive(makeInput({ client }), [
+      evt("session.created", { info: { id: "s1", parentID: undefined } }),
+      evt("session.idle", { sessionID: "s1" }),
+    ])
+    expect(publishes.length).toBe(1)
+    const headers = publishes[0].init.headers as Record<string, string>
+    expect(headers.Title).toBe("proj")
+    expect(publishes[0].init.body).toBe("proj")
+  })
+
+  test("falls back to directory basename title when git project lookup fails", async () => {
+    await drive(makeInput({ $: makeShell("") }), [
+      evt("session.created", { info: { id: "s1", parentID: undefined } }),
+      evt("session.idle", { sessionID: "s1" }),
+    ])
+    const headers = publishes[0].init.headers as Record<string, string>
+    expect(headers.Title).toBe("proj")
+    expect(publishes[0].init.body).toBe("proj — Fix the bug")
   })
 
   test("suppresses subagent sessions", async () => {
-    await drive({ directory: "/tmp/proj" }, [
+    await drive(makeInput(), [
       evt("session.created", { info: { id: "sub1", parentID: "root1" } }),
       evt("session.idle", { sessionID: "sub1" }),
     ])
@@ -71,22 +141,22 @@ describe("ntfy-notify plugin", () => {
   })
 
   test("treats unknown sessions as root (mirrors push plugin semantics)", async () => {
-    await drive({ directory: "/tmp/proj" }, [evt("session.idle", { sessionID: "never-seen" })])
+    await drive(makeInput(), [evt("session.idle", { sessionID: "never-seen" })])
     expect(publishes.length).toBe(1)
   })
 
   test("falls back to the plugin directory when the session directory is unknown", async () => {
-    await drive({ directory: "/tmp/proj" }, [
+    await drive(makeInput(), [
       evt("session.created", { info: { id: "s1", parentID: undefined } }),
       evt("session.idle", { sessionID: "s1" }),
     ])
     const headers = publishes[0].init.headers as Record<string, string>
     expect(headers.Click).toBe("opencode://open-session?directory=%2Ftmp%2Fproj&id=s1")
-    expect(publishes[0].init.body).toBe("proj · s1")
+    expect(publishes[0].init.body).toBe("proj — Fix the bug")
   })
 
   test("uses the session's own directory when known", async () => {
-    await drive({ directory: "/tmp/proj" }, [
+    await drive(makeInput(), [
       evt("session.created", { info: { id: "s1", parentID: undefined, directory: "/srv/other-project" } }),
       evt("session.idle", { sessionID: "s1" }),
     ])
@@ -95,11 +165,11 @@ describe("ntfy-notify plugin", () => {
     expect(headers.Actions).toBe(
       "view, Open Anemos, opencode://open-session?directory=%2Fsrv%2Fother-project&id=s1, clear=true",
     )
-    expect(publishes[0].init.body).toBe("other-project · s1")
+    expect(publishes[0].init.body).toBe("other-project — Fix the bug")
   })
 
   test("updates the session directory on session.updated", async () => {
-    await drive({ directory: "/tmp/proj" }, [
+    await drive(makeInput(), [
       evt("session.created", { info: { id: "s1", parentID: undefined, directory: "/srv/first" } }),
       evt("session.updated", { info: { id: "s1", parentID: undefined, directory: "/srv/second" } }),
       evt("session.idle", { sessionID: "s1" }),
@@ -109,7 +179,7 @@ describe("ntfy-notify plugin", () => {
   })
 
   test("URL-encodes the sessionID in the Click header", async () => {
-    await drive({ directory: "/tmp/proj" }, [
+    await drive(makeInput(), [
       evt("session.created", { info: { id: "abc/def?x=1&y=2", parentID: undefined } }),
       evt("session.idle", { sessionID: "abc/def?x=1&y=2" }),
     ])
@@ -120,53 +190,53 @@ describe("ntfy-notify plugin", () => {
     )
   })
 
-  test("publishes error notification on session.error", async () => {
-    await drive({ directory: "/tmp/proj" }, [
+  test("publishes error notification on session.error with kind tags", async () => {
+    await drive(makeInput(), [
       evt("session.created", { info: { id: "s1", parentID: undefined } }),
       evt("session.error", { sessionID: "s1" }),
     ])
     expect(publishes.length).toBe(1)
     const headers = publishes[0].init.headers as Record<string, string>
-    expect(headers.Title).toBe("Session error")
+    expect(headers.Title).toBe("anemos")
     expect(headers.Priority).toBe("urgent")
     expect(headers.Tags).toBe("rotating_light")
   })
 
-  test("publishes approval notification on permission.asked", async () => {
-    await drive({ directory: "/tmp/proj" }, [
+  test("publishes approval notification on permission.asked with kind tags", async () => {
+    await drive(makeInput(), [
       evt("session.created", { info: { id: "s1", parentID: undefined } }),
       evt("permission.asked", { id: "perm-1", sessionID: "s1" }),
     ])
     expect(publishes.length).toBe(1)
     const headers = publishes[0].init.headers as Record<string, string>
-    expect(headers.Title).toBe("Approval needed")
+    expect(headers.Title).toBe("anemos")
     expect(headers.Priority).toBe("urgent")
     expect(headers.Tags).toBe("lock")
   })
 
-  test("publishes question notification on question.asked", async () => {
-    await drive({ directory: "/tmp/proj" }, [
+  test("publishes question notification on question.asked with kind tags", async () => {
+    await drive(makeInput(), [
       evt("session.created", { info: { id: "s1", parentID: undefined } }),
       evt("question.asked", { id: "q-1", sessionID: "s1" }),
     ])
     expect(publishes.length).toBe(1)
     const headers = publishes[0].init.headers as Record<string, string>
-    expect(headers.Title).toBe("Question")
+    expect(headers.Title).toBe("anemos")
     expect(headers.Priority).toBe("high")
     expect(headers.Tags).toBe("question")
   })
 
   test("publishes complete on session.status idle", async () => {
-    await drive({ directory: "/tmp/proj" }, [
+    await drive(makeInput(), [
       evt("session.created", { info: { id: "s1", parentID: undefined } }),
       evt("session.status", { sessionID: "s1", status: { type: "idle" } }),
     ])
     expect(publishes.length).toBe(1)
-    expect((publishes[0].init.headers as Record<string, string>).Title).toBe("Session finished")
+    expect((publishes[0].init.headers as Record<string, string>).Title).toBe("anemos")
   })
 
   test("ignores session.status busy", async () => {
-    await drive({ directory: "/tmp/proj" }, [
+    await drive(makeInput(), [
       evt("session.created", { info: { id: "s1", parentID: undefined } }),
       evt("session.status", { sessionID: "s1", status: { type: "busy" } }),
     ])
@@ -174,7 +244,7 @@ describe("ntfy-notify plugin", () => {
   })
 
   test("cooldown dedupes repeated idle events for the same session", async () => {
-    await drive({ directory: "/tmp/proj" }, [
+    await drive(makeInput(), [
       evt("session.created", { info: { id: "s1", parentID: undefined } }),
       evt("session.idle", { sessionID: "s1" }),
       evt("session.idle", { sessionID: "s1" }),
@@ -184,7 +254,7 @@ describe("ntfy-notify plugin", () => {
   })
 
   test("cooldown is keyed per session", async () => {
-    await drive({ directory: "/tmp/proj" }, [
+    await drive(makeInput(), [
       evt("session.created", { info: { id: "s1", parentID: undefined } }),
       evt("session.created", { info: { id: "s2", parentID: undefined } }),
       evt("session.idle", { sessionID: "s1" }),
@@ -194,12 +264,12 @@ describe("ntfy-notify plugin", () => {
   })
 
   test("does not throw on unknown event types", async () => {
-    await expect(drive({ directory: "/tmp/proj" }, [evt("something.unknown", {})])).resolves.toBeUndefined()
+    await expect(drive(makeInput(), [evt("something.unknown", {})])).resolves.toBeUndefined()
     expect(publishes.length).toBe(0)
   })
 
   test("logs a record to NDJSON on publish", async () => {
-    await drive({ directory: "/tmp/proj" }, [
+    await drive(makeInput(), [
       evt("session.created", { info: { id: "s1", parentID: undefined } }),
       evt("session.idle", { sessionID: "s1" }),
     ])
@@ -216,7 +286,7 @@ describe("ntfy-notify plugin", () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = (async () => new Response("nope", { status: 500 })) as typeof fetch
     try {
-      await drive({ directory: "/tmp/proj" }, [
+      await drive(makeInput(), [
         evt("session.created", { info: { id: "s1", parentID: undefined } }),
         evt("session.idle", { sessionID: "s1" }),
       ])

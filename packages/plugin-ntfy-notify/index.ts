@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import os from "node:os"
-import type { Plugin } from "@opencode-ai/plugin"
+import path from "node:path"
+import type { Plugin, PluginInput } from "@opencode-ai/plugin"
 
 const NTFY_URL = (process.env.NTFY_URL || "https://ntfy.vestiac.com").replace(/\/+$/, "")
 const NTFY_TOPIC = process.env.NTFY_TOPIC || "opencode"
@@ -14,14 +15,26 @@ if (disabled) {
 const LOG_PATH = `${os.homedir()}/.local/state/opencode/ntfy-notify.ndjson`
 const LOG_DIR = LOG_PATH.slice(0, LOG_PATH.lastIndexOf("/"))
 
+const AUTO_TITLE_PATTERN = /^(New session|Child session) - \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
+
+function sessionTitle(title?: string) {
+  if (!title) return title
+  const match = title.match(AUTO_TITLE_PATTERN)
+  return match?.[1] ?? title
+}
+
+function asciiSafe(s: string) {
+  return s.replace(/[^\x00-\x7F]/g, "").trim()
+}
+
 type Kind = "complete" | "error" | "approval" | "question" | "test"
 
-const KIND_META: Record<Kind, { title: string; priority: string; tags: string; cooldown: number }> = {
-  complete: { title: "Session finished", priority: "default", tags: "white_check_mark", cooldown: 30_000 },
-  error: { title: "Session error", priority: "urgent", tags: "rotating_light", cooldown: 30_000 },
-  approval: { title: "Approval needed", priority: "urgent", tags: "lock", cooldown: 15_000 },
-  question: { title: "Question", priority: "high", tags: "question", cooldown: 15_000 },
-  test: { title: "Test notification", priority: "default", tags: "test_tube", cooldown: 0 },
+const KIND_META: Record<Kind, { priority: string; tags: string; cooldown: number }> = {
+  complete: { priority: "default", tags: "white_check_mark", cooldown: 30_000 },
+  error: { priority: "urgent", tags: "rotating_light", cooldown: 30_000 },
+  approval: { priority: "urgent", tags: "lock", cooldown: 15_000 },
+  question: { priority: "high", tags: "question", cooldown: 15_000 },
+  test: { priority: "default", tags: "test_tube", cooldown: 0 },
 }
 
 type BusEvent = {
@@ -39,21 +52,36 @@ async function logRecord(record: Record<string, unknown>) {
   }
 }
 
-async function publish(kind: Kind, sessionID: string, directory: string) {
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
+  return await new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(undefined), ms)
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      () => {
+        clearTimeout(timer)
+        resolve(undefined)
+      },
+    )
+  })
+}
+
+async function publish(kind: Kind, sessionID: string, directory: string, title: string, body: string) {
   const meta = KIND_META[kind]
-  const project = directory.split("/").filter(Boolean).pop() ?? directory
   const deepLink = `opencode://open-session?directory=${encodeURIComponent(directory)}&id=${encodeURIComponent(sessionID)}`
   const res = await fetch(`${NTFY_URL}/${NTFY_TOPIC}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${NTFY_TOKEN}`,
-      Title: meta.title,
+      Title: title,
       Priority: meta.priority,
       Tags: meta.tags,
       Click: deepLink,
       Actions: `view, Open Anemos, ${deepLink}, clear=true`,
     },
-    body: `${project} · ${sessionID.slice(0, 8)}`,
+    body,
     signal: AbortSignal.timeout(10_000),
   })
   if (!res.ok) {
@@ -62,10 +90,11 @@ async function publish(kind: Kind, sessionID: string, directory: string) {
   }
 }
 
-const plugin: Plugin = async ({ directory }) => {
+const plugin: Plugin = async ({ directory, client, $ }) => {
   const roots = new Map<string, boolean>()
   const dirs = new Map<string, string>()
   const cool = new Map<string, number>()
+  const projectNames = new Map<string, string>()
   let run: Promise<void> = Promise.resolve()
 
   function root(sessionID: string | undefined) {
@@ -121,6 +150,55 @@ const plugin: Plugin = async ({ directory }) => {
     return true
   }
 
+  async function projectNameFor(sessionDir: string): Promise<string | undefined> {
+    const cached = projectNames.get(sessionDir)
+    if (cached) return cached
+
+    // client.project.get({ path: { id } }) does not exist in the installed SDK (only list/current),
+    // so derive the repo name from the git common dir instead.
+    let name: string | undefined
+    if ($) {
+      try {
+        const out = await withTimeout($.nothrow()`git -C ${sessionDir} rev-parse --git-common-dir`.text(), 4000)
+        const commonDir = out?.trim()
+        if (commonDir) {
+          const abs = path.isAbsolute(commonDir) ? commonDir : path.resolve(sessionDir, commonDir)
+          const candidate = path.basename(abs.replace(/\.git$/, ""))
+          if (candidate) name = candidate
+        }
+      } catch {
+        // fall through to directory basename
+      }
+    }
+    if (!name) name = path.basename(sessionDir)
+    if (name) projectNames.set(sessionDir, name)
+    return name
+  }
+
+  async function buildContent(
+    client: PluginInput["client"],
+    sessionID: string,
+    fallbackDirectory: string,
+  ): Promise<{ title: string; body: string }> {
+    try {
+      const res = await withTimeout(client.session.get({ path: { id: sessionID } }), 4000)
+      const session = res?.data
+      if (!session) throw new Error("no session data")
+
+      const sessionDir = dirs.get(sessionID) ?? session.directory ?? fallbackDirectory
+      const worktree = path.basename(sessionDir) || "opencode"
+      const projectName = await projectNameFor(sessionDir)
+      const title = sessionTitle(session.title) ?? worktree
+      return {
+        title: asciiSafe(projectName ?? worktree) || "opencode",
+        body: `${worktree} — ${title}`,
+      }
+    } catch {
+      const worktree = path.basename(dirs.get(sessionID) ?? fallbackDirectory) || "opencode"
+      return { title: asciiSafe(worktree) || "opencode", body: worktree }
+    }
+  }
+
   async function notify(item: { kind: Kind; sessionID: string }) {
     const record: { ts: number; kind: Kind; sessionID: string; topic: string; status: string; error?: string } = {
       ts: Date.now(),
@@ -131,7 +209,12 @@ const plugin: Plugin = async ({ directory }) => {
     }
     if (!disabled) {
       try {
-        await publish(item.kind, item.sessionID, dirs.get(item.sessionID) ?? directory)
+        const dir = dirs.get(item.sessionID) ?? directory
+        const content =
+          item.kind === "test"
+            ? { title: asciiSafe(path.basename(directory)) || "opencode", body: "ntfy-notify self-test" }
+            : await buildContent(client, item.sessionID, directory)
+        await publish(item.kind, item.sessionID, dir, content.title, content.body)
       } catch (error) {
         record.status = "failed"
         record.error = error instanceof Error ? error.message : String(error)
