@@ -1263,22 +1263,22 @@ export default function LegacyLayout(props: ParentProps) {
   }
 
   const handleDeepLinks = (urls: string[]) => {
-    if (!server.isLocal()) return
-
-    for (const directory of collectOpenProjectDeepLinks(urls)) {
-      void openProject(directory)
-    }
-
-    for (const link of collectNewSessionDeepLinks(urls)) {
-      void openProject(link.directory, false)
-      const slug = base64Encode(link.directory)
-      if (link.prompt) {
-        setSessionHandoff(SessionStateKey.from(server.scope(), SessionRouteKey.fromLegacy(slug)), {
-          prompt: link.prompt,
-        })
+    if (server.isLocal()) {
+      for (const directory of collectOpenProjectDeepLinks(urls)) {
+        void openProject(directory)
       }
-      const href = link.prompt ? `/${slug}/session?prompt=${encodeURIComponent(link.prompt)}` : `/${slug}/session`
-      navigateWithSidebarReset(href)
+
+      for (const link of collectNewSessionDeepLinks(urls)) {
+        void openProject(link.directory, false)
+        const slug = base64Encode(link.directory)
+        if (link.prompt) {
+          setSessionHandoff(SessionStateKey.from(server.scope(), SessionRouteKey.fromLegacy(slug)), {
+            prompt: link.prompt,
+          })
+        }
+        const href = link.prompt ? `/${slug}/session?prompt=${encodeURIComponent(link.prompt)}` : `/${slug}/session`
+        navigateWithSidebarReset(href)
+      }
     }
 
     for (const { directory, id } of collectOpenSessionDeepLinks(urls)) {
