@@ -203,7 +203,7 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
 
   private func injectDeepLink(_ url: URL) {
     guard let webView else { return }
-    guard let data = try? JSONSerialization.data(withJSONObject: url.absoluteString, options: []) else { return }
+    guard let data = try? JSONSerialization.data(withJSONObject: url.absoluteString, options: [.fragmentsAllowed]) else { return }
     guard let json = String(data: data, encoding: .utf8) else { return }
     let script = """
     (() => {
