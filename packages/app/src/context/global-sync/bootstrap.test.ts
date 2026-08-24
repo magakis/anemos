@@ -8,6 +8,7 @@ import {
   bootstrapDirectory,
   loadAgentsQuery,
   loadCommands,
+  loadGlobalConfigQuery,
   loadPathQuery,
   loadProjectsQuery,
   loadProvidersQuery,
@@ -15,7 +16,7 @@ import {
 } from "./bootstrap"
 import type { State, VcsCache } from "./types"
 import { ServerScope } from "@/utils/server-scope"
-import type { ServerApi } from "@/utils/server"
+import { fetchGlobalConfigV2, type ServerApi } from "@/utils/server"
 
 type ProjectApi = ServerApi["project"]
 
@@ -239,5 +240,79 @@ describe("query keys", () => {
 
     expect(calls).toEqual([{ location: { directory: "/repo" } }])
     expect(result).toHaveLength(1)
+  })
+})
+
+describe("loadGlobalConfigQuery", () => {
+  const server = { url: "http://localhost:4096" }
+  const legacySdk = (get: () => Promise<{ data?: Config }>) =>
+    ({ global: { config: { get } } }) as unknown as OpencodeClient
+  const mockFetch = (run: (input: string | URL | Request) => Promise<Response>) =>
+    Object.assign(run, { preconnect: globalThis.fetch.preconnect })
+
+  test("uses /api/config when protocol resolves to v2", async () => {
+    const paths: string[] = []
+    const fetcher = mockFetch(async (input) => {
+      paths.push(new URL(input instanceof Request ? input.url : input).pathname)
+      return new Response(JSON.stringify({ $schema: "schema", shell: "/bin/bash" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })
+    })
+    const sdk = legacySdk(async () => {
+      throw new Error("should not be called")
+    })
+
+    const result = await new QueryClient().fetchQuery(
+      loadGlobalConfigQuery(ServerScope.local, sdk, () => fetchGlobalConfigV2(server, fetcher), Promise.resolve("v2")),
+    )
+
+    expect(paths).toEqual(["/api/config"])
+    expect(result).toEqual({ $schema: "schema", shell: "/bin/bash" })
+  })
+
+  test("falls back to /global/config when /api/config does not return JSON", async () => {
+    const paths: string[] = []
+    const legacyCalls: string[] = []
+    const fetcher = mockFetch(async (input) => {
+      paths.push(new URL(input instanceof Request ? input.url : input).pathname)
+      return new Response("<html><body>app</body></html>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      })
+    })
+    const sdk = legacySdk(async () => {
+      legacyCalls.push("legacy")
+      return { data: { $schema: "schema", shell: "/bin/bash" } }
+    })
+
+    const result = await new QueryClient().fetchQuery(
+      loadGlobalConfigQuery(ServerScope.local, sdk, () => fetchGlobalConfigV2(server, fetcher), Promise.resolve("v2")),
+    )
+
+    expect(paths).toEqual(["/api/config"])
+    expect(legacyCalls).toEqual(["legacy"])
+    expect(result).toEqual({ $schema: "schema", shell: "/bin/bash" })
+  })
+
+  test("uses /global/config only when protocol resolves to v1", async () => {
+    const paths: string[] = []
+    const legacyCalls: string[] = []
+    const fetcher = mockFetch(async (input) => {
+      paths.push(new URL(input instanceof Request ? input.url : input).pathname)
+      throw new Error("should not be called")
+    })
+    const sdk = legacySdk(async () => {
+      legacyCalls.push("legacy")
+      return { data: { $schema: "schema", shell: "/bin/bash" } }
+    })
+
+    const result = await new QueryClient().fetchQuery(
+      loadGlobalConfigQuery(ServerScope.local, sdk, () => fetchGlobalConfigV2(server, fetcher), Promise.resolve("v1")),
+    )
+
+    expect(paths).toEqual([])
+    expect(legacyCalls).toEqual(["legacy"])
+    expect(result).toEqual({ $schema: "schema", shell: "/bin/bash" })
   })
 })

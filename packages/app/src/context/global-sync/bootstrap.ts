@@ -105,10 +105,19 @@ function showErrors(input: {
   })
 }
 
-export const loadGlobalConfigQuery = (scope: ServerScope, sdk: OpencodeClient) =>
+export const loadGlobalConfigQuery = (
+  scope: ServerScope,
+  sdk: OpencodeClient,
+  v2?: () => Promise<Config>,
+  protocol?: Promise<ServerProtocol>,
+) =>
   queryOptions({
     queryKey: [scope, "config"],
-    queryFn: () => retry(() => sdk.global.config.get().then((x) => x.data!)),
+    queryFn: () =>
+      retry(async () => {
+        if ((await protocol) !== "v2" || !v2) return sdk.global.config.get().then((x) => x.data!)
+        return v2().catch(() => sdk.global.config.get().then((x) => x.data!))
+      }),
   })
 
 type ProjectApi = {
@@ -141,6 +150,7 @@ export async function bootstrapGlobal(input: {
   serverSDK: OpencodeClient
   serverAPI: CatalogApi & { readonly project: ProjectApi }
   protocol?: Promise<ServerProtocol>
+  configV2?: () => Promise<Config>
   scope: ServerScope
   requestFailedTitle: string
   translate: (key: string, vars?: Record<string, string | number>) => string
@@ -149,7 +159,8 @@ export async function bootstrapGlobal(input: {
   queryClient: QueryClient
 }) {
   const slow = [
-    () => input.queryClient.fetchQuery(loadGlobalConfigQuery(input.scope, input.serverSDK)),
+    () =>
+      input.queryClient.fetchQuery(loadGlobalConfigQuery(input.scope, input.serverSDK, input.configV2, input.protocol)),
     () =>
       input.queryClient.fetchQuery(
         loadProvidersQuery(input.scope, null, input.serverAPI, input.serverSDK, input.protocol),

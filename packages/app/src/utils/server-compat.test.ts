@@ -184,6 +184,22 @@ describe("createCompatibleApi", () => {
     expect(url.searchParams.get("limit")).toBe("20")
   })
 
+  test("routes V1 file listings through the legacy file endpoint", async () => {
+    const { api, requests } = setup("v1")
+    await api.file.list({ location: { directory: "/repo" }, path: "src" })
+
+    const url = new URL(requests[0]!.url)
+    expect(url.pathname).toBe("/file")
+    expect(url.searchParams.get("path")).toBe("src")
+  })
+
+  test("keeps V2 file listings on the current API", async () => {
+    const { api, requests } = setup("v2")
+    await api.file.list({ location: { directory: "/repo" }, path: "src" })
+
+    expect(new URL(requests[0]!.url).pathname).toBe("/api/fs/list")
+  })
+
   test("routes V1 permission replies through the requested directory", async () => {
     const { api, requests } = setup("v1")
     await api.permission.reply({

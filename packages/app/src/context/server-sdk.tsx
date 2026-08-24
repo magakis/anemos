@@ -172,6 +172,7 @@ type ServerSDKBase = {
   protocol: Promise<ServerProtocol>
   protocolKind: Accessor<ServerProtocol | undefined>
   url: string
+  fetch: typeof globalThis.fetch
   client: ReturnType<typeof createSdkForServer>
   api: CompatibleApi
   currentApi: ServerApi
@@ -369,6 +370,7 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
     protocol,
     protocolKind,
     url: server.http.url,
+    fetch: platform.fetch ?? globalThis.fetch,
     client: sdk,
     api,
     currentApi,

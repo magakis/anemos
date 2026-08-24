@@ -74,7 +74,7 @@ The app is currently hybrid. In this document, V1 refers to the legacy unprefixe
 
 ## Session Compatibility Fallbacks
 
-These calls are retained as fallback adapters. The current production path supplies the current session and message APIs.
+These calls are retained as fallback adapters. The current production path supplies the current session and message APIs. Explicitly kept: they are a safety net for the V1/incomplete-V2 server floor; revisit when protocol detection guarantees V2 mode only on universally-serving servers, or upstream removes V1.
 
 - [ ] Remove fallback `GET /session/:sessionID` after compatibility support is unnecessary.
   - `src/context/server-session.ts`
@@ -82,15 +82,18 @@ These calls are retained as fallback adapters. The current production path suppl
   - `src/context/server-session.ts`
 - [ ] Remove fallback `GET /session/:sessionID/message/:messageID` after compatibility support is unnecessary.
   - `src/context/server-session.ts`
+- `src/utils/push-pair.ts` stays V1 entirely (config read/PATCH/dispose): the coupled read→PATCH→dispose sequence means partial migration adds complexity without completing the feature.
 
 ## Filesystem
 
 - [ ] Migrate file listing from `GET /file`.
   - `src/context/file.tsx`
+  - Blocked: V2 `/api/fs/list` returns `FileSystemEntry {path, type}` — lacks `name`, `absolute`, `ignored` required by the app's `FileNode` tree contract (`{name, path, absolute, type, ignored}`); migrating would blank tree labels and drop ignored-file styling. Legacy route works on both server generations (upstream bridging, commit 9f7ecd65e). Compat `api.file.list` routing already exists and IS used by directory-picker surfaces (which derive `name` client-side via `getFilename`); routing covered by 2 new unit tests in `server-compat.test.ts`.
 - [ ] Migrate file reads from `GET /file/content`.
   - `src/context/file.tsx`
   - `src/pages/session/review-tab.tsx`
   - `src/pages/session/v2/review-panel-v2.tsx`
+  - Blocked: V2 `/api/fs/read/*` returns raw `Uint8Array` — no `FileContent {type: "text"|"binary", content}` classification the three consumers require. Same upstream-bridging note (commit 9f7ecd65e).
 - [x] Migrate path discovery from `GET /path` to `GET /api/path`.
   - `src/context/global-sync/bootstrap.ts`
   - `src/components/dialog-select-directory.tsx`
@@ -104,6 +107,7 @@ These calls are retained as fallback adapters. The current production path suppl
   - `src/context/global-sync/bootstrap.ts`
 - [ ] Migrate Git initialization from `POST /project/git/init`.
   - `src/pages/session.tsx`
+  - Blocked: no V2 route in @opencode-ai/client@1.17.13 / in-tree SDK 1.18.11 as of 2026-08.
 - [x] Migrate project updates from `PATCH /project/:projectID` to `PATCH /api/project/:projectID`.
   - `src/context/layout.tsx`
   - `src/components/edit-project.ts`
@@ -112,8 +116,10 @@ These calls are retained as fallback adapters. The current production path suppl
   - `src/pages/layout.tsx`
   - `src/components/prompt-input/submit.ts`
   - Listing now uses `GET /api/project/:projectID/directories`; create, removal, and reset remain.
+  - Blocked: no V2 route in @opencode-ai/client@1.17.13 / in-tree SDK 1.18.11 as of 2026-08.
 - [ ] Migrate instance disposal from `POST /instance/dispose`.
   - `src/pages/layout.tsx`
+  - Blocked: no V2 route in @opencode-ai/client@1.17.13 / in-tree SDK 1.18.11 as of 2026-08.
 
 ## VCS
 
@@ -126,12 +132,15 @@ These calls are retained as fallback adapters. The current production path suppl
 
 ## Configuration And Authentication
 
-- [ ] Migrate global configuration reads from `GET /global/config`.
+- [x] Migrate global configuration reads from `GET /global/config`.
   - `src/context/global-sync/bootstrap.ts`
+  - V2 read via hand-written `fetchGlobalConfigV2` (`src/utils/server.ts`): `GET /api/config` with auth + timeout + JSON validation, protocol-branched in `loadGlobalConfigQuery` with V1 fallback; wired via `server-sync.tsx`. Unit-tested in `bootstrap.test.ts` (3 tests). Config PATCH stays V1 (no verified V2 route).
 - [ ] Migrate directory configuration reads from `GET /config`.
   - `src/context/global-sync/bootstrap.ts`
+  - Blocked: no V2 route in @opencode-ai/client@1.17.13 / in-tree SDK 1.18.11 as of 2026-08.
 - [ ] Migrate global configuration updates from `PATCH /global/config`.
   - `src/context/server-sync.tsx`
+  - Blocked: no V2 route in @opencode-ai/client@1.17.13 / in-tree SDK 1.18.11 as of 2026-08.
 - [x] Migrate provider authentication method discovery from `GET /provider/auth` to `GET /api/integration/:integrationID`.
   - `src/components/dialog-connect-provider.tsx`
 - [x] Migrate built-in provider OAuth authorization and callbacks to `/api/integration/:integrationID/connect/oauth/*`.
@@ -142,10 +151,12 @@ These calls are retained as fallback adapters. The current production path suppl
   - `src/components/dialog-custom-provider.tsx`
   - `src/components/settings-providers.tsx`
   - `src/components/settings-v2/providers.tsx`
+  - Blocked: V2 `/api/credential/{id}` supports label-PATCH + DELETE only — no key-set route (no V2 route in @opencode-ai/client@1.17.13 / in-tree SDK 1.18.11 as of 2026-08).
 - [ ] Migrate global disposal from `POST /global/dispose`.
   - `src/components/dialog-connect-provider.tsx`
   - `src/components/settings-providers.tsx`
   - `src/components/settings-v2/providers.tsx`
+  - Blocked: no V2 route in @opencode-ai/client@1.17.13 / in-tree SDK 1.18.11 as of 2026-08.
 
 ## Permissions And Questions
 
@@ -169,10 +180,12 @@ These calls are retained as fallback adapters. The current production path suppl
   - `src/context/server-sync.tsx`
 - [ ] Replace legacy MCP authentication with the Integration OAuth workflow.
   - `src/context/server-sync.tsx`
+  - Blocked: no V2 route in @opencode-ai/client@1.17.13 / in-tree SDK 1.18.11 as of 2026-08.
 - [x] Migrate experimental resource listing from `GET /experimental/resource` to `GET /api/mcp/resource`.
   - `src/context/server-sync.tsx`
 - [ ] Migrate LSP status from `GET /lsp`.
   - `src/context/server-sync.tsx`
+  - Blocked: no V2 route in @opencode-ai/client@1.17.13 / in-tree SDK 1.18.11 as of 2026-08.
 - [x] Move `GET /api/reference` off the legacy generated SDK transport.
   - `src/context/global-sync/bootstrap.ts`
 

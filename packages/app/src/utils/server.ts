@@ -1,4 +1,4 @@
-import { createOpencodeClient } from "@opencode-ai/sdk/v2/client"
+import { createOpencodeClient, type Config } from "@opencode-ai/sdk/v2/client"
 import { OpenCode, type OpenCodeClient } from "@opencode-ai/client/promise"
 import type { ServerConnection } from "@/context/server"
 import { decode64 } from "@/utils/base64"
@@ -25,6 +25,21 @@ export function serverAuthHeaders(server: ServerConnection.HttpBase) {
   return {
     Authorization: `Basic ${authTokenFromCredentials({ username: server.username, password: server.password })}`,
   }
+}
+
+export async function fetchGlobalConfigV2(server: ServerConnection.HttpBase, fetch: typeof globalThis.fetch) {
+  const response = await fetch(new URL("/api/config", server.url), {
+    headers: serverAuthHeaders(server),
+    signal: AbortSignal.timeout(5_000),
+  })
+  if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) {
+    throw new Error(`Global config request failed: ${response.status}`)
+  }
+  const value: unknown = await response.json()
+  if (!value || typeof value !== "object") {
+    throw new Error("Global config request failed: invalid response")
+  }
+  return value as Config
 }
 
 export function createSdkForServer({

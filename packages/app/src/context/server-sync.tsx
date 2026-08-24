@@ -47,7 +47,7 @@ import { retry } from "@opencode-ai/core/util/retry"
 import type { ServerScope } from "@/utils/server-scope"
 import { createHomeSessionIndexCache } from "./global-sync/home-session-index"
 import { persisted } from "@/utils/persist"
-import type { ServerApi } from "@/utils/server"
+import { fetchGlobalConfigV2, type ServerApi } from "@/utils/server"
 import type {
   McpListInput,
   McpListOutput,
@@ -182,9 +182,11 @@ function makeQueryOptionsApi(
   serverAPI: ServerApi,
   sdkFor: (dir: PathKey) => OpencodeClient,
   protocol: Promise<"v1" | "v2">,
+  server: ServerConnection.HttpBase,
+  fetch: typeof globalThis.fetch,
 ) {
   return {
-    globalConfig: () => loadGlobalConfigQuery(scope, serverSDK()),
+    globalConfig: () => loadGlobalConfigQuery(scope, serverSDK(), () => fetchGlobalConfigV2(server, fetch), protocol),
     projects: () => loadProjectsQuery(scope, serverAPI.project),
     providers: (directory: PathKey | null) =>
       loadProvidersQuery(scope, directory, serverAPI, directory ? sdkFor(directory) : serverSDK(), protocol),
@@ -233,6 +235,8 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
     serverSDK.api,
     sdkFor,
     serverSDK.protocol,
+    serverSDK.server.http,
+    serverSDK.fetch,
   )
 
   const [configQuery, providerQuery, pathQuery] = useQueries(() => ({
@@ -324,6 +328,7 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
         serverSDK: serverSDK.client,
         serverAPI: serverSDK.api,
         protocol: serverSDK.protocol,
+        configV2: () => fetchGlobalConfigV2(serverSDK.server.http, serverSDK.fetch),
         scope: serverSDK.scope,
         requestFailedTitle: language.t("common.requestFailed"),
         translate: language.t,
