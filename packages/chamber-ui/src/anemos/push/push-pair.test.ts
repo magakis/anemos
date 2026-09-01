@@ -230,7 +230,8 @@ describe('runPushSetup', () => {
       getPushPairing: async () => undefined,
       beginPushPairing: async () => pendingPair(),
     };
-    await expect(runPushSetup({ platform, server })).rejects.toBeInstanceOf(PushFail);
+    // ANEMOS-PATCH: use Bun's typed rejection matcher instead of unsupported toBeInstanceOf.
+    await expect(runPushSetup({ platform, server })).rejects.toThrow(PushFail);
     await runPushSetup({ platform, server }).catch((error: unknown) => {
       expect((error as PushFail).issue.code).toBe('permission_denied');
     });
@@ -278,7 +279,8 @@ describe('push issues', () => {
   });
 
   test('drops stale permission issues after permission is restored', () => {
-    expect(mergePushIssue({ code: 'permission_denied', message: 'denied', action: 'settings' }, push())).toBeUndefined();
+    // ANEMOS-PATCH: use Bun's supported equality matcher instead of unsupported toBeUndefined.
+    expect(mergePushIssue({ code: 'permission_denied', message: 'denied', action: 'settings' }, push())).toBe(undefined);
     expect(mergePushIssue({ code: 'host_install_failed', message: 'failed', action: 'retry' }, push())?.code).toBe('host_install_failed');
   });
 });
