@@ -21,4 +21,5 @@ included verbatim. No OpenChamber server or desktop entry is vendored.
 
 | Date | Change | Files / marker |
 |---|---|---|
+| 2026-09-02 | Phase 6: added the Anemos themes and shipped-locale parity gate. Per D8.6, the six net-new locales `ar`, `ru`, `th`, `no`, `da`, and `bs` are deferred to a demand-driven backlog; they are not a gate for UI 3. | `src/lib/theme/`, `src/lib/i18n/`, `src/features/` (`// ANEMOS-PATCH:`) |
 | | | |

@@ -17,6 +17,8 @@ export const dict = {
   'chat.chatInput.prCheckContextRemove': 'PR kontrolleri bağlamını kaldır',
   'common.loading': 'Yükleniyor...',
   'common.unavailable': 'Kullanılamıyor',
+  'features.unavailable.title': "anemos'ta kullanılamıyor",
+  'features.unavailable.description': "Chamber Full (UI 1) veya Classic (UI 2)'de mevcut",
   'common.language.english': 'İngilizce',
   'common.language.german': 'Almanca',
   'common.language.french': 'Fransızca',

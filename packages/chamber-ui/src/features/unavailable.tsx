@@ -2,7 +2,8 @@
 
 import React from 'react';
 
-import { getFeature, type FeatureKey } from './registry';
+import { useI18n } from '@/lib/i18n';
+import type { FeatureKey } from './registry';
 
 export type UnavailableProps = {
   feature?: FeatureKey;
@@ -11,15 +12,15 @@ export type UnavailableProps = {
   className?: string;
 };
 
-export const Unavailable: React.FC<UnavailableProps> = ({ feature, title = 'Not available in anemos', description, className }) => {
-  const reason = feature ? getFeature(feature).reason : undefined;
+export const Unavailable: React.FC<UnavailableProps> = ({ title, description, className }) => {
+  const { t } = useI18n();
 
   return (
     <div className={`flex h-full min-h-0 items-center justify-center px-6 text-center ${className ?? ''}`}>
       <div className="max-w-md space-y-2">
-        <h2 className="typography-ui-header font-semibold text-foreground">{title}</h2>
+        <h2 className="typography-ui-header font-semibold text-foreground">{title ?? t('features.unavailable.title')}</h2>
         <p className="typography-body text-muted-foreground">
-          {description ?? reason ?? 'This feature is not available in anemos yet.'}
+          {description ?? t('features.unavailable.description')}
         </p>
       </div>
     </div>

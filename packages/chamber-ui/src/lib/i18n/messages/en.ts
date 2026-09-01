@@ -30,6 +30,8 @@ export const dict = {
   'chat.chatInput.prCheckContextRemove': 'Remove PR checks context',
   'common.loading': 'Loading...',
   'common.unavailable': 'Unavailable',
+  'features.unavailable.title': 'Not available in anemos',
+  'features.unavailable.description': 'Available in Chamber Full (UI 1) or Classic (UI 2)',
   'common.language.english': 'English',
   'common.language.german': 'German',
   'common.language.french': 'French',

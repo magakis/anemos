@@ -31,6 +31,8 @@ export const dict: Record<I18nKey, string> = {
   'chat.chatInput.prCheckContextRemove': 'Прибрати контекст чеків PR',
   "common.loading": "Завантаження...",
   "common.unavailable": "Недоступно",
+  "features.unavailable.title": "Недоступно в anemos",
+  "features.unavailable.description": "Доступно в Chamber Full (UI 1) або Classic (UI 2)",
   "common.language.english": "англійська",
   "common.language.german": "Німецька",
   "common.language.french": "Французька",

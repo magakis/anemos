@@ -9,6 +9,8 @@ export const dict = {
   'common.language.german': 'Deutsch',
   'common.loading': 'Wird geladen...',
   'common.unavailable': 'Nicht verfügbar',
+  'features.unavailable.title': 'In anemos nicht verfügbar',
+  'features.unavailable.description': 'Verfügbar in Chamber Full (UI 1) oder Classic (UI 2)',
   'common.language.english': 'Englisch',
   'common.language.french': 'Französisch',
   'common.language.simplifiedChinese': 'Chinesisch (Vereinfacht)',

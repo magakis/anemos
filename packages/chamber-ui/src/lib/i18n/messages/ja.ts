@@ -31,6 +31,8 @@ export const dict: Record<I18nKey, string> = {
   'chat.chatInput.prCheckContextRemove': 'PRチェックのコンテキストを削除',
   'common.loading': '読み込み中...',
   'common.unavailable': '利用できません',
+  'features.unavailable.title': 'anemosでは利用できません',
+  'features.unavailable.description': 'Chamber Full (UI 1) または Classic (UI 2) で利用できます',
   'common.language.english': '英語',
   'common.language.german': 'ドイツ語',
   'common.language.french': 'フランス語',

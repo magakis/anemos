@@ -5,16 +5,23 @@ import flexokiLightRaw from './flexoki-light.json';
 import flexokiDarkRaw from './flexoki-dark.json';
 import openchamberLightRaw from './openchamber-light.json';
 import openchamberDarkRaw from './openchamber-dark.json';
+import anemosLightRaw from './anemos-light.json';
+import anemosDarkRaw from './anemos-dark.json';
 
 const flexokiLightTheme = withPrColors(flexokiLightRaw as Theme);
 const flexokiDarkTheme = withPrColors(flexokiDarkRaw as Theme);
 const openchamberLightTheme = withPrColors(openchamberLightRaw as Theme);
 const openchamberDarkTheme = withPrColors(openchamberDarkRaw as Theme);
+const anemosLightTheme = withPrColors(anemosLightRaw as Theme);
+const anemosDarkTheme = withPrColors(anemosDarkRaw as Theme);
 
-export const DEFAULT_LIGHT_THEME_ID = 'openchamber-light' as const;
-export const DEFAULT_DARK_THEME_ID = 'openchamber-dark' as const;
+// ANEMOS-PATCH: the mobile UI 3 surface uses the Anemos brand defaults.
+export const DEFAULT_LIGHT_THEME_ID = 'anemos-light' as const;
+export const DEFAULT_DARK_THEME_ID = 'anemos-dark' as const;
 
 export const themes: Theme[] = [
+  anemosLightTheme,
+  anemosDarkTheme,
   openchamberLightTheme,
   openchamberDarkTheme,
   flexokiLightTheme,

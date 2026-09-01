@@ -31,6 +31,8 @@ export const dict: Record<I18nKey, string> = {
   'chat.chatInput.prCheckContextRemove': 'Remover contexto de verificações do PR',
   "common.loading": "Carregando...",
   "common.unavailable": "Indisponível",
+  "features.unavailable.title": "Indisponível no anemos",
+  "features.unavailable.description": "Disponível no Chamber Full (UI 1) ou Classic (UI 2)",
   "common.language.english": "Inglês",
   "common.language.german": "Alemão",
   "common.language.french": "Francês",

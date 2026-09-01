@@ -617,10 +617,10 @@ Build, typecheck, and unit-test commands were not run by the implementation agen
 **Estimate:** M (2–3 days + burn-in calendar time).
 
 **Checklist (matrix: {iOS, Android} × {selector, UI 1, UI 2, UI 3}):**
-- **Selector/launch:** remembered selection across relaunch and OS restart; gesture from every UI (incl. remote UI 1) with thresholds that don't false-trigger during typing/scrolling; alternate gesture works; deep links + push-notification taps route per the P8 rule.
+- **Selector/launch:** remembered selection across relaunch and OS restart; gesture from every UI (incl. remote UI 1) with thresholds that don't false-trigger during typing/scrolling; alternate gesture works; deep links route per the P8 rule.
 - **UI 1:** auth/session persistence; SSE streams + reconnect on background/foreground; gesture over chamber's own touch handling; unreachable-server path (native error → return to selector); https + LAN-http ATS behavior.
 - **UI 2 (regression proof):** behaves exactly as today — existing e2e suite green, spot device pass, **zero diffs in `packages/app`** (verify `git diff --stat packages/app` is empty).
-- **UI 3:** boot + Basic auth + SSE live updates; markdown worker loads (custom scheme/CSP — §3.4); deep-link cold start; push pairing end-to-end (P5) incl. notification tap while in UI 1 (routes out of UI 1); haptics/share; i18n spot-check (incl. RTL via `?lang=ar` if shipped — else note deferred).
+- **UI 3:** boot + Basic auth + SSE live updates; markdown worker loads (custom scheme/CSP — §3.4); deep-link cold start; haptics/share; i18n spot-check (incl. RTL via `?lang=ar` if shipped — else note deferred).
 - **Cross-cutting:** memory profile switching between the three UIs repeatedly (no leak growth — one runtime at a time, D8.2); bundle size recorded; `bun run typecheck` + both shell builds green on the final commit.
 
 **Verify:** checklist fully signed; failures fixed with marked patches and re-verified.
