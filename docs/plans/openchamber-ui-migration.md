@@ -697,6 +697,13 @@ Build, typecheck, and unit-test commands were not run by the implementation agen
 - Added the registry-gated Anemos Notifications settings section with relay URL, permission, pairing, preferences, diagnostics state, and test push controls.
 - Build and test commands were not run by the implementation agent per the repository agent boundary; build-fixer owns execution verification.
 
+### Phase 7 results
+
+- Added the UI 3 Playwright smoke harness under `packages/chamber-ui/e2e/`, with a scratch `opencode serve` on `:4096`, the chamber dev server on `:4456`, iPhone-sized Chromium emulation, and fixture-managed SDK session cleanup.
+- Added smoke coverage for boot/session listing, chat submission and streamed timeline rendering (with an explicit modelless-server branch), Anemos Notifications settings, and the unreachable-backend boot guard.
+- Added the chamber e2e scripts, `@playwright/test` workspace dependency, and the `@openchamber/ui#test:e2e` Turbo task.
+- Browser execution and post-run port teardown verification remain deferred to the build-fixer pass per the implementation-agent boundary.
+
 ### Phase 8 results
 
 - Added the single-source, framework-free selector at `packages/shared/selector/selector.html`; both shell Vite configs consume it directly and emit the selector build-time configuration.
