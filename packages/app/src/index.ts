@@ -23,9 +23,6 @@ export {
   type PushPerm,
   type PushPrefs,
   type PushState,
-  type VoiceStartResult,
-  type VoiceStopResult,
-  type VoiceStatus,
   PlatformProvider,
 } from "./context/platform"
 export { type UpdaterPlatform, type UpdaterState } from "./updater"

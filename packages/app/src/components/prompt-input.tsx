@@ -587,23 +587,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   }
 
   createEffect(() => {
-    const handleTranscription = (event: Event) => {
-      if (!(event instanceof CustomEvent)) return
-      const detail = event.detail as { text?: string; isFinal?: boolean } | undefined
-      if (!detail?.text) return
-      if (detail.isFinal === false) return
-      if (!editorRef) return
-
-      editorRef.focus()
-      setCursorPosition(editorRef, promptLength(prompt.current()))
-      addPart({ type: "text", content: detail.text, start: 0, end: 0 })
-    }
-
-    window.addEventListener("opencode:transcription", handleTranscription)
-    onCleanup(() => window.removeEventListener("opencode:transcription", handleTranscription))
-  })
-
-  createEffect(() => {
     // UPSTREAM-DIVERGENCE: Listen for the native mobile keyboard accessory action that requests the
     // shared prompt editor to delete the previous word without forking this component.
     const handleDeleteWord = () => {
@@ -1568,7 +1551,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           onMouseDown={(e) => {
             const target = e.target
             if (!(target instanceof HTMLElement)) return
-            if (target.closest('[data-action="prompt-attach"], [data-action="prompt-voice"], [data-action="prompt-submit"]')) {
+            if (target.closest('[data-action="prompt-attach"], [data-action="prompt-submit"]')) {
               return
             }
             editorRef?.focus()
@@ -1642,25 +1625,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             />
 
             <div class="flex items-center gap-1 pointer-events-auto">
-              <Show when={store.mode === "normal" && platform.startVoiceInput}>
-                <Tooltip placement="top" value="Voice input">
-                  <Button
-                    data-action="prompt-voice"
-                    type="button"
-                    variant="ghost"
-                    class="size-8 p-0"
-                    onClick={() => void platform.startVoiceInput?.()}
-                    disabled={
-                      platform.voiceStatus
-                        ? platform.voiceStatus().state === "recording" || platform.voiceStatus().state === "processing"
-                        : false
-                    }
-                    aria-label="Voice input"
-                  >
-                    <Icon name="microphone" class="size-5" />
-                  </Button>
-                </Tooltip>
-              </Show>
               <Tooltip placement="top" inactive={!working() && blank()} value={tip()}>
                 <IconButton
                   data-action="prompt-submit"

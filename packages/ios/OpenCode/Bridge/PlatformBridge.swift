@@ -7,14 +7,7 @@ final class PlatformBridge {
   var onEvent: ((String, Any?) -> Void)?
 
   private let haptics = HapticBridge()
-  private let whisper = WhisperBridge()
   private let config = ServerConfig()
-
-  init() {
-    whisper.onEvent = { [weak self] payload in
-      self?.onEvent?("transcription", payload)
-    }
-  }
 
   func handle(id: String, method: String, params: [String: Any], reply: @escaping (Any?, String?) -> Void) {
     switch method {
@@ -60,13 +53,6 @@ final class PlatformBridge {
       reply(config.storageKey(name: name, index: index), nil)
     case "storageLength":
       reply(config.storageLength(name: params["name"] as? String), nil)
-    case "startRecording":
-      whisper.start()
-      reply(nil, nil)
-    case "stopRecording":
-      whisper.stop { text in
-        reply(text, nil)
-      }
     default:
       reply(nil, "Unknown method")
     }

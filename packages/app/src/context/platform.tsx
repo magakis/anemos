@@ -73,23 +73,6 @@ export type NotifyOpts = {
   generic?: boolean
 }
 
-export type VoiceState = "prewarming" | "ready" | "recording" | "processing" | "error"
-export type VoiceStatus = {
-  state: VoiceState
-  ready: boolean
-  message?: string
-}
-export type VoiceStartResult = {
-  ok: boolean
-  code?: string
-  message?: string
-}
-export type VoiceStopResult = {
-  text: string
-  code?: string
-  message?: string
-}
-
 type PlatformName = "web" | "desktop" | "ios" | "android"
 type DesktopOS = "macos" | "windows" | "linux"
 
@@ -200,7 +183,7 @@ type PlatformBase = {
   recordFatalRendererError?(error: FatalRendererErrorLog): Promise<void>
 
   // UPSTREAM-DIVERGENCE: Fork-only mobile methods keep the shared app package aware of native push,
-  // voice, haptic, and share state. Preserve this surface when reconciling upstream changes.
+  // haptic, and share state. Preserve this surface when reconciling upstream changes.
   /** Read push notification state (optional native platforms) */
   pushState?: Accessor<PushState | undefined>
 
@@ -233,21 +216,6 @@ type PlatformBase = {
 
   /** Clear paired push credentials (optional native platforms) */
   clearPushPairing?(): Promise<PushState>
-
-  /** Start voice input (mobile only) */
-  startVoiceInput?(): Promise<VoiceStartResult> | VoiceStartResult
-
-  /** Stop voice input and return transcription (mobile only) */
-  stopVoiceInput?(): Promise<VoiceStopResult> | VoiceStopResult
-
-  /** Current voice input status (mobile only) */
-  voiceStatus?: Accessor<VoiceStatus>
-
-  /** List supported speech locales (mobile only) */
-  getSpeechLocales?(): Promise<string[]>
-
-  /** Set active speech locale and return the applied locale (mobile only) */
-  setSpeechLocale?(locale: string): Promise<string> | string
 
   /** Haptic feedback (mobile only) */
   haptic?(style: "light" | "medium" | "heavy" | "success" | "warning" | "error"): void

@@ -1,11 +1,10 @@
 // @refresh reload
 import { render } from "solid-js/web"
 import { createResource, createSignal, onCleanup, onMount, Show } from "solid-js"
-import { AppBaseProviders, AppInterface, PlatformProvider, ServerConnection, type NotifyOpts, type Platform, type VoiceStartResult, type VoiceStopResult } from "@opencode-ai/app"
+import { AppBaseProviders, AppInterface, PlatformProvider, ServerConnection, type NotifyOpts, type Platform } from "@opencode-ai/app"
 import { bridge } from "./bridge"
 import { createBridgeStorage } from "./ios-storage"
 import { Onboarding } from "./onboarding"
-import { VoiceInputOverlay } from "./voice-input"
 import pkg from "../package.json"
 
 const DEFAULT_SERVER_URL_KEY = "defaultServerUrl"
@@ -83,28 +82,8 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
 }
 
 const App = () => {
-  const [recording, setRecording] = createSignal(false)
-
-  const emitTranscription = (text: string, isFinal?: boolean) => {
-    if (!text) return
-    window.dispatchEvent(new CustomEvent("opencode:transcription", { detail: { text, isFinal } }))
-  }
-
   const emitResume = () => {
     window.dispatchEvent(new Event("opencode:resume"))
-  }
-
-  const startVoiceInput = () => {
-    setRecording(true)
-    bridge.send("startRecording")
-    return { ok: true } satisfies VoiceStartResult
-  }
-
-  const stopVoiceInput = async () => {
-    const text = await bridge.sendAsync<string>("stopRecording")
-    setRecording(false)
-    if (text) emitTranscription(text, true)
-    return { text: text ?? "" } satisfies VoiceStopResult
   }
 
   // SIDELOAD: push methods intentionally omitted — free Apple ID has no APNS. Re-enable via native bridge in the paid Apple Developer Program build.
@@ -120,8 +99,6 @@ const App = () => {
     back: () => window.history.back(),
     forward: () => window.history.forward(),
     restart: async () => window.location.reload(),
-    startVoiceInput,
-    stopVoiceInput,
     haptic: (style: "light" | "medium" | "heavy" | "success" | "warning" | "error") => {
       bridge.send("haptic", { style })
     },
@@ -164,13 +141,6 @@ const App = () => {
       platform.openLink(link.href)
     }
 
-    const stopListening = bridge.on("transcription", (payload) => {
-      if (!payload || typeof payload !== "object") return
-      const detail = payload as { text?: string; isFinal?: boolean }
-      if (typeof detail.text !== "string") return
-      emitTranscription(detail.text, detail.isFinal)
-    })
-
     const stopKeyboardNav = bridge.on("keyboardNavigation", (payload) => {
       if (!payload || typeof payload !== "object") return
       const { direction } = payload as { direction?: string }
@@ -206,7 +176,6 @@ const App = () => {
       document.removeEventListener("click", handleClick)
       window.removeEventListener("focus", onFocus)
       document.removeEventListener("visibilitychange", onVisible)
-      stopListening()
       stopKeyboardNav()
       stopKeyboardClear()
       stopKeyboardNewline()
@@ -216,7 +185,6 @@ const App = () => {
   return (
     <PlatformProvider value={platform}>
       <AppBaseProviders>
-        <VoiceInputOverlay active={recording} onStop={() => void stopVoiceInput()} />
         <Show when={!defaultConfig.loading}>
           <Show
             when={defaultConfig() || completedConfig()}

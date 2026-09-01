@@ -28,7 +28,6 @@ Anemos is a mobile client for [OpenCode](https://github.com/anomalyco/opencode) 
 
 ## Key features
 
-- **WhisperKit speech-to-text** — voice input for hands-free coding
 - **Custom keyboard shortcuts** — adapted for mobile
 - **Mobile UI tweaks** — e.g. always-visible search bar
 - **Push Notifications** - notifies you whenever your session needs attention.

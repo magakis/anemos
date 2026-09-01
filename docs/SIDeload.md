@@ -86,14 +86,6 @@ If you skip this step, the app won't launch.
 
 ## First launch — what to expect
 
-### Microphone permission & WhisperKit model download
-
-Anemos uses WhisperKit for on-device voice-to-text:
-
-- The **first voice input** prompts for **microphone access** (the app's `NSMicrophoneUsageDescription` is set, so iOS shows a permission dialog).
-- The **first transcription downloads the Whisper `base.en` model from HuggingFace** over the network (~hundreds of MB). Expect a **one-time delay** on first use; subsequent uses are instant because the model is cached locally.
-- **No model is bundled in the app** — the `.ipa` stays small and the model is fetched on demand.
-
 ### Push notifications are disabled
 
 The sideload build has **push notifications disabled** — a free Apple ID cannot use APNS, and notifications are not part of the sideload signing setup. If you don't get push notifications, or the app shows pairing/notification features as unavailable, that is expected — not a bug.
