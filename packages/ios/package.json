@@ -8,7 +8,8 @@
     "typecheck": "tsgo -b",
     "dev": "vite",
     "prebuild": "bun run --cwd ../chamber-ui build",
-    "build": "bun run typecheck && vite build",
+    "copy-chamber": "node scripts/copy-chamber.mjs",
+    "build": "bun run typecheck && vite build && bun run copy-chamber",
     "preview": "vite preview",
     "beam": "bash script/beam"
   },
