@@ -7,3 +7,10 @@ pub struct ScanResult {
     pub port: u16,
     pub url: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProbeResult {
+    pub reachable: bool,
+    pub status: Option<u16>,
+}

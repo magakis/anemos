@@ -14,6 +14,10 @@ final class PlatformBridge {
     config.getSelectedUI()
   }
 
+  func chamberServerURL() -> URL? {
+    config.chamberServerURL()
+  }
+
   func handle(id: String, method: String, params: [String: Any], reply: @escaping (Any?, String?) -> Void) {
     switch method {
     case "openLink":
@@ -36,8 +40,12 @@ final class PlatformBridge {
       config.setDefaultServerUrl(params["url"] as? String)
       reply(nil, nil)
     case "selectUI":
-      guard let id = params["id"] as? String, let selection = UISelection.local(rawValue: id) else {
+      guard let id = params["id"] as? String, let selection = UISelection.stored(rawValue: id) else {
         reply(nil, "Unsupported UI")
+        return
+      }
+      guard selection != .chamberFull || config.chamberServerURL() != nil else {
+        reply(nil, "Chamber server URL is not configured")
         return
       }
       config.setSelectedUI(selection.rawValue)
@@ -59,6 +67,27 @@ final class PlatformBridge {
         result["url"] = NSNull()
       }
       reply(result, nil)
+    case "getChamberServerUrl":
+      var result: [String: Any] = [:]
+      if let url = config.getChamberServerUrl() {
+        result["url"] = url
+      } else {
+        result["url"] = NSNull()
+      }
+      reply(result, nil)
+    case "setChamberServerUrl":
+      let value = params["url"] as? String
+      guard config.setChamberServerUrl(value) else {
+        reply(nil, "Invalid Chamber server URL")
+        return
+      }
+      reply(nil, nil)
+    case "probeChamberServerUrl":
+      guard let value = params["url"] as? String, let url = ServerConfig.validChamberServerURL(value) else {
+        reply(nil, "Invalid Chamber server URL")
+        return
+      }
+      probe(url: url, reply: reply)
     case "storageGet":
       reply(config.storageGet(name: params["name"] as? String, key: params["key"] as? String), nil)
     case "storageSet":
@@ -83,6 +112,40 @@ final class PlatformBridge {
     default:
       reply(nil, "Unknown method")
     }
+  }
+
+  private func probe(url: URL, reply: @escaping (Any?, String?) -> Void) {
+    probe(url: url, method: "HEAD") { [weak self] status in
+      guard let self else { return }
+      if status == nil || status == 405 || status == 501 {
+        self.probe(url: url, method: "GET") { getStatus in
+          reply(self.probeResult(status: getStatus), nil)
+        }
+        return
+      }
+      reply(self.probeResult(status: status), nil)
+    }
+  }
+
+  private func probe(url: URL, method: String, completion: @escaping (Int?) -> Void) {
+    var request = URLRequest(url: url)
+    request.httpMethod = method
+    request.timeoutInterval = 1.5
+    if method == "GET" {
+      request.setValue("bytes=0-0", forHTTPHeaderField: "Range")
+    }
+    URLSession.shared.dataTask(with: request) { _, response, _ in
+      let status = (response as? HTTPURLResponse)?.statusCode
+      DispatchQueue.main.async {
+        completion(status)
+      }
+    }.resume()
+  }
+
+  private func probeResult(status: Int?) -> [String: Any] {
+    var result: [String: Any] = ["reachable": status != nil]
+    if let status { result["status"] = status }
+    return result
   }
 
   private func share(params: [String: Any]) -> Bool {

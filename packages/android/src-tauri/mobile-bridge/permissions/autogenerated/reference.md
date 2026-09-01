@@ -15,6 +15,9 @@ Default permissions for the mobile bridge plugin
 - `allow-get-selected-ui`
 - `allow-get-default-server-url`
 - `allow-set-default-server-url`
+- `allow-get-chamber-server-url`
+- `allow-set-chamber-server-url`
+- `allow-probe-chamber-server-url`
 
 ## Permission Table
 
@@ -261,6 +264,32 @@ Denies the get_selected_ui command without any pre-configured scope.
 <tr>
 <td>
 
+`mobile-bridge:allow-get-chamber-server-url`
+
+</td>
+<td>
+
+Enables the get_chamber_server_url command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`mobile-bridge:deny-get-chamber-server-url`
+
+</td>
+<td>
+
+Denies the get_chamber_server_url command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `mobile-bridge:allow-get-default-server-url`
 
 </td>
@@ -287,6 +316,32 @@ Denies the get_default_server_url command without any pre-configured scope.
 <tr>
 <td>
 
+`mobile-bridge:allow-probe-chamber-server-url`
+
+</td>
+<td>
+
+Enables the probe_chamber_server_url command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`mobile-bridge:deny-probe-chamber-server-url`
+
+</td>
+<td>
+
+Denies the probe_chamber_server_url command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `mobile-bridge:allow-set-default-server-url`
 
 </td>
@@ -306,6 +361,32 @@ Enables the set_default_server_url command without any pre-configured scope.
 <td>
 
 Denies the set_default_server_url command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`mobile-bridge:allow-set-chamber-server-url`
+
+</td>
+<td>
+
+Enables the set_chamber_server_url command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`mobile-bridge:deny-set-chamber-server-url`
+
+</td>
+<td>
+
+Denies the set_chamber_server_url command without any pre-configured scope.
 
 </td>
 </tr>

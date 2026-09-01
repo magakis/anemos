@@ -10,6 +10,9 @@ const COMMANDS: &[&str] = &[
     "get_selected_ui",
     "get_default_server_url",
     "set_default_server_url",
+    "get_chamber_server_url",
+    "set_chamber_server_url",
+    "probe_chamber_server_url",
 ];
 
 fn main() {

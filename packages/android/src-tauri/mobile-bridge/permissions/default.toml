@@ -14,4 +14,7 @@ permissions = [
   "allow-get-selected-ui",
   "allow-get-default-server-url",
   "allow-set-default-server-url",
+  "allow-get-chamber-server-url",
+  "allow-set-chamber-server-url",
+  "allow-probe-chamber-server-url",
 ]

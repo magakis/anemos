@@ -4,7 +4,7 @@ use tauri::{
     AppHandle, Runtime,
 };
 
-use crate::models::ScanResult;
+use crate::models::{ProbeResult, ScanResult};
 
 const PLUGIN_IDENTIFIER: &str = "ai.opencode.mobilebridge";
 
@@ -60,6 +60,25 @@ impl<R: Runtime> MobileBridge<R> {
     pub fn set_default_server_url(&self, url: Option<String>) -> crate::Result<()> {
         self.0
             .run_mobile_plugin("setDefaultServerUrl", ServerURLPayload { url })
+            .map_err(Into::into)
+    }
+
+    pub fn get_chamber_server_url(&self) -> crate::Result<Option<String>> {
+        self.0
+            .run_mobile_plugin::<ServerURLResponse, _>("getChamberServerUrl", ())
+            .map(|result| result.url)
+            .map_err(Into::into)
+    }
+
+    pub fn set_chamber_server_url(&self, url: Option<String>) -> crate::Result<()> {
+        self.0
+            .run_mobile_plugin("setChamberServerUrl", ServerURLPayload { url })
+            .map_err(Into::into)
+    }
+
+    pub fn probe_chamber_server_url(&self, url: String) -> crate::Result<ProbeResult> {
+        self.0
+            .run_mobile_plugin::<ProbeResult, _>("probeChamberServerUrl", ServerURLPayload { url: Some(url) })
             .map_err(Into::into)
     }
 }

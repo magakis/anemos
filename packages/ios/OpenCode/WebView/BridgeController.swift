@@ -20,7 +20,17 @@ final class LocalFileSchemeHandler: NSObject, WKURLSchemeHandler {
     var path = url.path
     if path.isEmpty || path == "/" { path = "/index.html" }
 
-    let fileURL = baseDirectory.appendingPathComponent(path)
+    let baseURL = baseDirectory.standardizedFileURL
+    let fileURL = baseURL.appendingPathComponent(path).standardizedFileURL
+    guard fileURL.path == baseURL.path || fileURL.path.hasPrefix(baseURL.path + "/") else {
+      urlSchemeTask.didFailWithError(URLError(.noPermissionsToReadFile))
+      return
+    }
+
+    if let origin = urlSchemeTask.request.value(forHTTPHeaderField: "Origin"), origin != "tauri://localhost" {
+      urlSchemeTask.didFailWithError(URLError(.noPermissionsToReadFile))
+      return
+    }
 
     guard let data = try? Data(contentsOf: fileURL) else {
       print("[OpenCode] SchemeHandler 404: \(path)")
@@ -36,8 +46,7 @@ final class LocalFileSchemeHandler: NSObject, WKURLSchemeHandler {
       headerFields: [
         "Content-Type": mimeType,
         "Content-Length": "\(data.count)",
-        "Access-Control-Allow-Origin": "*",
-      ]
+        ]
     )!
     urlSchemeTask.didReceive(response)
     urlSchemeTask.didReceive(data)
@@ -137,16 +146,11 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
   }
 
   func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+    guard isLocalOrigin(message.frameInfo.securityOrigin) else { return }
     guard let body = message.body as? [String: Any] else { return }
     guard let id = body["id"] as? String else { return }
     guard let method = body["method"] as? String else { return }
     let params = body["params"] as? [String: Any] ?? [:]
-
-    if (method == "selectUI" || method == "getSelectedUI" || method == "getDefaultServerUrl")
-      && !isLocalOrigin(message.frameInfo.securityOrigin) {
-      sendResponse(id: id, result: nil, error: "Native UI selection is only available to local content")
-      return
-    }
 
     platform.handle(id: id, method: method, params: params) { [weak self] result, error in
       self?.sendResponse(id: id, result: result, error: error)
@@ -154,19 +158,12 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
   }
 
   private func loadStartPage(in webView: WKWebView) {
-#if DEBUG
-    if selectorEnabled, !resetRequested, let url = URL(string: "http://192.168.50.251:1421") {
-      webView.load(URLRequest(url: url))
-      return
-    }
-#endif
-
     if resetRequested {
       loadLocalPage(named: "selector.html", in: webView)
     } else if !selectorEnabled {
       loadLocalPage(named: UISelection.classic.fileName, in: webView)
-    } else if let selection = UISelection.local(rawValue: platform.selectedUI()) {
-      loadLocalPage(named: selection.fileName, in: webView)
+    } else if let selection = UISelection.stored(rawValue: platform.selectedUI()) {
+      navigate(to: selection)
     } else {
       loadLocalPage(named: "selector.html", in: webView)
     }
@@ -194,7 +191,14 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
   }
 
   private func navigate(to selection: UISelection) {
-    guard selection != .chamberFull else { return }
+    if selection == .chamberFull {
+      guard let url = platform.chamberServerURL() else {
+        loadLocalPage(named: "selector.html")
+        return
+      }
+      webView?.load(URLRequest(url: url))
+      return
+    }
     loadLocalPage(named: selection.fileName)
   }
 
@@ -205,7 +209,8 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
   }
 
   private var currentPage: String? {
-    webView?.url?.pathComponents.last
+    guard isLocalPage(webView?.url) else { return nil }
+    return webView?.url?.pathComponents.last
   }
 
   private func handleDeepLink(_ url: URL) {
@@ -263,7 +268,13 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
 #endif
 
   private func isLocalOrigin(_ origin: WKSecurityOrigin) -> Bool {
-    origin.protocol == "tauri" && origin.host == "localhost"
+    (origin.protocol == "tauri" && origin.host == "localhost")
+      || (origin.protocol == "http" && origin.host == "tauri.localhost")
+  }
+
+  private func isLocalPage(_ url: URL?) -> Bool {
+    guard let url, let scheme = url.scheme, let host = url.host else { return false }
+    return (scheme == "tauri" && host == "localhost") || (scheme == "http" && host == "tauri.localhost")
   }
 
   private static func readSelectorEnabled() -> Bool {
@@ -312,6 +323,7 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
 
   private func sendBridgeCall(function: String, payload: [Any]) {
     guard let webView else { return }
+    guard isLocalPage(webView.url) else { return }
     guard let data = try? JSONSerialization.data(withJSONObject: payload, options: []) else { return }
     guard let json = String(data: data, encoding: .utf8) else { return }
     let script = "window.__OPENCODE_BRIDGE__ && window.__OPENCODE_BRIDGE__.\(function).apply(null, \(json))"
@@ -320,6 +332,7 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
 
   private func injectDeepLink(_ url: URL) {
     guard let webView else { return }
+    guard isLocalPage(webView.url) else { return }
     guard let data = try? JSONSerialization.data(withJSONObject: url.absoluteString, options: [.fragmentsAllowed]) else { return }
     guard let json = String(data: data, encoding: .utf8) else { return }
     let script = """
@@ -342,6 +355,7 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
     for url in DeepLinkRelay.shared.drain() {
       handleDeepLink(url)
     }
+    guard isLocalPage(webView.url) else { return }
     let target = UISelection.local(rawValue: platform.selectedUI()) ?? .chamber
     if currentPage == target.fileName, !pendingDeepLinks.isEmpty {
       let links = pendingDeepLinks

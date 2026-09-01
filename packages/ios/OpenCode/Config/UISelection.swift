@@ -13,9 +13,13 @@ enum UISelection: String {
     }
   }
 
-  static func local(rawValue: String?) -> UISelection? {
+  static func stored(rawValue: String?) -> UISelection? {
     guard let rawValue else { return nil }
-    guard let selection = UISelection(rawValue: rawValue) else { return nil }
+    return UISelection(rawValue: rawValue)
+  }
+
+  static func local(rawValue: String?) -> UISelection? {
+    guard let selection = stored(rawValue: rawValue) else { return nil }
     guard selection != .chamberFull else { return nil }
     return selection
   }

@@ -43,3 +43,24 @@ pub(crate) async fn set_default_server_url<R: Runtime>(
 ) -> Result<()> {
     app.mobile_bridge().set_default_server_url(url)
 }
+
+#[command]
+pub(crate) async fn get_chamber_server_url<R: Runtime>(app: AppHandle<R>) -> Result<Option<String>> {
+    app.mobile_bridge().get_chamber_server_url()
+}
+
+#[command]
+pub(crate) async fn set_chamber_server_url<R: Runtime>(
+    app: AppHandle<R>,
+    url: Option<String>,
+) -> Result<()> {
+    app.mobile_bridge().set_chamber_server_url(url)
+}
+
+#[command]
+pub(crate) async fn probe_chamber_server_url<R: Runtime>(
+    app: AppHandle<R>,
+    url: String,
+) -> Result<crate::ProbeResult> {
+    app.mobile_bridge().probe_chamber_server_url(url)
+}

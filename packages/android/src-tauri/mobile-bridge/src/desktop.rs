@@ -1,7 +1,10 @@
 use serde::de::DeserializeOwned;
 use tauri::{plugin::PluginApi, AppHandle, Runtime};
 
-use crate::{error::Error, models::ScanResult};
+use crate::{
+    error::Error,
+    models::{ProbeResult, ScanResult},
+};
 
 pub fn init<R: Runtime, C: DeserializeOwned>(
     _app: &AppHandle<R>,
@@ -50,6 +53,24 @@ impl<R: Runtime> MobileBridge<R> {
     }
 
     pub fn set_default_server_url(&self, _url: Option<String>) -> crate::Result<()> {
+        Err(Error::Message(
+            "Mobile bridge is unavailable on this platform".to_string(),
+        ))
+    }
+
+    pub fn get_chamber_server_url(&self) -> crate::Result<Option<String>> {
+        Err(Error::Message(
+            "Mobile bridge is unavailable on this platform".to_string(),
+        ))
+    }
+
+    pub fn set_chamber_server_url(&self, _url: Option<String>) -> crate::Result<()> {
+        Err(Error::Message(
+            "Mobile bridge is unavailable on this platform".to_string(),
+        ))
+    }
+
+    pub fn probe_chamber_server_url(&self, _url: String) -> crate::Result<ProbeResult> {
         Err(Error::Message(
             "Mobile bridge is unavailable on this platform".to_string(),
         ))

@@ -13,6 +13,7 @@ import android.view.MotionEvent
 import android.webkit.WebView
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
+import app.tauri.annotation.PermissionCallback
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
 import app.tauri.plugin.JSObject
@@ -23,6 +24,7 @@ import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.net.Socket
+import java.net.URI
 import java.net.URL
 import java.util.Collections
 import java.util.concurrent.Executors
@@ -46,6 +48,7 @@ class ServerUrlArgs {
 
 private data class ScanEntry(val host: String, val port: Int, val url: String)
 private data class WifiAddressInfo(val address: String, val prefixLength: Int)
+private data class ProbeResult(val reachable: Boolean, val status: Int?)
 
 @TauriPlugin
 class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
@@ -53,6 +56,7 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
     private val configPreferences = activity.getSharedPreferences("anemos.config", Context.MODE_PRIVATE)
     private val main = Handler(Looper.getMainLooper())
     private val scanExecutor = Executors.newSingleThreadExecutor()
+    private val probeExecutor = Executors.newCachedThreadPool()
     private var webView: WebView? = null
     private var selectorEnabled = true
     private var fourFingerStartY = 0f
@@ -78,6 +82,7 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
         scanCancelled = true
         scanTask?.cancel(true)
         scanExecutor.shutdownNow()
+        probeExecutor.shutdownNow()
         main.removeCallbacks(debugReset)
         webView?.setOnTouchListener(null)
         webView = null
@@ -93,7 +98,12 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
         webView.post {
             val target = if (deepLink != null) deepLinkTarget() else initialPage()
             deepLink?.let { pendingDeepLinks.addLast(it) }
-            webView.loadUrl(localUrl(target))
+            if (target == CHAMBER_FULL_PAGE && !loadChamberPage(webView)) {
+                webView.loadUrl(localUrl(SELECTOR_PAGE))
+            } else if (target != CHAMBER_FULL_PAGE) {
+                webView.loadUrl(localUrl(target))
+            }
+            if (deepLink != null) main.postDelayed({ deliverPendingDeepLinks(target) }, 500L)
             activity.intent?.data = null
         }
     }
@@ -105,6 +115,7 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
 
     @Command
     fun scanNetwork(invoke: Invoke) {
+        if (rejectRemote(invoke)) return
         val gen = scanGeneration + 1
         scanGeneration = gen
         scanCancelled = false
@@ -113,10 +124,13 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
         scanTask = scanExecutor.submit {
             val results = runScan(gen)
             if (isScanStale(gen)) {
-                main.post { invoke.resolve(JSObject().put("results", ArrayList<JSObject>())) }
+                main.post {
+                    if (isLocalOrigin()) invoke.resolve(JSObject().put("results", ArrayList<JSObject>()))
+                }
                 return@submit
             }
             main.post {
+                if (!isLocalOrigin()) return@post
                 invoke.resolve(JSObject().put("results", results))
                 trigger("scanComplete", JSObject())
             }
@@ -125,6 +139,7 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
 
     @Command
     fun cancelScan(invoke: Invoke) {
+        if (rejectRemote(invoke)) return
         scanCancelled = true
         scanGeneration += 1
         scanTask?.cancel(true)
@@ -133,6 +148,7 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
 
     @Command
     fun share(invoke: Invoke) {
+        if (rejectRemote(invoke)) return
         val args = invoke.parseArgs(ShareArgs::class.java)
         val parts = listOfNotNull(args.text?.trim()?.takeIf { it.isNotEmpty() }, args.url?.trim()?.takeIf { it.isNotEmpty() })
         if (parts.isEmpty()) {
@@ -157,47 +173,45 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
 
     @Command
     fun selectUI(invoke: Invoke) {
-        if (!isLocalOrigin()) {
-            invoke.reject("Native UI selection is only available to local content")
-            return
-        }
+        if (rejectRemote(invoke)) return
 
         val args = invoke.parseArgs(UISelectionArgs::class.java)
         val selection = args.id
-        if (selection != "2" && selection != "3") {
+        if (selection != "1" && selection != "2" && selection != "3") {
             invoke.reject("Unsupported UI")
+            return
+        }
+        if (selection == "1" && chamberServerUri() == null) {
+            invoke.reject("Chamber server URL is not configured")
             return
         }
 
         selectionPreferences.edit().putString(SELECTED_UI_KEY, selection).apply()
         invoke.resolve(JSObject().put("id", selection))
-        main.post { webView?.loadUrl(localUrl(pageFor(selection))) }
+        main.post {
+            if (selection == "1") {
+                if (!loadChamberPage()) webView?.loadUrl(localUrl(SELECTOR_PAGE))
+            } else {
+                webView?.loadUrl(localUrl(pageFor(selection)))
+            }
+        }
     }
 
     @Command
     fun getSelectedUI(invoke: Invoke) {
-        if (!isLocalOrigin()) {
-            invoke.reject("Native UI selection is only available to local content")
-            return
-        }
+        if (rejectRemote(invoke)) return
         invoke.resolve(JSObject().put("id", selectionPreferences.getString(SELECTED_UI_KEY, null)))
     }
 
     @Command
     fun getDefaultServerUrl(invoke: Invoke) {
-        if (!isLocalOrigin()) {
-            invoke.reject("Native UI selection is only available to local content")
-            return
-        }
+        if (rejectRemote(invoke)) return
         invoke.resolve(JSObject().put("url", configPreferences.getString(DEFAULT_SERVER_URL_KEY, null)))
     }
 
     @Command
     fun setDefaultServerUrl(invoke: Invoke) {
-        if (!isLocalOrigin()) {
-            invoke.reject("Native UI selection is only available to local content")
-            return
-        }
+        if (rejectRemote(invoke)) return
         val args = invoke.parseArgs(ServerUrlArgs::class.java)
         val editor = configPreferences.edit()
         if (args.url.isNullOrBlank()) editor.remove(DEFAULT_SERVER_URL_KEY) else editor.putString(DEFAULT_SERVER_URL_KEY, args.url)
@@ -205,26 +219,175 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
         invoke.resolve()
     }
 
+    @Command
+    fun getChamberServerUrl(invoke: Invoke) {
+        if (rejectRemote(invoke)) return
+        invoke.resolve(JSObject().put("url", configPreferences.getString(CHAMBER_SERVER_URL_KEY, null)))
+    }
+
+    @Command
+    fun setChamberServerUrl(invoke: Invoke) {
+        if (rejectRemote(invoke)) return
+        val args = invoke.parseArgs(ServerUrlArgs::class.java)
+        val raw = args.url
+        if (raw.isNullOrBlank()) {
+            configPreferences.edit().remove(CHAMBER_SERVER_URL_KEY).apply()
+            invoke.resolve()
+            return
+        }
+        val uri = chamberServerUri(raw)
+        if (uri == null) {
+            invoke.reject("Invalid Chamber server URL")
+            return
+        }
+        configPreferences.edit().putString(CHAMBER_SERVER_URL_KEY, uri.toString()).apply()
+        invoke.resolve()
+    }
+
+    @Command
+    fun probeChamberServerUrl(invoke: Invoke) {
+        if (rejectRemote(invoke)) return
+        val args = invoke.parseArgs(ServerUrlArgs::class.java)
+        val raw = args.url
+        if (raw.isNullOrBlank() || chamberServerUri(raw) == null) {
+            invoke.reject("Invalid Chamber server URL")
+            return
+        }
+        probeExecutor.submit {
+            val result = probeUrl(raw)
+            main.post {
+                if (!isLocalOrigin()) return@post
+                val response = JSObject().put("reachable", result.reachable)
+                result.status?.let { response.put("status", it) }
+                invoke.resolve(response)
+            }
+        }
+    }
+
+    @Command
+    override fun registerListener(invoke: Invoke) {
+        if (rejectRemote(invoke)) return
+        super.registerListener(invoke)
+    }
+
+    @Command
+    override fun removeListener(invoke: Invoke) {
+        if (rejectRemote(invoke)) return
+        super.removeListener(invoke)
+    }
+
+    @Command
+    @PermissionCallback
+    override fun checkPermissions(invoke: Invoke) {
+        if (rejectRemote(invoke)) return
+        super.checkPermissions(invoke)
+    }
+
+    @Command
+    override fun requestPermissions(invoke: Invoke) {
+        if (rejectRemote(invoke)) return
+        super.requestPermissions(invoke)
+    }
+
     private fun initialPage(): String {
         if (activity.intent?.getBooleanExtra(RESET_UI_EXTRA, false) == true
             || activity.intent?.getBooleanExtra("--reset-ui", false) == true) return SELECTOR_PAGE
         if (!selectorEnabled) return CLASSIC_PAGE
-        return selectionPreferences.getString(SELECTED_UI_KEY, null)?.let(::pageFor) ?: SELECTOR_PAGE
+        val selected = selectionPreferences.getString(SELECTED_UI_KEY, null)
+        if (selected == "1" && chamberServerUri() != null) return CHAMBER_FULL_PAGE
+        return selected?.let(::pageFor) ?: SELECTOR_PAGE
     }
 
     private fun deepLinkTarget(): String {
-        return selectionPreferences.getString(SELECTED_UI_KEY, null)?.let(::pageFor) ?: CHAMBER_PAGE
+        return when (selectionPreferences.getString(SELECTED_UI_KEY, null)) {
+            "2" -> CLASSIC_PAGE
+            "3" -> CHAMBER_PAGE
+            else -> CHAMBER_PAGE
+        }
     }
 
     private fun pageFor(selection: String): String {
-        return if (selection == "3") CHAMBER_PAGE else CLASSIC_PAGE
+        return when (selection) {
+            "3" -> CHAMBER_PAGE
+            else -> CLASSIC_PAGE
+        }
     }
 
     private fun localUrl(page: String): String = "http://tauri.localhost/$page"
 
+    private fun loadChamberPage(view: WebView? = webView): Boolean {
+        val uri = chamberServerUri() ?: return false
+        if (view == null) return false
+        view.loadUrl(uri.toString())
+        return true
+    }
+
     private fun isLocalOrigin(): Boolean {
         val uri = webView?.url?.let(Uri::parse) ?: return false
         return uri.scheme == "http" && uri.host == "tauri.localhost"
+    }
+
+    private fun isLocalPage(page: String): Boolean {
+        val uri = webView?.url?.let(Uri::parse) ?: return false
+        return isLocalOrigin() && uri.path == "/$page"
+    }
+
+    private fun rejectRemote(invoke: Invoke): Boolean {
+        if (isLocalOrigin()) return false
+        invoke.reject("Native mobile bridge is only available to local content")
+        return true
+    }
+
+    private fun chamberServerUri(raw: String? = configPreferences.getString(CHAMBER_SERVER_URL_KEY, null)): Uri? {
+        val uri = raw?.trim()?.let(Uri::parse) ?: return null
+        val scheme = uri.scheme?.lowercase() ?: return null
+        val host = uri.host ?: return null
+        val parsed = try {
+            URI(uri.toString())
+        } catch (_: Throwable) {
+            return null
+        }
+        if (parsed.host == null || parsed.userInfo != null || parsed.port !in -1..65535 || parsed.port == 0) return null
+        if (scheme == "https") return uri
+        if (scheme == "http" && isPrivateIPv4(host)) return uri
+        return null
+    }
+
+    private fun isPrivateIPv4(host: String): Boolean {
+        val octets = host.split('.').map { it.toIntOrNull() ?: return false }
+        if (octets.size != 4 || octets.any { it !in 0..255 }) return false
+        return octets[0] == 10 ||
+                octets[0] == 127 ||
+                (octets[0] == 169 && octets[1] == 254) ||
+                (octets[0] == 172 && octets[1] in 16..31) ||
+                (octets[0] == 192 && octets[1] == 168)
+    }
+
+    private fun probeUrl(raw: String): ProbeResult {
+        var result = requestUrl(raw, "HEAD")
+        if (result == null || result == 405 || result == 501) result = requestUrl(raw, "GET")
+        return ProbeResult(reachable = result != null, status = result)
+    }
+
+    private fun requestUrl(raw: String, method: String): Int? {
+        val connection = try {
+            URL(raw).openConnection() as? HttpURLConnection
+        } catch (_: Throwable) {
+            null
+        } ?: return null
+
+        return try {
+            connection.requestMethod = method
+            connection.connectTimeout = 1_500
+            connection.readTimeout = 1_500
+            if (method == "GET") connection.setRequestProperty("Range", "bytes=0-0")
+            connection.connect()
+            connection.responseCode
+        } catch (_: Throwable) {
+            null
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun readSelectorEnabled(): Boolean {
@@ -290,7 +453,7 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     private fun navigateToSelector() {
-        if (!selectorEnabled || webView?.url?.endsWith("/$SELECTOR_PAGE") == true) return
+        if (!selectorEnabled || isLocalPage(SELECTOR_PAGE)) return
         webView?.post { webView?.loadUrl(localUrl(SELECTOR_PAGE)) }
     }
 
@@ -324,6 +487,7 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     private fun injectDeepLink(url: String) {
+        if (!isLocalOrigin()) return
         val value = JSONObject.quote(url)
         webView?.evaluateJavascript(
             "window.__OPENCODE__=window.__OPENCODE__||{};window.__OPENCODE__.deepLinks=window.__OPENCODE__.deepLinks||[];const u=$value;window.__OPENCODE__.deepLinks.push(u);window.dispatchEvent(new CustomEvent('opencode:deep-link',{detail:{urls:[u]}}));",
@@ -334,10 +498,12 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
     private companion object {
         const val SELECTED_UI_KEY = "selectedUI"
         const val DEFAULT_SERVER_URL_KEY = "defaultServerUrl"
+        const val CHAMBER_SERVER_URL_KEY = "chamberServerUrl"
         const val RESET_UI_EXTRA = "reset-ui"
         const val SELECTOR_PAGE = "selector.html"
         const val CLASSIC_PAGE = "classic.html"
         const val CHAMBER_PAGE = "chamber.html"
+        const val CHAMBER_FULL_PAGE = "chamber-full.html"
     }
 
     private fun runScan(gen: Int): ArrayList<JSObject> {

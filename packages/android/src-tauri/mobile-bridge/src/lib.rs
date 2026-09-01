@@ -13,7 +13,7 @@ mod desktop;
 mod mobile;
 
 pub use error::{Error, Result};
-pub use models::ScanResult;
+pub use models::{ProbeResult, ScanResult};
 
 #[cfg(desktop)]
 pub use desktop::MobileBridge;
@@ -39,7 +39,10 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::select_ui,
             commands::get_selected_ui,
             commands::get_default_server_url,
-            commands::set_default_server_url
+            commands::set_default_server_url,
+            commands::get_chamber_server_url,
+            commands::set_chamber_server_url,
+            commands::probe_chamber_server_url
         ])
         .setup(|app, api| {
             #[cfg(mobile)]

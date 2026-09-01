@@ -59,6 +59,17 @@
         transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
       }
 
+      .card-action {
+        display: block;
+        width: 100%;
+        border: 0;
+        padding: 0;
+        color: inherit;
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
+      }
+
       .card:active:not(:disabled) {
         transform: scale(0.985);
       }
@@ -70,6 +81,11 @@
       }
 
       .card:focus-visible {
+        outline: 3px solid #85c7d9;
+        outline-offset: 3px;
+      }
+
+      .card-action:focus-visible {
         outline: 3px solid #85c7d9;
         outline-offset: 3px;
       }
@@ -103,6 +119,48 @@
         font-size: 13px;
       }
 
+      .url-label {
+        display: block;
+        margin-top: 18px;
+        color: #d9d2d2;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .url-input {
+        width: 100%;
+        margin-top: 7px;
+        border: 1px solid #4a4141;
+        border-radius: 10px;
+        padding: 10px 12px;
+        color: #f8f7f7;
+        background: #171515;
+        font: inherit;
+        font-size: 14px;
+      }
+
+      .url-input:focus-visible {
+        outline: 3px solid #85c7d9;
+        outline-offset: 2px;
+      }
+
+      .hint,
+      .probe {
+        display: block;
+        margin-top: 7px;
+        color: #b9b0b0;
+        font-size: 12px;
+      }
+
+      .probe.ok {
+        color: #a9d7a9;
+      }
+
+      .probe.unreachable,
+      .hint.error {
+        color: #f39a9a;
+      }
+
       .error {
         color: #f39a9a;
       }
@@ -111,22 +169,36 @@
   <body>
     <main>
       <h1>Select interface</h1>
-      <p>Choose the Anemos experience to open next time.</p>
-      <div class="cards" role="list" aria-label="Anemos interfaces">
-        <button class="card" data-ui="3" type="button" role="listitem">
-          <span class="name">Anemos Chamber</span>
-          <span class="server" data-server="3">OpenCode server · loading…</span>
-        </button>
-        <button class="card" data-ui="2" type="button" role="listitem">
-          <span class="name">Classic</span>
-          <span class="server" data-server="2">OpenCode server · loading…</span>
-        </button>
-        <button class="card" data-ui="1" type="button" role="listitem" disabled aria-disabled="true">
-          <span class="name">Chamber Full</span>
-          <span class="server">Available in a future update</span>
-        </button>
-      </div>
-      <span class="state" id="state" role="status" aria-live="polite"></span>
+        <p>Choose the Anemos experience to open next time.</p>
+        <div class="cards" role="list" aria-label="Anemos interfaces">
+          <button class="card" data-ui="3" data-select="3" type="button" role="listitem">
+            <span class="name">Anemos Chamber</span>
+            <span class="server" data-server="3">Classic / Anemos Chamber → loading…</span>
+          </button>
+          <button class="card" data-ui="2" data-select="2" type="button" role="listitem">
+            <span class="name">Classic</span>
+            <span class="server" data-server="2">Classic / Anemos Chamber → loading…</span>
+          </button>
+          <div class="card" data-ui="1" role="listitem">
+            <button class="card-action" data-select="1" type="button">
+              <span class="name">Chamber Full</span>
+              <span class="server" id="chamber-server-label">Chamber Full → not configured</span>
+            </button>
+            <label class="url-label" for="chamber-url">Chamber server URL</label>
+            <input
+              class="url-input"
+              id="chamber-url"
+              type="url"
+              inputmode="url"
+              autocomplete="url"
+              spellcheck="false"
+              placeholder="https://chamber.example.com"
+            />
+            <span class="hint" id="chamber-hint" role="status" aria-live="polite">HTTPS is preferred. HTTP is limited to LAN IPs.</span>
+            <span class="probe" id="chamber-probe" role="status" aria-live="polite">Not checked</span>
+          </div>
+        </div>
+        <span class="state" id="state" role="status" aria-live="polite"></span>
     </main>
     <script>
       (() => {
@@ -134,9 +206,12 @@
         let counter = 0;
 
         const commandNames = {
+          getChamberServerUrl: "get_chamber_server_url",
           getDefaultServerUrl: "get_default_server_url",
           getSelectedUI: "get_selected_ui",
+          probeChamberServerUrl: "probe_chamber_server_url",
           selectUI: "select_ui",
+          setChamberServerUrl: "set_chamber_server_url",
         };
 
         const unwrap = (value, key) => {
@@ -179,31 +254,143 @@
         };
 
         const cards = [...document.querySelectorAll("[data-ui]")];
+        const selectors = [...document.querySelectorAll("[data-select]")];
         const state = document.getElementById("state");
+        const chamberUrl = document.getElementById("chamber-url");
+        const chamberHint = document.getElementById("chamber-hint");
+        const chamberProbe = document.getElementById("chamber-probe");
+        const chamberServerLabel = document.getElementById("chamber-server-label");
+        let probeGeneration = 0;
+
         const setState = (text, isError = false) => {
           state.textContent = text;
           state.classList.toggle("error", isError);
         };
 
+        const setChamberHint = (text, isError = false) => {
+          chamberHint.textContent = text;
+          chamberHint.classList.toggle("error", isError);
+        };
+
+        const setChamberProbe = (text, kind = "") => {
+          chamberProbe.textContent = text;
+          chamberProbe.className = `probe${kind ? ` ${kind}` : ""}`;
+        };
+
+        const isPrivateIPv4 = (host) => {
+          const parts = host.split(".");
+          if (parts.length !== 4 || parts.some((part) => !/^\d+$/.test(part))) return false;
+          const octets = parts.map(Number);
+          if (octets.some((octet) => octet < 0 || octet > 255)) return false;
+          return (
+            octets[0] === 10 ||
+            octets[0] === 127 ||
+            (octets[0] === 169 && octets[1] === 254) ||
+            (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+            (octets[0] === 192 && octets[1] === 168)
+          );
+        };
+
+        const parseChamberUrl = (value) => {
+          const input = value.trim();
+          if (!input) return { error: "Enter the Chamber server URL." };
+          let url;
+          try {
+            url = new URL(input);
+          } catch {
+            return { error: "Enter a valid https:// URL or a LAN http:// URL." };
+          }
+          if (!url.hostname || url.username || url.password || (url.port && (Number(url.port) < 1 || Number(url.port) > 65535))) {
+            return { error: "Enter a valid server URL without credentials." };
+          }
+          if (url.protocol === "https:") return { url: url.href, secure: true };
+          if (url.protocol === "http:" && isPrivateIPv4(url.hostname)) return { url: url.href, secure: false };
+          return { error: "HTTP is allowed only for a private LAN IP; use HTTPS for other hosts." };
+        };
+
+        const updateChamberUrlState = () => {
+          chamberServerLabel.textContent = `Chamber Full → ${chamberUrl.value.trim() || "not configured"}`;
+          const parsed = parseChamberUrl(chamberUrl.value);
+          if (parsed.error) {
+            setChamberHint(parsed.error, true);
+            setChamberProbe("Not checked");
+            return parsed;
+          }
+          setChamberHint(parsed.secure ? "HTTPS connection." : "Unencrypted LAN connection.");
+          setChamberProbe("Not checked");
+          return parsed;
+        };
+
+        const persistChamberUrl = async () => {
+          const parsed = updateChamberUrlState();
+          if (!chamberUrl.value.trim()) {
+            try {
+              await call("setChamberServerUrl", { url: null });
+              return true;
+            } catch {
+              setState("Could not save the Chamber server URL.", true);
+              return false;
+            }
+          }
+          if (parsed.error) return false;
+          try {
+            await call("setChamberServerUrl", { url: parsed.url });
+            return true;
+          } catch {
+            setState("Could not save the Chamber server URL.", true);
+            return false;
+          }
+        };
+
+        const probeChamberUrl = async () => {
+          const parsed = updateChamberUrlState();
+          if (parsed.error) return false;
+          const generation = ++probeGeneration;
+          setChamberProbe("Checking…");
+          try {
+            const result = unwrap(await call("probeChamberServerUrl", { url: parsed.url }), "reachable");
+            if (generation !== probeGeneration) return false;
+            if (result === true) {
+              setChamberProbe("✓ Reachable", "ok");
+              return true;
+            }
+          } catch {}
+          if (generation === probeGeneration) setChamberProbe("Unreachable", "unreachable");
+          return false;
+        };
+
         const select = async (id) => {
-          if (id !== "2" && id !== "3") return;
-          cards.forEach((card) => card.classList.toggle("selected", card.dataset.ui === id));
+          if (id !== "1" && id !== "2" && id !== "3") return;
+          if (id === "1") {
+            if (!(await persistChamberUrl()) || !(await probeChamberUrl())) {
+              setState("Set a reachable Chamber server before opening Chamber Full.", true);
+              return;
+            }
+          }
           setState("Opening…");
           try {
             await call("selectUI", { id });
+            cards.forEach((card) => card.classList.toggle("selected", card.dataset.ui === id));
           } catch {
             setState("Could not save this selection.", true);
           }
         };
 
-        cards.forEach((card) => {
-          card.addEventListener("click", () => void select(card.dataset.ui));
+        selectors.forEach((selector) => {
+          selector.addEventListener("click", () => void select(selector.dataset.select));
+        });
+
+        chamberUrl.addEventListener("input", updateChamberUrlState);
+        chamberUrl.addEventListener("change", () => {
+          void persistChamberUrl().then((saved) => {
+            if (saved) void probeChamberUrl();
+          });
         });
 
         const initialize = async () => {
           try {
             const selected = unwrap(await call("getSelectedUI"), "id");
-            const remembered = selected === "2" || selected === "3" ? selected : "2";
+            const remembered = selected === "1" || selected === "2" || selected === "3" ? selected : "2";
             cards.forEach((card) => card.classList.toggle("selected", card.dataset.ui === remembered));
           } catch {
             cards.find((card) => card.dataset.ui === "2")?.classList.add("selected");
@@ -213,12 +400,22 @@
             const server = unwrap(await call("getDefaultServerUrl"), "url");
             const label = typeof server === "string" && server ? server : "Not configured";
             document.querySelectorAll("[data-server]").forEach((element) => {
-              element.textContent = `OpenCode server · ${label}`;
+              element.textContent = `Classic / Anemos Chamber → ${label}`;
             });
           } catch {
             document.querySelectorAll("[data-server]").forEach((element) => {
-              element.textContent = "OpenCode server · Not configured";
+              element.textContent = "Classic / Anemos Chamber → Not configured";
             });
+          }
+
+          try {
+            const server = unwrap(await call("getChamberServerUrl"), "url");
+            chamberUrl.value = typeof server === "string" ? server : "";
+            chamberServerLabel.textContent = `Chamber Full → ${chamberUrl.value || "not configured"}`;
+            updateChamberUrlState();
+            if (chamberUrl.value) void probeChamberUrl();
+          } catch {
+            chamberServerLabel.textContent = "Chamber Full → not configured";
           }
         };
 

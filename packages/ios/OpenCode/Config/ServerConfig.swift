@@ -3,6 +3,7 @@ import Foundation
 final class ServerConfig {
   private let defaults = UserDefaults.standard
   private let defaultServerKey = "opencode.defaultServerUrl"
+  private let chamberServerKey = "opencode.chamberServerUrl"
   private let selectedUIKey = "opencode.selectedUI"
   private let storagePrefix = "opencode.storage."
 
@@ -16,6 +17,24 @@ final class ServerConfig {
       return
     }
     defaults.removeObject(forKey: defaultServerKey)
+  }
+
+  func getChamberServerUrl() -> String? {
+    defaults.string(forKey: chamberServerKey)
+  }
+
+  func chamberServerURL() -> URL? {
+    Self.validChamberServerURL(getChamberServerUrl())
+  }
+
+  func setChamberServerUrl(_ url: String?) -> Bool {
+    guard let url else {
+      defaults.removeObject(forKey: chamberServerKey)
+      return true
+    }
+    guard Self.validChamberServerURL(url) != nil else { return false }
+    defaults.set(url.trimmingCharacters(in: .whitespacesAndNewlines), forKey: chamberServerKey)
+    return true
   }
 
   func getSelectedUI() -> String? {
@@ -80,5 +99,29 @@ final class ServerConfig {
   private func storageKey(name: String?, key: String?) -> String? {
     guard let name, let key else { return nil }
     return storagePrefix + name + ":" + key
+  }
+
+  static func validChamberServerURL(_ value: String?) -> URL? {
+    guard let value else { return nil }
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty, let components = URLComponents(string: trimmed),
+          let scheme = components.scheme?.lowercased(), let host = components.host,
+          !host.isEmpty, components.user == nil, components.password == nil,
+          let url = components.url else { return nil }
+    if let port = components.port, !(1...65535).contains(port) { return nil }
+
+    if scheme == "https" { return url }
+    guard scheme == "http", isPrivateIPv4(host) else { return nil }
+    return url
+  }
+
+  private static func isPrivateIPv4(_ host: String) -> Bool {
+    let octets = host.split(separator: ".").compactMap { Int($0) }
+    guard octets.count == 4, octets.allSatisfy({ (0...255).contains($0) }) else { return false }
+    return octets[0] == 10
+      || octets[0] == 127
+      || (octets[0] == 169 && octets[1] == 254)
+      || (octets[0] == 172 && (16...31).contains(octets[1]))
+      || (octets[0] == 192 && octets[1] == 168)
   }
 }

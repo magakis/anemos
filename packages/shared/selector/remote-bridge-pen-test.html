@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Anemos remote bridge pen-test</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: system-ui, sans-serif;
+        background: #171515;
+        color: #f8f7f7;
+      }
+
+      body {
+        margin: 2rem auto;
+        max-width: 56rem;
+        padding: 0 1rem;
+      }
+
+      pre {
+        overflow: auto;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        background: #211d1d;
+      }
+
+      [data-verdict="pass"] {
+        color: #a9d7a9;
+      }
+
+      [data-verdict="fail"] {
+        color: #f39a9a;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 id="verdict">Running remote-origin bridge pen-test…</h1>
+    <pre id="results" aria-live="polite"></pre>
+    <script>
+      (() => {
+        const timeout = 300;
+        const iosMethods = [
+          "openLink",
+          "notify",
+          "haptic",
+          "share",
+          "setDefaultServerUrl",
+          "selectUI",
+          "getSelectedUI",
+          "getDefaultServerUrl",
+          "getChamberServerUrl",
+          "setChamberServerUrl",
+          "probeChamberServerUrl",
+          "storageGet",
+          "storageSet",
+          "storageRemove",
+          "storageClear",
+          "storageKey",
+          "storageLength",
+        ];
+        const mobileBridgeCalls = [
+          ["scan_network", {}],
+          ["cancel_scan", {}],
+          ["share", { text: "remote pen-test" }],
+          ["select_ui", { id: "1" }],
+          ["get_selected_ui", {}],
+          ["get_default_server_url", {}],
+          ["set_default_server_url", { url: "https://remote.invalid" }],
+          ["get_chamber_server_url", {}],
+          ["set_chamber_server_url", { url: "https://remote.invalid" }],
+          ["probe_chamber_server_url", { url: "https://remote.invalid" }],
+          ["register_listener", { event: "scanComplete", handler: {} }],
+          ["remove_listener", { event: "scanComplete", channelId: 0 }],
+          ["check_permissions", {}],
+          ["request_permissions", {}],
+        ];
+        const officialCalls = [
+          ["plugin:haptics|impact_feedback", { style: "light" }],
+          ["plugin:haptics|notification_feedback", { type: "success" }],
+          ["plugin:haptics|selection_feedback", {}],
+          ["plugin:haptics|vibrate", {}],
+          ["plugin:notification|is_permission_granted", {}],
+          ["plugin:notification|request_permission", {}],
+          ["plugin:notification|notify", { title: "remote pen-test", body: "remote" }],
+          ["plugin:opener|open_url", { url: "https://remote.invalid" }],
+          ["plugin:store|load", { path: "remote-pen-test.dat" }],
+          ["plugin:store|get", { rid: 0, key: "secret" }],
+          ["plugin:store|set", { rid: 0, key: "secret", value: "remote" }],
+          ["plugin:store|delete", { rid: 0, key: "secret" }],
+          ["plugin:store|clear", { rid: 0 }],
+          ["plugin:store|keys", { rid: 0 }],
+          ["plugin:store|length", { rid: 0 }],
+          ["plugin:store|save", { rid: 0 }],
+          ["plugin:deep-link|get_current", {}],
+        ];
+
+        const wait = () => new Promise((resolve) => setTimeout(resolve, timeout));
+
+        const invoke = async (command, params) => {
+          const fn = window.__TAURI_INTERNALS__?.invoke;
+          if (typeof fn !== "function") return { blocked: true, reason: "no Tauri IPC object" };
+          try {
+            const value = await Promise.race([fn(command, params), wait().then(() => Symbol("timeout"))]);
+            if (typeof value === "symbol") return { blocked: true, reason: "timed out" };
+            return { blocked: false, reason: "IPC resolved", value };
+          } catch (error) {
+            return { blocked: true, reason: error instanceof Error ? error.message : "IPC rejected" };
+          }
+        };
+
+        const postIOS = async (method) => {
+          const handler = window.webkit?.messageHandlers?.opencode;
+          if (!handler?.postMessage) return { blocked: true, reason: "no WKScriptMessageHandler" };
+          const id = `remote-pen-test:${method}:${Date.now()}`;
+          let response;
+          const previous = window.__OPENCODE_BRIDGE__;
+          window.__OPENCODE_BRIDGE__ = {
+            onResponse: (responseID, result, error) => {
+              if (responseID === id) response = { result, error };
+              previous?.onResponse?.(responseID, result, error);
+            },
+            onEvent: previous?.onEvent ?? (() => {}),
+          };
+          try {
+            handler.postMessage({ id, method, params: {} });
+          } catch (error) {
+            return { blocked: true, reason: error instanceof Error ? error.message : "postMessage threw" };
+          }
+          await wait();
+          if (!response) return { blocked: true, reason: "native gate gave no response" };
+          return response.error ? { blocked: true, reason: response.error } : { blocked: false, reason: "native response" };
+        };
+
+        const run = async () => {
+          const results = [];
+          for (const method of iosMethods) results.push({ surface: `iOS ${method}`, ...(await postIOS(method)) });
+          for (const [command, params] of mobileBridgeCalls) {
+            results.push({ surface: `Android ${command}`, ...(await invoke(`plugin:mobile-bridge|${command}`, params)) });
+          }
+          for (const [command, params] of officialCalls) results.push({ surface: `Android ${command}`, ...(await invoke(command, params)) });
+          const failed = results.filter((result) => !result.blocked);
+          const verdict = document.getElementById("verdict");
+          verdict.textContent = failed.length === 0 ? "PASS: remote native bridge is blocked" : "FAIL: remote native bridge is reachable";
+          verdict.dataset.verdict = failed.length === 0 ? "pass" : "fail";
+          document.getElementById("results").textContent = JSON.stringify({ origin: location.origin, results, failed }, null, 2);
+          return { results, failed };
+        };
+
+        window.__ANEMOS_REMOTE_BRIDGE_PEN_TEST__ = run();
+      })();
+    </script>
+  </body>
+</html>

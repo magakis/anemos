@@ -704,3 +704,30 @@ Build, typecheck, and unit-test commands were not run by the implementation agen
 - Added native remembered-UI routing, selector bridge commands, local-origin checks, deep-link/notification-intent routing, and development reset escapes on iOS and Android. The iOS gestures are attached to the `WKWebView`; Android observes the `WebView` touch stream with four-pointer distance/velocity gates.
 - `ANEMOS_SELECTOR=0` is carried into the bundle as `selector-config.json`; native launch routing falls back directly to `classic.html` and does not install the selector recognizers.
 - Build, typecheck, unit-test, device, and bundle-size verification remain deferred to build-fixer/device phases per the implementation-agent boundary.
+
+### Phase 9 results
+
+- Enabled the selector's `Chamber Full` card with a persisted native URL, HTTPS/private-LAN-HTTP validation, an explicit unencrypted-LAN hint, and a short native HEAD/GET reachability probe. `Classic` and `Anemos Chamber` now both identify their shared OpenCode server; Chamber Full identifies its configured URL.
+- UI 1 selection now persists as `1` and navigates the one existing WebView directly to that URL on both shells. Missing or invalid configuration returns to the selector. `opencode://` deep links and notification/deep-link intents still target only Classic or Anemos Chamber, never the remote surface. Resume events and deep-link JavaScript injection are local-bundle-only, so remote Chamber content receives no Anemos injection.
+- ATS choice: `NSAllowsLocalNetworking` remains enabled for the LAN-HTTP case. The pre-existing `NSAllowsArbitraryLoads` and `NSAllowsArbitraryLoadsInWebContent` fallback remains unchanged because a user-supplied host cannot be represented by a static `NSExceptionDomains` list and UI 2 already supports arbitrary HTTP/Tailscale servers; UI 1 itself accepts HTTP only for RFC1918/loopback/link-local IPv4 and prefers HTTPS. Android retains the generated `usesCleartextTraffic=true` needed for dynamic LAN IPs; the same native URL validation prevents UI 1 from selecting arbitrary cleartext hosts, since Network Security Config cannot express a user-supplied private-IP CIDR.
+- Cookie/service-worker decision: no data-store reset or service-worker disable was added. WKWebView and Android WebView isolate cookies and service-worker registrations by origin; `tauri://localhost` and `http://tauri.localhost` cannot be intercepted by a remote Chamber origin. Remote service workers remain available to Chamber for its own PWA lifecycle.
+
+#### D8.5 / §3.19 pen-test checklist
+
+The scratch page at `packages/shared/selector/remote-bridge-pen-test.html` enumerates the native calls and is intended to be served from a non-local origin. `remote-bridge-pen-test.mjs` headlessly checks the exact local-origin allowlist and the source/capability gates without requiring a real WebView.
+
+| Surface | Gate | Verdict |
+| --- | --- | --- |
+| iOS `WKScriptMessageHandler` (`opencode`) | Exact `tauri://localhost` or `http://tauri.localhost` frame security origin | **GATED** |
+| iOS platform bridge: opener, notify, haptic, share, server config, UI selection, storage | Reached only after the handler origin gate | **GATED** |
+| iOS `evaluateJavaScript` responses/events | `isLocalPage(webView.url)` before every bridge callback | **GATED** |
+| iOS deep-link JavaScript injection | `isLocalPage(webView.url)`; remote pages are never injected | **GATED** |
+| iOS packaged asset scheme handler | Rejects non-local `Origin`, removes wildcard CORS, and confines paths to `WebAssets` | **GATED** |
+| iOS gestures, keyboard toolbar, and native event callbacks | View-level recognizers remain active remotely; callbacks use the local-only evaluator gate | **GATED** |
+| Android mobile-bridge commands: scan, share, selection/config, probe | `rejectRemote` requires `http://tauri.localhost` | **GATED** |
+| Android inherited mobile-bridge listener/permission commands | Overrides apply `rejectRemote` before the base implementation | **GATED** |
+| Android Tauri IPC and haptics/notification/opener/store/deep-link plugins | `default` capability is local-only; no `remote.urls` capability or dangerous remote IPC grant exists | **GATED** |
+| Android `evaluateJavascript` deep-link injection | `isLocalOrigin()` before evaluation | **GATED** |
+| Android deep-link/notification intent routing | `1` is normalized to the Chamber UI 3 target; only `2`/`3` receive local injection | **GATED** |
+
+Static origin-policy and source-gate checks are signed off by the harness; real remote-page and gesture/device verification remains in Phase 10.
