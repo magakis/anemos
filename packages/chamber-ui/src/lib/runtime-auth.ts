@@ -1,4 +1,5 @@
 import { getActiveRelayTunnel } from '@/lib/relay/runtime-tunnel';
+import { isAnemosRuntimeActive } from '@/anemos/server-env';
 
 type RuntimeAuthCredential =
   | { type: 'bearer'; token: string }
@@ -8,6 +9,8 @@ export type RuntimeAuthCredentialProvider = () => RuntimeAuthCredential | Promis
 
 let credentialProvider: RuntimeAuthCredentialProvider = () => null;
 let runtimeBearerToken = '';
+// ANEMOS-PATCH: retain a raw Basic authorization header for direct OpenCode servers.
+let runtimeAuthorizationHeader = '';
 let runtimeExtraHeaders: Record<string, string> = {};
 let runtimeUrlAuthToken = '';
 let runtimeUrlAuthTokenExpiresAt = 0;
@@ -102,12 +105,14 @@ const resetRuntimeAuthGeneration = (): void => {
 
 export const setRuntimeAuthCredentialProvider = (provider: RuntimeAuthCredentialProvider): void => {
   runtimeBearerToken = '';
+  runtimeAuthorizationHeader = '';
   resetRuntimeAuthGeneration();
   credentialProvider = provider;
 };
 
 export const clearRuntimeAuthCredentialProvider = (): void => {
   runtimeBearerToken = '';
+  runtimeAuthorizationHeader = '';
   resetRuntimeAuthGeneration();
   credentialProvider = () => null;
 };
@@ -115,9 +120,21 @@ export const clearRuntimeAuthCredentialProvider = (): void => {
 export const setRuntimeBearerToken = (token: string | null | undefined): void => {
   const normalized = normalizeBearerToken(token);
   runtimeBearerToken = normalized;
+  runtimeAuthorizationHeader = '';
   resetRuntimeAuthGeneration();
   credentialProvider = () => normalized ? { type: 'bearer', token: normalized } : null;
 };
+
+// ANEMOS-PATCH: inject HTTP Basic credentials without converting them to a bearer token.
+export const setRuntimeAuthorizationHeader = (value: string | null | undefined): void => {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (runtimeAuthorizationHeader === normalized) return;
+  runtimeAuthorizationHeader = normalized;
+  resetRuntimeAuthGeneration();
+};
+
+// ANEMOS-PATCH: expose the configured Basic header to transports that cannot use bearer auth.
+export const getRuntimeAuthorizationHeaderSync = (): string => runtimeAuthorizationHeader;
 
 export const setRuntimeExtraHeaders = (headers: Record<string, string> | null | undefined): void => {
   // These headers are for runtime HTTP fetches and URL-token minting. Browser-owned
@@ -218,6 +235,7 @@ const getRuntimeAuthCredential = async (): Promise<RuntimeAuthCredential> => {
 // previous token stays valid until `setRuntimeUrlAuthToken` replaces it — no
 // empty-token window). Concurrent callers share one in-flight request.
 const mintRuntimeUrlAuthToken = (apiBaseUrl?: string | null): Promise<string> => {
+  if (isAnemosRuntimeActive()) return Promise.resolve('');
   if (runtimeUrlAuthRefreshPromise) return runtimeUrlAuthRefreshPromise;
   const generation = runtimeAuthGeneration;
 
@@ -316,6 +334,7 @@ const mintLocalRuntimeUrlAuthToken = (localOrigin: string): Promise<string> => {
 // Returns a valid token without a network call, minting only when the current
 // token is missing or already inside the skew window.
 export const refreshRuntimeUrlAuthToken = async (apiBaseUrl?: string | null): Promise<string> => {
+  if (isAnemosRuntimeActive()) return '';
   const existing = readValidRuntimeUrlAuthTokenSync();
   if (existing) return existing;
   return mintRuntimeUrlAuthToken(apiBaseUrl);
@@ -366,7 +385,7 @@ const clearUrlAuthRefreshTimer = (): void => {
 
 const scheduleUrlAuthRefresh = (): void => {
   clearUrlAuthRefreshTimer();
-  if (urlAuthConsumerCount <= 0 || typeof window === 'undefined') return;
+  if (urlAuthConsumerCount <= 0 || typeof window === 'undefined' || isAnemosRuntimeActive()) return;
 
   // Refresh before the skew window so the old token is still valid when the new
   // one swaps in. With no token yet (expiry 0), refresh immediately.
@@ -425,6 +444,12 @@ export const buildRuntimeAuthHeaders = async (headers?: HeadersInit): Promise<He
     if (!next.has(key)) next.set(key, value);
   }
   if (next.has('Authorization')) {
+    return next;
+  }
+
+  const authorizationHeader = getRuntimeAuthorizationHeaderSync();
+  if (authorizationHeader) {
+    next.set('Authorization', authorizationHeader);
     return next;
   }
 

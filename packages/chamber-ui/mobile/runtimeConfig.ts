@@ -1,9 +1,11 @@
-import { getRuntimeExtraHeadersSync, refreshLocalRuntimeUrlAuthToken, refreshRuntimeUrlAuthToken, setRuntimeBearerToken, setRuntimeExtraHeaders } from '@openchamber/ui/lib/runtime-auth';
+import { getRuntimeExtraHeadersSync, refreshLocalRuntimeUrlAuthToken, refreshRuntimeUrlAuthToken, setRuntimeAuthorizationHeader, setRuntimeBearerToken, setRuntimeExtraHeaders } from '@openchamber/ui/lib/runtime-auth';
 import { installRuntimeFetchBridge } from '@openchamber/ui/lib/runtime-fetch';
 import { initializeRuntimeEndpoint, switchRuntimeEndpoint } from '@openchamber/ui/lib/runtime-switch';
 import { restoreDesktopRelayRuntime } from '@openchamber/ui/lib/desktopRelayRestore';
 import { getInjectedBootOutcome } from '@openchamber/ui/lib/desktopBoot';
 import { configureRuntimeUrlResolver } from '@openchamber/ui/lib/runtime-url';
+import { isAnemosRuntimeActive } from '@openchamber/ui/anemos/server-env';
+import { localStorageTokenProvider } from '@openchamber/ui/anemos/auth';
 import type { EmbeddedSessionRuntimeBootstrap } from '@openchamber/ui/components/layout/contextPanelEmbeddedChat';
 import { opencodeClient } from '@openchamber/ui/lib/opencode/client';
 import { createWebAPIs } from './api';
@@ -46,6 +48,7 @@ export const getDesktopRelayRestoreReady = (): Promise<void> => desktopRelayRest
 
 export const createConfiguredWebAPIs = (bootstrap?: EmbeddedSessionRuntimeBootstrap | null) => {
   const { apiBaseUrl, clientToken, localOrigin, runtimeHeaders, relayHostId, relay } = bootstrap ?? readRuntimeBootstrapConfig();
+  const anemosRuntimeActive = isAnemosRuntimeActive();
   const bootOutcome = bootstrap ? null : getInjectedBootOutcome();
   const desktopHostId = relayHostId || (bootOutcome?.target === 'remote' ? bootOutcome.hostId : '');
 
@@ -59,6 +62,9 @@ export const createConfiguredWebAPIs = (bootstrap?: EmbeddedSessionRuntimeBootst
   });
   setRuntimeBearerToken(clientToken || null);
   setRuntimeExtraHeaders(runtimeHeaders || null);
+  // ANEMOS-PATCH: use the stored base64 user:pass token as Basic auth for direct OpenCode requests.
+  const anemosToken = anemosRuntimeActive ? localStorageTokenProvider.getToken() : null;
+  setRuntimeAuthorizationHeader(anemosToken ? `Basic ${anemosToken}` : null);
   if (relay) {
     switchRuntimeEndpoint({
       apiBaseUrl,
@@ -71,7 +77,10 @@ export const createConfiguredWebAPIs = (bootstrap?: EmbeddedSessionRuntimeBootst
   // createWebAPIs imports UI stores, which instantiate the SDK singleton before
   // an embedded frame's asynchronous parent bootstrap is available.
   opencodeClient.reconnectToRuntimeBaseUrl();
-  void refreshRuntimeUrlAuthToken(apiBaseUrl || undefined).catch(() => {});
+  // ANEMOS-PATCH: direct OpenCode servers do not expose Chamber's cookie/url-token endpoint.
+  if (!anemosRuntimeActive) {
+    void refreshRuntimeUrlAuthToken(apiBaseUrl || undefined).catch(() => {});
+  }
   if (localOrigin && !sameOrigin(apiBaseUrl, localOrigin) && Object.keys(getRuntimeExtraHeadersSync()).length > 0) {
     void refreshLocalRuntimeUrlAuthToken(localOrigin).catch(() => {});
   }

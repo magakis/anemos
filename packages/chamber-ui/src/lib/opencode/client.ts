@@ -33,15 +33,16 @@ import { runtimeFetch } from "@/lib/runtime-fetch";
 import { getRuntimeKey } from "@/lib/runtime-switch";
 import { getRegisteredRuntimeAPIs } from "@/contexts/runtimeAPIRegistry";
 import { markStartupTrace } from "@/lib/startupTrace";
+import { isAnemosRuntimeActive, resolveServerEnv } from "@/anemos/server-env";
 import {
   assertProviderCircuitClosed,
   recordProviderSuccess,
   recordProviderError,
 } from "./provider-tracker";
 
-// Use relative path by default (works with both dev and nginx proxy server)
-// Can be overridden with VITE_OPENCODE_URL for absolute URLs in special deployments
-const DEFAULT_BASE_URL = import.meta.env.VITE_OPENCODE_URL || "/api";
+// ANEMOS-PATCH: use the fork's direct server URL only when Anemos env is active; preserve Chamber's /api default otherwise.
+const anemosServerEnv = resolveServerEnv();
+const DEFAULT_BASE_URL = anemosServerEnv.active && anemosServerEnv.baseUrl ? anemosServerEnv.baseUrl : "/api";
 const CONFIG_CACHE_TTL_MS = 10_000;
 const OPENCODE_HEALTH_TIMEOUT_MS = 4_000;
 
@@ -174,7 +175,8 @@ const ensureAbsoluteBaseUrl = (candidate: string): string => {
 
 const resolveRuntimeBaseUrl = (): string | null => {
   try {
-    return getRuntimeUrlResolver().api('/api');
+    // ANEMOS-PATCH: direct Anemos runtimes need the resolver origin so plain v2 routes stay out of /api.
+    return getRuntimeUrlResolver().api(isAnemosRuntimeActive() ? '/' : '/api');
   } catch {
     return null;
   }
@@ -1782,7 +1784,9 @@ class OpencodeService {
   async checkHealth(): Promise<boolean> {
     try {
       const normalizedBase = this.baseUrl.endsWith('/') ? this.baseUrl.replace(/\/+$/, '') : this.baseUrl;
-      const healthUrl = normalizedBase === '/api' || normalizedBase.endsWith('/api')
+      const healthUrl = isAnemosRuntimeActive()
+        ? `${normalizedBase}/global/health`
+        : normalizedBase === '/api' || normalizedBase.endsWith('/api')
         ? '/api/opencode/health'
         : `${normalizedBase}/opencode/health`;
       markStartupTrace('opencodeClient.checkHealth:url', { baseUrl: this.baseUrl, healthUrl });

@@ -60,7 +60,8 @@ const isActiveRuntimeServiceUrl = (url: URL): boolean => {
     if (!/^[a-z][a-z\d+.-]*:\/\//i.test(apiBase)) return false;
     const base = new URL(apiBase);
     if (url.origin !== base.origin) return false;
-    return shouldResolveApiPath(url.pathname);
+    // ANEMOS-PATCH: v2 also serves plain /global, /config, /session, and /mcp routes.
+    return true;
   } catch {
     return false;
   }

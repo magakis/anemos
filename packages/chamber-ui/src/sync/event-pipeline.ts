@@ -16,6 +16,7 @@ import type { Event, OpencodeClient, SessionStatus } from "@opencode-ai/sdk/v2/c
 import { opencodeClient } from "@/lib/opencode/client"
 import { getRuntimeUrlResolver } from "@/lib/runtime-url"
 import { clearRuntimeUrlAuthToken, refreshRuntimeUrlAuthToken } from "@/lib/runtime-auth"
+import { isAnemosRuntimeActive } from "@/anemos/server-env"
 import { type RelayTunnelWebSocket } from "@/lib/relay/tunnel-client"
 import { openRuntimeWebSocket } from "@/lib/relay/runtime-socket"
 import { syncDebug } from "./debug"
@@ -784,6 +785,10 @@ export function createEventPipeline(input: EventPipelineInput): EventPipeline {
   }
 
   const resolveTransport = (): "ws" | "sse" => {
+    // ANEMOS-PATCH: direct OpenCode auth is carried by fetch headers; use SSE because browser WebSocket cannot carry Basic headers.
+    if (isAnemosRuntimeActive()) {
+      return "sse"
+    }
     if (typeof WebSocket !== "function") {
       return "sse"
     }

@@ -246,14 +246,14 @@ Per repo AGENTS.md, strictly: **browser dev loop first** (chamber dev server aga
 
 ### Phase 2 — Anemos connection runtime + v2 boot guard
 
-**Goal:** The chamber UI boots against our default servers with our env vars, carries bearer tokens, and fails loudly on v1-only backends.
+**Goal:** The chamber UI boots against our default servers with our env vars, carries HTTP Basic credentials, and fails loudly on v1-only backends.
 
 **Files:** `packages/chamber-ui/src/lib/opencode/client.ts` (base-URL precedence `// ANEMOS-PATCH:`), new `packages/chamber-ui/src/anemos/boot-guard.tsx`, new `packages/chamber-ui/src/anemos/server-env.ts`, `packages/chamber-ui/mobile/entry wiring`.
 
 **Steps:**
 1. Resolve default base URL from `VITE_OPENCODE_SERVER_HOST`/`VITE_OPENCODE_SERVER_PORT` (default `localhost:4096`) with `VITE_OPENCODE_URL` still taking precedence — matches our entry.tsx semantics and keeps chamber's escape hatch.
-2. Port the resilient probe: `boot-guard.tsx` fetches `<base>/api/config` and requires a JSON content-type (logic lifted from `packages/app/src/utils/server-protocol-resilient.ts`, 59 lines, framework-neutral); on failure render a dedicated "backend too old / not v2" screen with the server URL and version guidance. This is the D2 v1/v2 sub-decision.
-3. Wire bearer-token injection for instances without chamber's pairing endpoint: token source = our adapter storage (Phase 3 completes the storage side; here define the interface + a localStorage fallback for browser dev).
+2. Port the resilient probe: `boot-guard.tsx` fetches the real `<base>/global/health` route and requires JSON with `healthy: true` and a version (the `/api/config` and `/api/mcp` paths are SPA fallbacks on opencode 1.18.x); on failure render a dedicated "backend too old / not v2" screen with the server URL and version guidance. This is the D2 v1/v2 sub-decision.
+3. Wire HTTP Basic authorization for instances without Chamber's pairing endpoint: the token source is our adapter storage (Phase 3 completes the storage side; here define the interface + a localStorage fallback for browser dev), and `?auth_token=` remains base64 `user:pass`.
 4. Preserve `?auth_token=` cold-start support (strip after read) mirroring `entry.tsx:112–151`.
 
 **Constraints:** do not remove chamber's own `/api` default — gate it behind env so upstream diffs stay small.
@@ -499,6 +499,20 @@ Node 24.11.1 on host satisfies their `engines.node >=22`; build itself runs unde
 ### Phase 0 wrap-up
 
 All three assumptions proven; plan adjustments recorded above (P2 probe route, P2 Basic-auth adapter, P8 scheme-preservation checklist item, P1 defines). No repo files other than this plan document were modified.
+
+### Phase 2 results
+
+**Verdict: PASS.** The Anemos browser runtime now resolves `VITE_OPENCODE_URL` ahead of `VITE_OPENCODE_SERVER_HOST`/`VITE_OPENCODE_SERVER_PORT`, defaults those values to `localhost:4096`, and preserves Chamber's `/api` base when no Anemos env is active. `?auth_token=` is validated as base64 `user:pass`, persisted through the browser token provider, and removed from the URL history.
+
+Patched the runtime client to use the direct v2 server origin, inject `Authorization: Basic <base64>` on OpenCode HTTP requests, and use SSE for Anemos event streaming because browser WebSockets cannot carry the Basic header. The mobile bootstrap now skips Chamber's cookie/session/passkey gate for active Anemos envs and suppresses its `/auth/url-token` minting path. Added a v2 boot guard against `GET <base>/global/health`, requiring JSON with `healthy: true` and a version; `/api/config` and `/api/mcp` were deliberately not used because they are SPA fallbacks on opencode 1.18.x.
+
+Verification with `playwright-core` against `/usr/bin/chromium` (`390×844`, `isMobile: true`) at `http://localhost:4455/mobile/?surface=mobile`:
+
+- **Live runtime:** with `VITE_OPENCODE_SERVER_PORT=42447`, the splash progressed to the mobile sessions surface. `GET /global/event` returned `200 text/event-stream`, session pages returned `200`, and the sessions drawer rendered the live title `Parakeet V2/V3 Chunking and Punctuation Models`.
+- **Basic auth/cold start:** a valid `auth_token` was stripped from the URL; captured OpenCode requests carried Basic authorization (22 Basic requests, 0 bearer requests).
+- **Guard:** with `VITE_OPENCODE_URL=http://localhost:9/`, the dedicated `Backend too old / not v2-compatible` screen rendered with the resolved backend and `GET http://localhost:9/global/health` failure instead of the splash or a blank page.
+
+Deviation: expected Phase-4 Chamber-only calls to `/api/config/themes` and `/api/push/visibility` still report CORS/404 failures in the browser; they are outside the Phase-2 connection/session path and did not prevent the v2 session/SSE surface from loading.
 
 ---
 

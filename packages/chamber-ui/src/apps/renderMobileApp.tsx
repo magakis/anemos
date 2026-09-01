@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@/styles/fonts';
 import '@/index.css';
@@ -18,6 +18,9 @@ import { startModelPrefsAutoSave } from '@/lib/modelPrefsAutoSave';
 import { startTypographyWatcher } from '@/lib/typographyWatcher';
 import { preloadMarkdownRenderer } from '@/components/chat/markdownRendererLoader';
 import { SessionAuthGate } from '@/components/auth/SessionAuthGate';
+import { AnemosBootGuard } from '@/anemos/boot-guard';
+import { isAnemosRuntimeActive } from '@/anemos/server-env';
+import { getRuntimeApiBaseUrl } from '@/lib/runtime-switch';
 import { MobileApp } from './MobileApp';
 
 const initializeSharedPreferences = () => {
@@ -49,7 +52,6 @@ export function renderMobileApp(apis: RuntimeAPIs) {
   // a wide native device (iPad landscape) would fall out of the mobile branch.
   window.__OPENCHAMBER_SURFACE__ = 'mobile';
   preloadMarkdownRenderer();
-  initializeSharedPreferences();
 
   // Expose the widget snapshot builder so the native shell can read the session overview
   // (attention count + recent sessions) and feed the home/lock-screen/Control Center widgets.
@@ -73,6 +75,8 @@ export function renderMobileApp(apis: RuntimeAPIs) {
   // runtime uses also doesn't display inside a WKWebView.)
   const capacitor = (window as typeof window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
   const isNativeShell = capacitor?.isNativePlatform?.() === true || window.location.protocol === 'capacitor:';
+  // ANEMOS-PATCH: the browser adapter authenticates with direct OpenCode headers and skips Chamber cookie auth.
+  const isAnemosRuntime = isAnemosRuntimeActive();
   const resolvedApis = isNativeShell
     ? { ...apis, notifications: { notifyAgentCompletion: async () => false, canNotify: () => false } }
     : apis;
@@ -82,18 +86,33 @@ export function renderMobileApp(apis: RuntimeAPIs) {
   // password per instance), while the plain mobile BROWSER against a
   // --ui-password server must keep the classic SessionAuthGate unlock page.
   const app = <MobileApp apis={resolvedApis} />;
+  const anemosBaseUrl = isAnemosRuntime ? getRuntimeApiBaseUrl() : null;
+
+  const SharedPreferencesBootstrap: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const started = React.useRef(false);
+    React.useEffect(() => {
+      if (started.current) return;
+      started.current = true;
+      initializeSharedPreferences();
+    }, []);
+    return <>{children}</>;
+  };
 
   createRoot(rootElement).render(
     <StrictMode>
-      <I18nProvider>
-        <ThemeSystemProvider>
-          <ThemeProvider>
-            <DiffWorkerProvider>
-              {isNativeShell ? app : <SessionAuthGate>{app}</SessionAuthGate>}
-            </DiffWorkerProvider>
-          </ThemeProvider>
-        </ThemeSystemProvider>
-      </I18nProvider>
+      <AnemosBootGuard baseUrl={anemosBaseUrl} enabled={isAnemosRuntime}>
+        <SharedPreferencesBootstrap>
+          <I18nProvider>
+            <ThemeSystemProvider>
+              <ThemeProvider>
+                <DiffWorkerProvider>
+                  {isNativeShell || isAnemosRuntime ? app : <SessionAuthGate>{app}</SessionAuthGate>}
+                </DiffWorkerProvider>
+              </ThemeProvider>
+            </ThemeSystemProvider>
+          </I18nProvider>
+        </SharedPreferencesBootstrap>
+      </AnemosBootGuard>
     </StrictMode>,
   );
 }
