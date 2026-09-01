@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // ANEMOS-PATCH: include Vite's import.meta.env types for the browser entry.
+    "types": ["@types/dom-speech-recognition", "vite/client"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./*"],
+      "@openchamber/ui/*": ["./*"]
+    }
+  },
+  // ANEMOS-PATCH: typecheck the standalone mobile entry alongside the vendored UI.
+  "include": ["src", "mobile"]
+}
