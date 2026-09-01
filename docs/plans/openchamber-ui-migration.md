@@ -687,7 +687,7 @@ Build, typecheck, and unit-test commands were not run by the implementation agen
 6. **Notification-tap routing when the remembered UI is 1:** planned rule is "fork push taps open the remembered UI if it is 2/3, else UI 3" (never UI 1) — confirm.
 7. **`opencode://` deep links when remembered UI is 1:** same rule as 6 (route to UI 3) — confirm.
 8. **Selector localization:** ship English-only at first (planned) or inherit the device language from chamber's locale files?
-9. **WebAssets in git:** the combined bundle (three entries) grows the committed iOS tree — keep committing built assets (current convention) or gitignore them as a follow-up decision?
+9. **WebAssets in git (decision recorded in P11):** the combined bundle (three entries) grows the committed iOS tree. **Recommendation: leave the assets committed for now** because the sideload flow depends on the packaged WebAssets being in-tree; revisit only with an equivalent artifact-delivery flow. The existing gitignore policy is unchanged.
 10. **UI 1 health monitoring (optional):** add a lightweight uptime/reachability probe of the chamber server to the selector card (planned: on-demand check when the card is visible) — enough, or want background monitoring?
 
 ### Phase 5 results
@@ -731,3 +731,12 @@ The scratch page at `packages/shared/selector/remote-bridge-pen-test.html` enume
 | Android deep-link/notification intent routing | `1` is normalized to the Chamber UI 3 target; only `2`/`3` receive local injection | **GATED** |
 
 Static origin-policy and source-gate checks are signed off by the harness; real remote-page and gesture/device verification remains in Phase 10.
+
+### Phase 11 results
+
+- Finalized `packages/chamber-ui/PROVENANCE.md` with the upstream pin, the UI 1 no-upstream-code boundary, the D8.6 12-locale rescope, the P5 push-verification deferral to the packaged sideload/device pass, and a counted source-marker ledger: 148 source markers across 93 files (149 summed matches when the ledger's one literal count reference is included).
+- Regenerated `docs/chamber-sync-checklist.md` as the fresh-tag sync runbook. `script/chamber-sync.sh` now validates the pinned commit and requires the provenance ledger before recopying, then points the operator to the re-apply and gate steps.
+- Added the three-UI architecture guidance to root `AGENTS.md`: selector/gesture behavior, per-UI server semantics, the `ANEMOS_SELECTOR=0` escape hatch, and the UI 2 zero-diff invariant.
+- Deleted the two stray root Playwright snapshots `chamber-mobile-initial.yml` and `chamber-mobile-noenv.yml`. No packages were deleted and no gitignore rule was changed; OQ 9 now recommends keeping WebAssets committed for sideload delivery.
+- Dead-code sweep found no Rev-1 `FRONTEND=chamber` build script or other superseded sync skeleton to remove. The current sync script is functional and was retained with only ledger/gate guidance updates.
+- Build and typecheck execution remains assigned to the build-fixer/device verification pass; this documentation phase was verified by inspection.
