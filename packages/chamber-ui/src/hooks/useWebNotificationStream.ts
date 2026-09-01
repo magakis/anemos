@@ -23,6 +23,12 @@ const toNotificationPayload = (value: unknown): NotificationPayload | null => {
     title: typeof properties.title === 'string' ? properties.title : undefined,
     body: typeof properties.body === 'string' ? properties.body : undefined,
     tag: typeof properties.tag === 'string' ? properties.tag : undefined,
+    // ANEMOS-PATCH: preserve event semantics so fork PushPrefs can distinguish
+    // completion, approval, question, and error notifications.
+    kind: typeof properties.kind === 'string' ? properties.kind : undefined,
+    sessionId: typeof properties.sessionId === 'string' ? properties.sessionId : undefined,
+    directory: typeof properties.directory === 'string' ? properties.directory : undefined,
+    requireHidden: properties.requireHidden === true,
   };
 };
 

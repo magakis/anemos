@@ -10,7 +10,55 @@ import {
 import { getAnemosShellPlatform, isAnemosNativeShell } from '@/lib/platform';
 import { triggerReconnectRecovery } from '@/sync/reconnect-recovery';
 
-export type AnemosNotifyKind = 'complete' | 'error' | 'approval' | 'question';
+export type PushKind = 'complete' | 'error' | 'approval' | 'question' | 'test';
+export type AnemosNotifyKind = Exclude<PushKind, 'test'>;
+
+// ANEMOS-PATCH: keep the fork relay contract local to UI 3 instead of importing
+// the Solid app's Platform types into the vendored React bundle.
+export type PushPerm = 'unsupported' | 'not-determined' | 'denied' | 'authorized' | 'provisional' | 'ephemeral';
+export type PushCred = {
+  channel: string;
+  device?: string;
+  secret?: string;
+};
+export type PairState = 'pending' | 'claimed' | 'active' | 'expired' | 'failed';
+export type PairInfo = {
+  id: string;
+  status: PairState;
+  token?: string;
+  command?: string;
+  expires?: string;
+  channel?: string;
+  device?: string;
+  message?: string;
+};
+export type PushPrefs = {
+  complete: boolean;
+  approval: boolean;
+  question: boolean;
+  error: boolean;
+};
+export type PushDiag = {
+  token?: boolean;
+  tokenPending?: boolean;
+  relay?: string;
+  device?: string;
+  pairID?: string;
+  pairStatus?: PairState;
+  pairExpires?: string;
+  lastCode?: string;
+  lastError?: string;
+};
+export type PushState = {
+  supported: boolean;
+  permission: PushPerm;
+  allowed: boolean;
+  registered: boolean;
+  paired: boolean;
+  generic: boolean;
+  channel?: string;
+  diag?: PushDiag;
+};
 
 export interface AnemosNotifyOpts {
   onClick?: () => void;
@@ -35,9 +83,23 @@ export interface AnemosPlatform {
   back(): void;
   forward(): void;
   restart(): Promise<void>;
+  fetch?: typeof fetch;
   haptic?(style: 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error'): void;
   share(data: AnemosShareData): Promise<boolean>;
   storage(name?: string): AnemosStorage;
+  // ANEMOS-PATCH: optional native relay/pairing methods. Browser adapters expose
+  // an unsupported state so settings can render without probing native APIs.
+  pushState?: () => PushState | undefined;
+  getPushState?(): Promise<PushState>;
+  requestPushPermission?(): Promise<PushState>;
+  openSystemSettings?(): Promise<void>;
+  testPush?(href?: string): Promise<boolean>;
+  beginPushPairing?(): Promise<PairInfo>;
+  getPushPairing?(): Promise<PairInfo | undefined>;
+  setPushPreferences?(prefs: PushPrefs): Promise<void>;
+  setPushRelayURL?(url?: string): Promise<void>;
+  setPushCredentials?(input: PushCred): Promise<PushState>;
+  clearPushPairing?(): Promise<PushState>;
 }
 
 export type Platform = AnemosPlatform;
@@ -89,6 +151,15 @@ const browserNotify = async (title: string, description?: string, opts?: AnemosN
   };
 };
 
+const unsupportedPushState = (): PushState => ({
+  supported: false,
+  permission: 'unsupported',
+  allowed: false,
+  registered: false,
+  paired: false,
+  generic: true,
+});
+
 const browserPlatform = (): AnemosPlatform => {
   const storage = (name?: string): AnemosStorage => createAnemosStorage(name);
   return {
@@ -110,6 +181,10 @@ const browserPlatform = (): AnemosPlatform => {
       }
     },
     storage,
+    // ANEMOS-PATCH: the fork relay is native-only; keep browser settings safe
+    // and deterministic instead of attempting Web Push registration.
+    pushState: unsupportedPushState,
+    getPushState: async () => unsupportedPushState(),
   };
 };
 
@@ -176,6 +251,47 @@ export const createBridgePlatformAdapter = (options: {
       return result === true;
     }),
   });
+
+  // ANEMOS-PATCH: bridge native push methods through the same adapter used by
+  // the React settings surface. Keep the last state synchronously readable for
+  // pairing UI effects while all bridge calls remain asynchronous.
+  let cachedPushState: PushState = {
+    supported: true,
+    permission: 'not-determined',
+    allowed: false,
+    registered: false,
+    paired: false,
+    generic: true,
+  };
+  const readPushState = () => cachedPushState;
+  const updatePushState = (value: PushState | null | undefined): PushState => {
+    if (value && typeof value === 'object') cachedPushState = value;
+    return cachedPushState;
+  };
+  adapter.pushState = overrides.pushState ?? readPushState;
+  adapter.getPushState = overrides.getPushState ?? (async () => updatePushState(await options.bridge.sendAsync<PushState>('getPushState')));
+  adapter.requestPushPermission = overrides.requestPushPermission ?? (async () => updatePushState(await options.bridge.sendAsync<PushState>('requestPushPermission')));
+  adapter.openSystemSettings = overrides.openSystemSettings ?? (async () => {
+    await options.bridge.sendAsync('openSystemSettings');
+  });
+  adapter.testPush = overrides.testPush ?? (async (href) => (await options.bridge.sendAsync<boolean>('testPush', { href })) === true);
+  adapter.beginPushPairing = overrides.beginPushPairing ?? (async () => {
+    const value = await options.bridge.sendAsync<PairInfo>('beginPushPairing');
+    if (!value) throw new Error('Push pairing is unavailable on this device.');
+    return value;
+  });
+  adapter.getPushPairing = overrides.getPushPairing ?? (async () => {
+    const value = await options.bridge.sendAsync<PairInfo>('getPushPairing');
+    return value ?? undefined;
+  });
+  adapter.setPushPreferences = overrides.setPushPreferences ?? (async (prefs) => {
+    await options.bridge.sendAsync('setPushPreferences', prefs);
+  });
+  adapter.setPushRelayURL = overrides.setPushRelayURL ?? (async (url) => {
+    await options.bridge.sendAsync('setPushRelayURL', { url });
+  });
+  adapter.setPushCredentials = overrides.setPushCredentials ?? (async (input) => updatePushState(await options.bridge.sendAsync<PushState>('setPushCredentials', input)));
+  adapter.clearPushPairing = overrides.clearPushPairing ?? (async () => updatePushState(await options.bridge.sendAsync<PushState>('clearPushPairing')));
   configureAnemosStorage({ storage: adapter.storage });
   return adapter;
 };

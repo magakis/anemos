@@ -7,6 +7,8 @@ import { AppLinkSecuritySettings } from './AppLinkSecuritySettings';
 import { DefaultsSettings } from './DefaultsSettings';
 import { GitSettings } from './GitSettings';
 import { NotificationSettings } from './NotificationSettings';
+// ANEMOS-PATCH: keep the fork relay settings alongside Chamber's notification settings.
+import { AnemosPushSettings } from '@/anemos/push/AnemosPushSettings';
 import { VoiceSettings } from './VoiceSettings';
 import { TunnelSettings } from './TunnelSettings';
 import { OpenCodeCliSettings } from './OpenCodeCliSettings';
@@ -20,6 +22,7 @@ import { isCapacitorApp } from '@/lib/platform';
 import { useI18n } from '@/lib/i18n';
 import { subscribeRuntimeEndpointChanged } from '@/lib/runtime-switch';
 import type { OpenChamberSection } from './types';
+import { isFeatureAvailable } from '@/features/registry';
 
 const useRuntimeEndpointEpoch = (): number => {
     const [epoch, setEpoch] = React.useState(0);
@@ -223,9 +226,15 @@ const GitSectionContent: React.FC = () => {
     return <GitSettings />;
 };
 
-// Notifications section: Native browser notifications
+// ANEMOS-PATCH: notifications section includes Chamber notifications and the fork relay surface.
 const NotificationSectionContent: React.FC = () => {
-    return <NotificationSettings />;
+    // ANEMOS-PATCH: registry-gate the native fork relay section for reversible rollout.
+    return (
+        <>
+            <NotificationSettings />
+            {isFeatureAvailable('push') && <AnemosPushSettings />}
+        </>
+    );
 };
 
 // Voice section: Language selection and continuous mode

@@ -21,6 +21,7 @@ export const FEATURE_REGISTRY = {
   i18n: { enabled: true, reason: 'Locale selection is client-side.' },
   appearance: { enabled: true, reason: 'Theme and typography preferences are client-side.' },
   instances: { enabled: true, reason: 'Direct instance connection uses the Anemos adapter.' },
+  push: { enabled: true, reason: 'Fork relay push uses the Anemos platform adapter.' },
 
   fs: { enabled: false, reason: 'Filesystem browsing currently depends on Chamber filesystem routes.' },
   git: { enabled: false, reason: 'Git surfaces currently depend on Chamber git routes.' },
@@ -110,7 +111,7 @@ export const SETTINGS_PAGE_FEATURES = {
   sessions: 'chamber-config',
   'magic-prompts': 'chamber-config',
   snippets: 'chamber-config',
-  notifications: 'push-web',
+  notifications: 'push',
   voice: 'tts-dictation',
   tunnel: 'tunnels',
   about: 'updates',

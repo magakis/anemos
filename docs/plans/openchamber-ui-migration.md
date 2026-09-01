@@ -583,3 +583,10 @@ Build, typecheck, and unit-test commands were not run by the implementation agen
 3. **Diff review (git changes surface):** our current app reviews VCS diffs via the opencode SDK. Chamber's changes surface uses its Express git routes. Cut initially per this plan — confirm, or should porting it onto the SDK's `vcs` endpoints be pulled into Phase 4/5 scope?
 4. **Terminal/files-on-device:** any mobile users depending on the PTY terminal or filesystem browsing today? Both are cut initially.
 5. **Branding pass:** chamber UI carries OpenChamber naming/strings in places beyond the deep-link scheme. How far should the anemos rebrand go in Phase 4 (strings only vs. full visual identity), and is the default theme the current token palette?
+
+### Phase 5 results
+
+- Added the UI 3 fork-relay pairing machine and React shell under `packages/chamber-ui/src/anemos/push/`, including permission, host-plugin activation, relay polling, repair/clear, and Bun tests.
+- Added native adapter push method shapes and bridge forwarding, relay URL and PushPrefs persistence, and notification trigger mapping for completion, approval, question, and error events.
+- Added the registry-gated Anemos Notifications settings section with relay URL, permission, pairing, preferences, diagnostics state, and test push controls.
+- Build and test commands were not run by the implementation agent per the repository agent boundary; build-fixer owns execution verification.
