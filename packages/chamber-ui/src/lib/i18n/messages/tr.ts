@@ -961,6 +961,11 @@ export const dict = {
   'gitView.conflict.noDetailsAvailable': 'Çakışma detayları mevcut değil',
   'gitView.empty.notGitRepository': 'Bu dizin bir Git repository\'si değil',
   'gitView.empty.notGitRepositoryDescription': 'Bu dizinde Git\'i başlatın veya bir repository açın.',
+  // ANEMOS-PATCH: complete Turkish translations for the Git discovery labels added in Phase 6.
+  'gitView.empty.discoveringRepositories': 'Git repository\'leri aranıyor...',
+  'gitView.empty.discoverFailed': 'Git repository\'leri taranamadı',
+  'gitView.empty.retryDiscovery': 'Tekrar dene',
+  'gitView.empty.selectRepositoryPlaceholder': 'Bir repository seçin...',
   'gitView.empty.selectSessionOrDirectory': 'Git durumunu görüntülemek için bir session veya dizin seçin',
   'gitView.empty.worktreeFeaturesUnavailable': 'Bu çalışma alanı modunda worktree özellikleri kullanılamıyor.',
   'gitView.empty.worktreeSetupDescription': 'Worktree kurulumu tamamlanıyor ve repository durumu hazırlanıyor.',
