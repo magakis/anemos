@@ -35,19 +35,20 @@ describe('legacy default-server migration', () => {
     await legacy.setItem('opencode.settings.dat:defaultServerPassword', 'secret');
 
     const first = await migrateLegacyDefaultServer({ storage: target, legacyStorage: legacy });
-    expect(first).toMatchObject({ migrated: true, url: 'http://localhost:42447' });
+    // ANEMOS-PATCH: assert migration fields with Bun's supported matcher API.
+    expect(first.migrated).toBe(true);
+    expect(first.url).toBe('http://localhost:42447');
     expect(await legacy.getItem('opencode.settings.dat:defaultServerUrl')).toBe('http://localhost:42447/');
 
     const instances = JSON.parse(
       (await target.getItem('openchamber.mobile.connections.v1')) ?? '[]',
     ) as Array<Record<string, unknown>>;
     expect(instances).toHaveLength(1);
-    expect(instances[0]).toMatchObject({
-      url: 'http://localhost:42447',
-      username: 'alice',
-      password: 'secret',
-      candidates: [{ kind: 'direct', url: 'http://localhost:42447' }],
-    });
+    // ANEMOS-PATCH: assert migrated instance fields with Bun's supported matcher API.
+    expect(instances[0]?.url).toBe('http://localhost:42447');
+    expect(instances[0]?.username).toBe('alice');
+    expect(instances[0]?.password).toBe('secret');
+    expect(instances[0]?.candidates).toEqual([{ kind: 'direct', url: 'http://localhost:42447' }]);
 
     const second = await migrateLegacyDefaultServer({ storage: target, legacyStorage: legacy });
     expect(second.alreadyMigrated).toBe(true);
