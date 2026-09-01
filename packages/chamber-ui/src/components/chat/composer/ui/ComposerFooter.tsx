@@ -24,6 +24,8 @@ export interface ComposerFooterProps {
     isMobile: boolean;
     isVSCode: boolean;
     sessionId: string | null;
+    // ANEMOS-PATCH: preserve draft-open state for composer action-button gating.
+    newSessionDraftOpen: boolean;
     radius: string;
     footerPaddingClass: string;
     footerGapClass: string;
@@ -58,6 +60,8 @@ export function ComposerFooter(props: ComposerFooterProps) {
         isMobile,
         isVSCode,
         sessionId: currentSessionId,
+        // ANEMOS-PATCH: preserve draft-open state for composer action-button gating.
+        newSessionDraftOpen,
         radius: chatInputRadius,
         footerPaddingClass,
         footerGapClass,

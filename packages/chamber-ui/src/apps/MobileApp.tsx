@@ -504,11 +504,8 @@ const MobileShell: React.FC<{ onActiveConnectionDeleted: () => void }> = ({ onAc
                 forceMobile
                 isWindowed
                 initialMobileStage={settingsInitialMobileStage}
-                // About exists for server updates — meaningful in a browser
-                // (hosted mobile), not in the Capacitor shell (store updates).
-                visiblePageSlugs={MOBILE_SETTINGS_PAGES.filter(
-                  (page) => !(showCapacitorOnlyFeatures && page === 'about'),
-                )}
+                // ANEMOS-PATCH: expose only the Phase 4-supported mobile settings pages.
+                visiblePageSlugs={[...MOBILE_SETTINGS_PAGES]}
                 onClose={closeSurface}
               />
             </ErrorBoundary>

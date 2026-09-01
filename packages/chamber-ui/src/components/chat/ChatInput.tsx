@@ -1154,6 +1154,7 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
                     return;
                 }
             }
+            } // ANEMOS-PATCH: close the mention-text loop after gating filesystem-only work.
         }
 
         // Inline review comments and synthetic context are consumed before
@@ -3012,6 +3013,8 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
                         isMobile={isMobile}
                         isVSCode={isVSCode}
                          sessionId={currentSessionId}
+                        // ANEMOS-PATCH: pass draft state required by composer action-button gating.
+                        newSessionDraftOpen={newSessionDraftOpen}
                         radius={chatInputRadius}
                         footerPaddingClass={footerPaddingClass}
                         footerGapClass={footerGapClass}
