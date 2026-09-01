@@ -37,6 +37,7 @@ import {
   resolveThemePreferencesFromStorageEvent,
   writeThemePreferencesForRuntime,
 } from './theme-storage';
+import { isFeatureCutRuntime } from '@/features/registry';
 
 type ThemePreferences = {
   themeMode: ThemeMode;
@@ -253,7 +254,8 @@ export function ThemeSystemProvider({ children, defaultThemeId }: ThemeSystemPro
   }, [ensureThemeById, isVSCode, preferences, systemPrefersDark, vscodeTheme]);
 
   const reloadCustomThemes = useCallback(async () => {
-    if (typeof window === 'undefined' || isVSCode) {
+    // ANEMOS-PATCH: built-in themes and local preferences replace Chamber's custom-theme route.
+    if (typeof window === 'undefined' || isVSCode || isFeatureCutRuntime()) {
       return;
     }
 

@@ -10,9 +10,8 @@ import { cn } from '@/lib/utils';
 import { connectionDisplayUrl, useMobileConnection } from './mobileConnections';
 import { useDebugPanelLongPress } from './mobileConnectionDebug';
 import { MobileConnectionDebugPanel } from './MobileConnectionDebugPanel';
-import { isQrScanSupported, parseConnectionPayload, scanConnectionQr } from './mobileQrScan';
+import { parseConnectionPayload } from './mobileQrScan';
 import { mobileConnectionInputClass, mobileInputKeyboardProps } from './mobileConnectionUi';
-import { MobileQrConnectionLoading, MobileQrScannerOverlay } from './MobileQrScannerOverlay';
 
 export type MobileConnectionNotice = {
   kind: 'unreachable' | 'auth-expired';
@@ -30,13 +29,6 @@ export const MobileConnectionWelcome: React.FC<{
   const [serverUrl, setServerUrl] = React.useState('');
   const [connectionName, setConnectionName] = React.useState('');
   const [clientToken, setClientToken] = React.useState('');
-  const [isScanning, setIsScanning] = React.useState(false);
-  const [isCompletingScan, setIsCompletingScan] = React.useState(false);
-  const scanAbortRef = React.useRef<AbortController | null>(null);
-  const qrScanSupported = React.useMemo(() => isQrScanSupported(), []);
-  // QR pairing is the primary flow; the manual URL form stays collapsed unless
-  // scanning is unavailable (web build) or the user asks for it.
-  const [manualOpen, setManualOpen] = React.useState(() => !isQrScanSupported());
   // Which saved connection is being connected to, for the per-row spinner.
   const [connectingId, setConnectingId] = React.useState<string | null>(null);
   const [password, setPassword] = React.useState('');
@@ -58,7 +50,8 @@ export const MobileConnectionWelcome: React.FC<{
       const payload = parseConnectionPayload(value);
       if (payload) {
         if ('pairing' in payload) {
-          void conn.redeemPairingConnection(payload.pairing);
+          // ANEMOS-PATCH: Chamber pairing links are cut; direct URL/token or password is the supported flow.
+          conn.setError(t('mobile.connect.scan.unsupported'));
           return;
         }
         setServerUrl(payload.url);
@@ -68,58 +61,7 @@ export const MobileConnectionWelcome: React.FC<{
       }
     }
     setServerUrl(value);
-  }, [conn]);
-
-  const handleScanQr = React.useCallback(async () => {
-    if (scanAbortRef.current || isBusy) return;
-    conn.setError(null);
-    setIsScanning(true);
-    const controller = new AbortController();
-    scanAbortRef.current = controller;
-    try {
-      const result = await scanConnectionQr({ signal: controller.signal });
-      if (scanAbortRef.current === controller) {
-        scanAbortRef.current = null;
-        setIsScanning(false);
-      }
-      switch (result.status) {
-        case 'ok':
-          setIsCompletingScan(true);
-          setServerUrl(result.url);
-          if (result.label) setConnectionName(result.label);
-          if (result.clientToken) setClientToken(result.clientToken);
-          await conn.connect({ url: result.url, clientToken: result.clientToken, label: result.label });
-          break;
-        case 'pairing':
-          setIsCompletingScan(true);
-          await conn.redeemPairingConnection(result.pairing);
-          break;
-        case 'permission-denied':
-          conn.setError(t('mobile.connect.scan.permissionDenied'));
-          break;
-        case 'invalid':
-          conn.setError(t('mobile.connect.scan.invalid'));
-          break;
-        case 'unsupported':
-          conn.setError(t('mobile.connect.scan.unsupported'));
-          break;
-        case 'failed':
-          conn.setError(t('mobile.connect.scan.failed'));
-          break;
-        case 'cancelled':
-        default:
-          break;
-      }
-    } finally {
-      setIsCompletingScan(false);
-      if (scanAbortRef.current === controller) {
-        scanAbortRef.current = null;
-        setIsScanning(false);
-      }
-    }
-  }, [conn, isBusy, t]);
-
-  React.useEffect(() => () => scanAbortRef.current?.abort(), []);
+  }, [conn, t]);
 
   const handlePasswordSubmit = React.useCallback((event: React.FormEvent) => {
     event.preventDefault();
@@ -133,8 +75,6 @@ export const MobileConnectionWelcome: React.FC<{
 
   return (
     <>
-    {isScanning ? <MobileQrScannerOverlay onCancel={() => scanAbortRef.current?.abort()} /> : null}
-    {isCompletingScan ? <MobileQrConnectionLoading /> : null}
     {debugOpen ? <MobileConnectionDebugPanel onClose={() => setDebugOpen(false)} /> : null}
     <main className="oc-keyboard-fill-screen flex min-h-dvh flex-col overflow-y-auto bg-background px-6 pb-[calc(var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px))+28px)] pt-[calc(var(--safe-area-inset-top,env(safe-area-inset-top,0px))+28px)] text-foreground">
       <div className="m-auto flex w-full max-w-[360px] shrink-0 flex-col items-center gap-9 py-8">
@@ -199,27 +139,8 @@ export const MobileConnectionWelcome: React.FC<{
             </Button>
           </form>
         ) : (
-          <div className="flex w-full flex-col gap-6">
-            {/* Primary path: scan the pairing QR from "Add a device" on the server. */}
-            {qrScanSupported ? (
-              <div className="flex w-full flex-col gap-2">
-                <Button
-                  type="button"
-                  size="lg"
-                  className="h-12 w-full"
-                  onClick={() => void handleScanQr()}
-                  disabled={isScanning || isBusy}
-                >
-                  <Icon name="scan-2" className={cn('size-[18px]', isScanning && 'animate-pulse')} />
-                  {isBusy ? t('mobile.connect.connecting') : t('mobile.connect.scanQr')}
-                </Button>
-                <p className="px-2 text-center typography-small text-muted-foreground">
-                  {t('mobile.connect.welcome.scanHint')}
-                </p>
-              </div>
-            ) : null}
-
-            {error && !manualOpen ? <p className="px-1 text-center typography-small text-[var(--status-error)]">{error}</p> : null}
+            <div className="flex w-full flex-col gap-6">
+            {error ? <p className="px-1 text-center typography-small text-[var(--status-error)]">{error}</p> : null}
 
             {connections.length > 0 ? (
               <section className="flex w-full flex-col gap-2.5">
@@ -262,24 +183,9 @@ export const MobileConnectionWelcome: React.FC<{
               </section>
             ) : null}
 
-            {/* Manual URL entry, collapsed by default — most people pair by QR. */}
+            {/* ANEMOS-PATCH: direct URL/token entry replaces Chamber QR pairing. */}
             <div className="flex w-full flex-col">
-              {qrScanSupported ? (
-                <button
-                  type="button"
-                  onClick={() => setManualOpen((value) => !value)}
-                  aria-expanded={manualOpen}
-                  className="mx-auto flex items-center gap-1 rounded-full px-2 py-1 typography-small text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                >
-                  <span>{t('mobile.connect.manual.toggle')}</span>
-                  <Icon name="arrow-down-s" className={cn('size-4 transition-transform duration-200', manualOpen && 'rotate-180')} />
-                </button>
-              ) : null}
-              <div
-                className="grid transition-[grid-template-rows] duration-200 ease-out"
-                style={{ gridTemplateRows: manualOpen ? '1fr' : '0fr' }}
-              >
-                <div className="min-h-0 overflow-hidden">
+              <div>
                   <form className="flex w-full flex-col gap-3 pt-3" onSubmit={handleSubmit}>
                     <input
                       {...mobileInputKeyboardProps}
@@ -290,7 +196,6 @@ export const MobileConnectionWelcome: React.FC<{
                       type="url"
                       inputMode="url"
                       autoCapitalize="none"
-                      tabIndex={manualOpen ? undefined : -1}
                       className={cn(mobileConnectionInputClass, 'text-center')}
                     />
                     <input
@@ -302,7 +207,6 @@ export const MobileConnectionWelcome: React.FC<{
                       autoCapitalize="words"
                       autoCorrect="off"
                       spellCheck={false}
-                      tabIndex={manualOpen ? undefined : -1}
                       className={cn(mobileConnectionInputClass, 'text-center')}
                     />
                     <input
@@ -311,17 +215,15 @@ export const MobileConnectionWelcome: React.FC<{
                       onChange={(event) => setClientToken(event.target.value)}
                       placeholder={t('mobile.connect.token.placeholder')}
                       aria-label={t('mobile.connect.token.label')}
-                      tabIndex={manualOpen ? undefined : -1}
                       autoCapitalize="none"
                       className={cn(mobileConnectionInputClass, 'text-center')}
                     />
                     <p className="px-1 text-center typography-micro text-muted-foreground">{t('mobile.connect.token.hint')}</p>
                     {error ? <p className="px-1 text-center typography-small text-[var(--status-error)]">{error}</p> : null}
-                    <Button type="submit" variant={qrScanSupported ? 'outline' : 'default'} size="lg" className="h-12 w-full" disabled={isBusy || isScanning || !serverUrl.trim()}>
+                    <Button type="submit" size="lg" className="h-12 w-full" disabled={isBusy || !serverUrl.trim()}>
                       {isBusy ? t('mobile.connect.connecting') : t('mobile.connect.connectButton')}
                     </Button>
                   </form>
-                </div>
               </div>
             </div>
           </div>

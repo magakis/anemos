@@ -15,6 +15,7 @@ import { useProjectsStore } from "@/stores/useProjectsStore";
 
 import { opencodeClient } from '@/lib/opencode/client';
 import { filterSkillsByRuntimeFlags } from './skillVisibility';
+import { isFeatureCutRuntime, isFeatureEnabled } from '@/features/registry';
 
 // Prefer the active project path so Settings/Skills discovery matches the
 // project selector (and Commands/Agents). Falling back only to the session
@@ -288,6 +289,11 @@ export const useSkillsStore = create<SkillsStore>()(
         },
 
         loadSkills: async (requestedDirectory?: string | null) => {
+          // ANEMOS-PATCH: do not load the Chamber skills/config route.
+          if (isFeatureCutRuntime() && !isFeatureEnabled('chamber-config')) {
+            set({ skills: [], skillsByDirectory: {}, isLoading: false });
+            return false;
+          }
           const directory = resolveDirectory(requestedDirectory);
           const cacheKey = getSkillsCacheKey(directory);
           const isAmbient = cacheKey === getSkillsCacheKey(getRequestDirectory());

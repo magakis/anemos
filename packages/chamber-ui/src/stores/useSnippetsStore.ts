@@ -5,6 +5,7 @@ import { opencodeClient } from '@/lib/opencode/client';
 import { runtimeFetch } from '@/lib/runtime-fetch';
 import { useProjectsStore } from '@/stores/useProjectsStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
+import { isFeatureCutRuntime, isFeatureEnabled } from '@/features/registry';
 
 export type SnippetScope = 'global' | 'project';
 
@@ -62,6 +63,11 @@ export const useSnippetsStore = create<SnippetsStore>()(
       setSnippetDraft: (draft) => set({ snippetDraft: draft }),
 
       loadSnippets: async () => {
+        // ANEMOS-PATCH: snippets are a Chamber config surface and stay unavailable.
+        if (isFeatureCutRuntime() && !isFeatureEnabled('chamber-config')) {
+          set({ snippets: [], isLoading: false });
+          return false;
+        }
         const now = Date.now();
         if (get().snippets.length > 0 && now - lastLoadedAt < SNIPPETS_LOAD_CACHE_TTL_MS) return true;
         if (loadInFlight) return loadInFlight;
@@ -95,6 +101,7 @@ export const useSnippetsStore = create<SnippetsStore>()(
       },
 
       createSnippet: async (name, content, options = {}) => {
+        if (isFeatureCutRuntime() && !isFeatureEnabled('chamber-config')) return false;
         try {
           const directory = getRequestDirectory();
           const queryParams = directory ? `?directory=${encodeURIComponent(directory)}` : '';
@@ -120,6 +127,7 @@ export const useSnippetsStore = create<SnippetsStore>()(
       },
 
       updateSnippet: async (name, updates) => {
+        if (isFeatureCutRuntime() && !isFeatureEnabled('chamber-config')) return false;
         try {
           const directory = getRequestDirectory();
           const queryParams = directory ? `?directory=${encodeURIComponent(directory)}` : '';
@@ -139,6 +147,7 @@ export const useSnippetsStore = create<SnippetsStore>()(
       },
 
       deleteSnippet: async (name) => {
+        if (isFeatureCutRuntime() && !isFeatureEnabled('chamber-config')) return false;
         try {
           const directory = getRequestDirectory();
           const queryParams = directory ? `?directory=${encodeURIComponent(directory)}` : '';
@@ -158,6 +167,7 @@ export const useSnippetsStore = create<SnippetsStore>()(
       },
 
       expandText: async (text) => {
+        if (isFeatureCutRuntime() && !isFeatureEnabled('chamber-config')) return text;
         if (!/#[a-z0-9_-]+/i.test(text)) return text;
         const directory = getRequestDirectory();
         const queryParams = directory ? `?directory=${encodeURIComponent(directory)}` : '';

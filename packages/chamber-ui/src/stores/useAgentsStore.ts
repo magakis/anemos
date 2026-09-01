@@ -17,6 +17,7 @@ import { useProjectsStore } from "@/stores/useProjectsStore";
 import { useSkillsCatalogStore } from "@/stores/useSkillsCatalogStore";
 import { invalidateSkillsLoadCache, useSkillsStore } from "@/stores/useSkillsStore";
 import { runtimeFetch } from "@/lib/runtime-fetch";
+import { isFeatureCutRuntime } from "@/features/registry";
 
 // Note: useDirectoryStore cannot be imported at top level to avoid circular dependency
 // useDirectoryStore -> useAgentsStore (for refreshAfterOpenCodeRestart)
@@ -360,7 +361,8 @@ export const useAgentsStore = create<AgentsStore>()(
                 // store instead of issuing a duplicate agents fetch at startup.
                 const agents = await opencodeClient.listAgents(configDirectory);
 
-                const agentsWithScope = await Promise.all(
+                // ANEMOS-PATCH: agent definitions come from the SDK; scope metadata is a Chamber config route.
+                const agentsWithScope = isFeatureCutRuntime() ? agents : await Promise.all(
                   agents.map(async (agent) => {
                     try {
                       // Force no-cache to ensure we get the latest scope info

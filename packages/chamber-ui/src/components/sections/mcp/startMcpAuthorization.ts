@@ -6,6 +6,7 @@ import { focusDesktopWindow, isDesktopShell, isVSCodeRuntime } from '@/lib/deskt
 import { useMcpConfigStore } from '@/stores/useMcpConfigStore';
 import { useMcpStore } from '@/stores/useMcpStore';
 import { MCP_OAUTH_CALLBACK_PATH, parseMcpOAuthCallbackStateKey } from './mcpOAuth';
+import { isFeatureCutRuntime, isFeatureEnabled } from '@/features/registry';
 
 /**
  * Starting MCP authorization, for every surface that offers it.
@@ -185,6 +186,10 @@ export const startMcpAuthorization = async (input: {
   name: string;
   directory?: string | null;
 }): Promise<McpAuthorizationStart> => {
+  // ANEMOS-PATCH: MCP OAuth callback/config routes are deferred with the Chamber config cut.
+  if (isFeatureCutRuntime() && !isFeatureEnabled('chamber-config')) {
+    throw new McpAuthorizationError('MCP authorization is not available in anemos yet');
+  }
   const { name, directory } = input;
   let queuedState: string | null = null;
 

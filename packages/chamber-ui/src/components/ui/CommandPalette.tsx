@@ -53,6 +53,8 @@ import { sessionEvents } from '@/lib/sessionEvents';
 import { copyTextToClipboard } from '@/lib/clipboard';
 import { useProjectsStore } from '@/stores/useProjectsStore';
 import { buildCommandPaletteFileSearchKey, scoreCommandPaletteFiles } from './commandPaletteFilesState';
+import { featureForSettingsPage, isFeatureEnabled } from '@/features/registry';
+import { isAnemosRuntimeActive } from '@/anemos/server-env';
 
 type CommandEntry = {
   id: string;
@@ -145,7 +147,8 @@ export const CommandPalette: React.FC = () => {
   // Deferred to idle to keep the first render (and the file-search effect) free
   // from a flood of git store updates.
   React.useEffect(() => {
-    if (!isCommandPaletteOpen || !gitApi) return;
+    // ANEMOS-PATCH: command-palette opening cannot trigger a cut Git probe.
+    if (!isFeatureEnabled('git') || !isCommandPaletteOpen || !gitApi) return;
     const handle = setTimeout(() => {
       const seen = new Set<string>();
       for (const session of activeSessions) {
@@ -378,7 +381,19 @@ export const CommandPalette: React.FC = () => {
         }),
       });
     }
-    return list;
+    // ANEMOS-PATCH: remove command-palette entries whose actions open cut surfaces.
+    const cutCommandFeatures = {
+      'new-worktree': 'git',
+      'add-project': 'folders',
+      'toggle-terminal': 'terminal',
+      'open-notes': 'knowledge',
+      'open-todos': 'knowledge',
+      'open-multi-run': 'git',
+    } as const;
+    return list.filter((entry) => {
+      const feature = cutCommandFeatures[entry.id as keyof typeof cutCommandFeatures];
+      return !feature || (!isMobile && !isAnemosRuntimeActive()) || isFeatureEnabled(feature);
+    });
   }, [
     t,
     run,
@@ -410,6 +425,11 @@ export const CommandPalette: React.FC = () => {
   const settingsEntries = React.useMemo<CommandEntry[]>(() => {
     return SETTINGS_PAGE_METADATA
       .filter((p) => p.slug !== 'home')
+      // ANEMOS-PATCH: command-palette settings entries follow the feature registry.
+      .filter((p) => {
+        const feature = featureForSettingsPage(p.slug);
+        return !feature || (!isMobile && !isAnemosRuntimeActive()) || isFeatureEnabled(feature);
+      })
       .filter((p) => (p.isAvailable ? p.isAvailable(settingsRuntimeCtx) : true))
       .map((page) => {
         const iconName = getSettingsNavIcon(page.slug) ?? 'settings-3';
@@ -457,7 +477,9 @@ export const CommandPalette: React.FC = () => {
   const [fileResults, setFileResults] = React.useState<FileHit[]>([]);
   const [fileResultsKey, setFileResultsKey] = React.useState('');
 
-  const fileSearchKey = buildCommandPaletteFileSearchKey(currentRoot, trimmedQuery);
+  const fileSearchKey = isFeatureEnabled('fs')
+    ? buildCommandPaletteFileSearchKey(currentRoot, trimmedQuery)
+    : '';
 
   React.useEffect(() => {
     if (!isCommandPaletteOpen) {

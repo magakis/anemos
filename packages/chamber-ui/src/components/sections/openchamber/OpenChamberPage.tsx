@@ -173,8 +173,6 @@ const VisualSectionContent: React.FC = () => {
         'timeFormat',
         ...(!isVSCode ? ['weekStart' as const] : []),
         'fontSize',
-        'terminalFontSize',
-        'editorFontSize',
         'spacing',
         'inputBarOffset',
     ]} />;
@@ -185,17 +183,15 @@ const ChatSectionContent: React.FC = () => {
     const isVSCode = isVSCodeRuntime();
     return (
         <OpenChamberVisualSettings
+            // ANEMOS-PATCH: omit session-knowledge and filesystem/Git preferences from the core chat settings.
             visibleSettings={[
-                'sessionGoal',
-                'sessionAssist',
-                'chatRenderMode',
+                 'chatRenderMode',
                 'activityRenderMode',
                 'userMessageRendering',
                 'mermaidRendering',
                 'reasoning',
                 'showToolFileIcons',
-                'showTurnChangedFiles',
-                'expandedTools',
+                 'expandedTools',
                 'collapsibleUserMessages',
                 'stickyUserHeader',
                 ...(!isVSCode ? ['promptNavigatorEnabled' as const] : []),
@@ -203,10 +199,7 @@ const ChatSectionContent: React.FC = () => {
                 'codeBlockLineWrap',
                 'splitAssistantMessageActions',
                 'subagentReadOnlyBanner',
-                'diffLayout',
-                'dotfiles',
-                'fileViewerPreview',
-                'followUpBehavior',
+                 'followUpBehavior',
                 'persistDraft',
                 'inputSpellcheck',
                 'largeTextPaste',

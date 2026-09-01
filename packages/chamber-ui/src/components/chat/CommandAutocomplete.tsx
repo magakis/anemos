@@ -12,6 +12,7 @@ import { isVSCodeRuntime } from '@/lib/desktop';
 import { useMobileAutocompleteMaxHeight } from './useMobileAutocompleteMaxHeight';
 import { commandMatchesSearch, mergeCommandAutocompleteItems } from './commandAutocompleteItems';
 import { AutocompleteRowTooltip } from './composer/ui/AutocompleteRowTooltip';
+import { isFeatureAvailable } from '@/features/registry';
 
 type CommandSource = 'openchamber' | 'opencode' | 'skill';
 
@@ -28,6 +29,20 @@ export interface CommandInfo {
   isSkill?: boolean;
   scope?: string;
 }
+
+const CUT_COMMAND_FEATURES = {
+  'workspace-review': 'git',
+  'handoff-review': 'git',
+  'plan-feature': 'knowledge',
+  'craft-goal': 'knowledge',
+  'schedule-task': 'scheduled-tasks',
+  'catch-up': 'knowledge',
+} as const;
+
+const isCommandAvailable = (command: CommandInfo): boolean => {
+  const feature = CUT_COMMAND_FEATURES[command.name as keyof typeof CUT_COMMAND_FEATURES];
+  return !feature || isFeatureAvailable(feature);
+};
 
 export interface CommandAutocompleteHandle {
   handleKeyDown: (key: string) => void;
@@ -80,7 +95,8 @@ export const CommandAutocomplete = React.forwardRef<CommandAutocompleteHandle, C
   const effectiveDirectory = useEffectiveDirectory();
   const commandsWithMetadata = useCommandsStore((s) => selectCommandsForDirectory(s, effectiveDirectory));
   const loadCommandsForDirectory = useCommandsStore((s) => s.loadCommands);
-  const skills = useSkillsStore((s) => selectSkillsForDirectory(s, effectiveDirectory));
+  // ANEMOS-PATCH: cached skills stay hidden while Chamber config routes are cut.
+  const skills = useSkillsStore((s) => isFeatureAvailable('chamber-config') ? selectSkillsForDirectory(s, effectiveDirectory) : []);
   const loadSkillsForDirectory = useSkillsStore((s) => s.loadSkills);
   const refreshCommands = React.useCallback(() => loadCommandsForDirectory(effectiveDirectory), [effectiveDirectory, loadCommandsForDirectory]);
   const refreshSkills = React.useCallback(() => loadSkillsForDirectory(effectiveDirectory), [effectiveDirectory, loadSkillsForDirectory]);
@@ -115,7 +131,7 @@ export const CommandAutocomplete = React.forwardRef<CommandAutocompleteHandle, C
   React.useEffect(() => {
     // Force refresh to get latest project context when mounting
     void refreshCommands();
-    void refreshSkills();
+    if (isFeatureAvailable('chamber-config')) void refreshSkills();
   }, [refreshCommands, refreshSkills]);
 
   React.useEffect(() => {
@@ -202,7 +218,8 @@ export const CommandAutocomplete = React.forwardRef<CommandAutocompleteHandle, C
             : []
           ),
         ];
-        const allCommands = mergeCommandAutocompleteItems(builtInCommands, customCommands, skillCommands);
+        const allCommands = mergeCommandAutocompleteItems(builtInCommands, customCommands, skillCommands)
+          .filter(isCommandAvailable);
 
         const filtered = searchQuery
           ? allCommands.filter(cmd => commandMatchesSearch(cmd, searchQuery))
@@ -280,13 +297,13 @@ export const CommandAutocomplete = React.forwardRef<CommandAutocompleteHandle, C
         ];
 
         const filtered = searchQuery
-          ? builtInCommands.filter(cmd =>
+           ? builtInCommands.filter(cmd =>
               fuzzyMatch(cmd.name, searchQuery) ||
               (cmd.description && fuzzyMatch(cmd.description, searchQuery))
-            )
-          : builtInCommands;
+             )
+           : builtInCommands;
 
-        setCommands(filtered);
+         setCommands(filtered.filter(isCommandAvailable));
       } finally {
         setLoading(false);
       }

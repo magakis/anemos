@@ -22,6 +22,7 @@ import { markStartupTrace, measureStartupTrace } from "@/lib/startupTrace";
 import { normalizePath } from "@/lib/pathNormalization";
 import { getSyncConfig, subscribeToSyncConfigChanges } from "@/sync/sync-refs";
 import { getRuntimeKey } from "@/lib/runtime-switch";
+import { isFeatureCutRuntime } from "@/features/registry";
 
 const MODELS_DEV_API_URL = "https://models.dev/api.json";
 const MODELS_DEV_PROXY_URL = "/api/openchamber/models-metadata";
@@ -99,6 +100,10 @@ const requestOpenChamberDefaults = async (): Promise<OpenChamberDefaults> => {
         });
         return result;
     };
+    // ANEMOS-PATCH: direct OpenCode runtimes have no Chamber settings route.
+    if (isFeatureCutRuntime()) {
+        return finish('anemos-local-settings', {});
+    }
     try {
         // 1. Runtime settings API (VSCode)
         const runtimeSettings = getRegisteredRuntimeAPIs()?.settings;
@@ -623,6 +628,8 @@ const transformModelsDevResponse = (payload: unknown): Map<string, ModelMetadata
 };
 
 const fetchModelsDevMetadata = async (): Promise<Map<string, ModelMetadata>> => {
+    // ANEMOS-PATCH: keep the direct mobile entry graph on the configured OpenCode runtime.
+    if (isFeatureCutRuntime()) return new Map();
     if (typeof fetch !== 'function') {
         return new Map();
     }

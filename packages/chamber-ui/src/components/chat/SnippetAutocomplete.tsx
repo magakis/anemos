@@ -7,6 +7,7 @@ import { Icon } from '@/components/icon/Icon';
 import { useI18n } from '@/lib/i18n';
 import type { Snippet } from '@/types/snippet';
 import { useMobileAutocompleteMaxHeight } from './useMobileAutocompleteMaxHeight';
+import { isFeatureAvailable } from '@/features/registry';
 
 export interface SnippetAutocompleteHandle {
   handleKeyDown: (key: string) => void;
@@ -37,7 +38,8 @@ export const SnippetAutocomplete = React.forwardRef<SnippetAutocompleteHandle, S
   const selectedIndexRef = React.useRef(0);
   const [filteredSnippets, setFilteredSnippets] = React.useState<Snippet[]>([]);
   const itemRefs = React.useRef<(HTMLDivElement | null)[]>([]);
-  const snippets = useSnippetsStore((s) => s.snippets);
+  // ANEMOS-PATCH: snippets are a cut Chamber config surface.
+  const snippets = useSnippetsStore((s) => isFeatureAvailable('chamber-config') ? s.snippets : []);
   const loadSnippets = useSnippetsStore((s) => s.loadSnippets);
   const setSnippetDraft = useSnippetsStore((s) => s.setSnippetDraft);
   const setSelectedSnippet = useSnippetsStore((s) => s.setSelectedSnippet);
@@ -45,6 +47,7 @@ export const SnippetAutocomplete = React.forwardRef<SnippetAutocompleteHandle, S
   const setSettingsPage = useUIStore((s) => s.setSettingsPage);
 
   React.useEffect(() => {
+    if (!isFeatureAvailable('chamber-config')) return;
     void loadSnippets();
   }, [loadSnippets]);
 

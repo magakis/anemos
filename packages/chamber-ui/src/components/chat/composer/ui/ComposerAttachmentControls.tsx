@@ -10,6 +10,7 @@
 import React from 'react';
 
 import { Icon } from '@/components/icon/Icon';
+import { isFeatureAvailable } from '@/features/registry';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -94,6 +95,7 @@ export const ComposerAttachmentControls = React.memo(function ComposerAttachment
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent side="top" align="start">
+                            {/* ANEMOS-PATCH: integration attachment actions follow the GitHub/Linear cuts. */}
                             <DropdownMenuItem
                                 onSelect={() => {
                                     requestAnimationFrame(handlePickLocalFiles);
@@ -102,23 +104,27 @@ export const ComposerAttachmentControls = React.memo(function ComposerAttachment
                                 <Icon name="attachment-2"/>
                                 {t('chat.chatInput.actions.attachFiles')}
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onSelect={() => {
-                                    requestAnimationFrame(openIssuePicker);
-                                }}
-                            >
-                                <Icon name="github"/>
-                                {t('chat.chatInput.actions.linkGithubIssue')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onSelect={() => {
-                                    requestAnimationFrame(openPrPicker);
-                                }}
-                            >
-                                <Icon name="git-pull-request"/>
-                                {t('chat.chatInput.actions.linkGithubPr')}
-                            </DropdownMenuItem>
-                            {showLinearPicker && openLinearPicker ? (
+                            {isFeatureAvailable('github') ? (
+                                <>
+                                    <DropdownMenuItem
+                                        onSelect={() => {
+                                            requestAnimationFrame(openIssuePicker);
+                                        }}
+                                    >
+                                        <Icon name="github"/>
+                                        {t('chat.chatInput.actions.linkGithubIssue')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onSelect={() => {
+                                            requestAnimationFrame(openPrPicker);
+                                        }}
+                                    >
+                                        <Icon name="git-pull-request"/>
+                                        {t('chat.chatInput.actions.linkGithubPr')}
+                                    </DropdownMenuItem>
+                                </>
+                            ) : null}
+                            {isFeatureAvailable('linear') && showLinearPicker && openLinearPicker ? (
                                 <DropdownMenuItem
                                     onSelect={() => {
                                         requestAnimationFrame(openLinearPicker);

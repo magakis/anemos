@@ -51,6 +51,8 @@ import {
 } from './contextPanelEmbeddedChat';
 import { getContextSurfaceWidthFraction } from '@/lib/surfaces/registry';
 import { isTerminalEventTarget } from '@/lib/terminalFocus';
+import { featureForContextMode, isFeatureAvailable } from '@/features/registry';
+import { Unavailable } from '@/features/unavailable';
 
 const CONTEXT_PANEL_MIN_WIDTH = 380;
 const CONTEXT_PANEL_MAX_WIDTH = 1400;
@@ -942,7 +944,12 @@ export const ContextPanel: React.FC = () => {
     };
   }), [activeModeTabs, effectiveDirectory, faviconByOrigin, sessionTitleById, t]);
 
-  const activeNonChatContent = activeTab?.mode === 'context'
+  // ANEMOS-PATCH: persisted cut tabs render a stub before any Chamber surface mounts.
+  const activeFeature = activeTab ? featureForContextMode(activeTab.mode) : null;
+  const activeFeatureUnavailable = activeFeature && !isFeatureAvailable(activeFeature)
+    ? <Unavailable feature={activeFeature} />
+    : null;
+  const activeNonChatContent = activeFeatureUnavailable ?? (activeTab?.mode === 'context'
         ? <ContextPanelContent />
         : activeTab?.mode === 'git'
             ? <React.Suspense fallback={null}><GitView isActive={isOpen} /></React.Suspense>
@@ -959,32 +966,32 @@ export const ContextPanel: React.FC = () => {
                   ? { projectRef: activeTab.projectPlanRef, planId: activeTab.projectPlanId }
                   : null}
               /></React.Suspense>
-            : null;
+            : null);
 
   const browserTabs = React.useMemo(
-    () => tabs.filter((tab) => tab.mode === 'browser'),
+    () => isFeatureAvailable('browser-control') ? tabs.filter((tab) => tab.mode === 'browser') : [],
     [tabs],
   );
   const diffTabs = React.useMemo(
-    () => tabs.filter((tab) => tab.mode === 'diff'),
+    () => isFeatureAvailable('git') ? tabs.filter((tab) => tab.mode === 'diff') : [],
     [tabs],
   );
   const hasTerminalTab = React.useMemo(
-    () => tabs.some((tab) => tab.mode === 'terminal'),
+    () => isFeatureAvailable('terminal') && tabs.some((tab) => tab.mode === 'terminal'),
     [tabs],
   );
   // Keep-alive: the walkthrough holds reading progress and scroll position that
   // a remount would silently throw away.
   const hasWalkthroughTab = React.useMemo(
-    () => tabs.some((tab) => tab.mode === 'walkthrough'),
+    () => isFeatureAvailable('git') && tabs.some((tab) => tab.mode === 'walkthrough'),
     [tabs],
   );
   const hasFileTabs = React.useMemo(
-    () => tabs.some((tab) => tab.mode === 'file'),
+    () => isFeatureAvailable('fs') && tabs.some((tab) => tab.mode === 'file'),
     [tabs],
   );
   const hasOpenEditorFile = React.useMemo(
-    () => tabs.some((tab) => tab.mode === 'file' && tab.targetPath),
+    () => isFeatureAvailable('fs') && tabs.some((tab) => tab.mode === 'file' && tab.targetPath),
     [tabs],
   );
 
@@ -1295,7 +1302,7 @@ export const ContextPanel: React.FC = () => {
             </React.Suspense>
           </div>
         ) : null}
-        {activeTab?.mode !== 'chat' && !isFileTabActive && activeTab?.mode !== 'browser' && activeTab?.mode !== 'diff' && activeTab?.mode !== 'terminal' && activeTab?.mode !== 'walkthrough' ? activeNonChatContent : null}
+        {activeFeatureUnavailable ? activeFeatureUnavailable : activeTab?.mode !== 'chat' && !isFileTabActive && activeTab?.mode !== 'browser' && activeTab?.mode !== 'diff' && activeTab?.mode !== 'terminal' && activeTab?.mode !== 'walkthrough' ? activeNonChatContent : null}
       </div>
       </div>
     </aside>

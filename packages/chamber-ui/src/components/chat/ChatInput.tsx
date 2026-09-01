@@ -1,5 +1,4 @@
 import React from 'react';
-import { ComposerDictation } from '@/components/dictation/ComposerDictation';
 // sessionStore removed — currentSessionId comes from useSessionUIStore
 import { useConfigStore } from '@/stores/useConfigStore';
 import { useUIStore } from '@/stores/useUIStore';
@@ -82,6 +81,7 @@ import { usePermissionStore } from '@/stores/permissionStore';
 import { togglePermissionAutoAccept } from './permissionAutoAccept';
 import { useKeybind } from '@/hooks/useKeybind';
 import { useAuthSessionStore } from '@/lib/runtime-auth-expiry';
+import { isFeatureAvailable } from '@/features/registry';
 import { extractGitChangedFiles } from './changedFiles';
 import { useI18n } from '@/lib/i18n';
 import { sessionEvents } from '@/lib/sessionEvents';
@@ -162,8 +162,6 @@ import { MobilePillComposer } from './composer/ui/MobilePillComposer';
 import { ComposerContextChips } from './composer/ui/ComposerContextChips';
 import { LinkedReferenceRow } from './composer/ui/LinkedReferenceRow';
 import { RevertedMessageDock } from './composer/ui/RevertedMessageDock';
-import { SessionSuggestionChip } from '@/components/chat/SessionSuggestionChip';
-import { SessionGoalRow } from '@/components/chat/SessionGoalRow';
 
 // Lazy like in ChatMessage: a static import would pull the @pierre/diffs and
 // Shiki stacks into the eager startup graph for a dialog opened on demand.
@@ -235,7 +233,6 @@ const renderDraftTitle = (title: string, projectLabel: string | null): React.Rea
 };
 
 const MemoModelControls = React.memo(ModelControls);
-const MemoComposerDictation = React.memo(ComposerDictation);
 const MemoMobileAgentButton = React.memo(MobileAgentButton);
 const MemoMobileModelButton = React.memo(MobileModelButton);
 const MemoComposerStatusBar = React.memo(ComposerStatusBar);
@@ -525,12 +522,13 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
     }, [setImagePreviewOpen]);
 
     React.useEffect(() => {
-        if (!currentDirectory || !runtimeGit) return;
+        // ANEMOS-PATCH: the mobile composer must not probe Chamber's Git routes.
+        if (!isFeatureAvailable('git') || !currentDirectory || !runtimeGit) return;
         void ensureGitStatus(currentDirectory, runtimeGit);
     }, [currentDirectory, runtimeGit, ensureGitStatus]);
 
     React.useEffect(() => {
-        if (!currentDirectory || !runtimeGit) return;
+        if (!isFeatureAvailable('git') || !currentDirectory || !runtimeGit) return;
         return sessionEvents.onGitRefreshHint((hint) => {
             if (normalizePath(hint.directory) !== normalizePath(currentDirectory)) return;
             if (hint.paths?.length) {
@@ -615,17 +613,20 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
     const availableSkills = useSkillsStore((s) => selectSkillsForDirectory(s, currentDirectory));
     const knownSlashNames = React.useMemo(() => {
         const names = new Set<string>([
-            'init', 'review', 'undo', 'redo', 'timeline', 'compact', 'btw', 'summary', 'workspace-review', 'plan-feature', 'craft-goal', 'schedule-task', 'catch-up', 'debug', 'weigh', 'explore',
+            'init', 'review', 'undo', 'redo', 'timeline', 'compact', 'btw', 'summary', 'debug', 'weigh', 'explore',
         ]);
-        if (!isMobile && !isVSCodeRuntime()) names.add('handoff-review');
+        if (!isMobile && !isVSCodeRuntime() && isFeatureAvailable('git')) names.add('handoff-review');
         for (const command of availableCommands) names.add(command.name.toLowerCase());
-        for (const skill of availableSkills) names.add(skill.name.toLowerCase());
+        if (isFeatureAvailable('chamber-config')) {
+            for (const skill of availableSkills) names.add(skill.name.toLowerCase());
+        }
         return names;
     }, [availableCommands, availableSkills, isMobile]);
 
     const availableSnippets = useSnippetsStore((s) => s.snippets);
     const knownSnippetTriggers = React.useMemo(() => {
         const triggers = new Set<string>();
+        if (!isFeatureAvailable('chamber-config')) return triggers;
         for (const snippet of availableSnippets) {
             triggers.add(snippet.name.toLowerCase());
             for (const alias of snippet.aliases ?? []) triggers.add(alias.toLowerCase());
@@ -692,6 +693,10 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
         rawText: string,
         preparedDocumentMentions?: ReadonlyMap<string, AttachedFile[]>,
     ) => {
+        // ANEMOS-PATCH: inline server-file mentions are unavailable with the filesystem cut.
+        if (!isFeatureAvailable('fs')) {
+            return { sanitizedText: rawText, attachments: [] };
+        }
         if (!rawText || !rawText.includes('@')) {
             return { sanitizedText: rawText, attachments: [] };
         }
@@ -1121,8 +1126,9 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
             ...queuedMessagesToSend.map((queued) => queued.content),
             ...(!queuedOnly && inputSnapshot.hasContent ? [inputSnapshot.message] : []),
         ];
-        for (const rawText of mentionTexts) {
-            for (const token of scanMentions(rawText)) {
+        if (isFeatureAvailable('fs')) {
+            for (const rawText of mentionTexts) {
+                for (const token of scanMentions(rawText)) {
                 const mention = resolveInlineFileMention(token.name);
                 if (
                     !mention
@@ -1551,28 +1557,6 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
         void handleSubmitRef.current({ presetText });
     }, []);
 
-    // Dictation: insert the transcript inline; optionally submit immediately.
-    // getCurrentInputSnapshot reads composerRef.current.getValue() first, so setting
-    // it synchronously lets handleSubmit pick up the text in the same tick.
-    const handleDictationInsert = React.useCallback((text: string) => {
-        setMessage((prev) => {
-            // The editor is controlled by this state; getCurrentInputSnapshot
-            // reads it back, so no imperative write is needed.
-            return appendInlineText(prev, text);
-        });
-        setTimeout(() => {
-            composerRef.current?.focus();
-        }, 0);
-    }, []);
-
-    const handleDictationInsertAndSend = React.useCallback((text: string) => {
-        // Same as preset chips: the composed text goes into the submit as an
-        // explicit override instead of being staged in the textarea, which may
-        // not be mounted (collapsed mobile pill).
-        const next = appendInlineText(composerRef.current?.getValue() ?? messageRef.current, text);
-        void handleSubmitRef.current({ presetText: next });
-    }, []);
-
     // Preset chips rendered outside this component (e.g. under the welcome
     // message on narrow surfaces) request a submit via the input store; consume
     // it here so it routes through the same command-aware submit path.
@@ -1784,15 +1768,6 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
             saveSessionAgentSelection(currentSessionId, nextAgentName);
         }
     }, [agents, currentAgentName, currentSessionId, setAgent, saveSessionAgentSelection]);
-
-    // Height the dictation transcript needs (null when idle). Its overlay sits
-    // absolutely over the composer, so the composer must be able to grow for
-    // it. The editor sizes itself to its own content; this is the one external
-    // constraint, applied as a floor on the editor's container.
-    const [dictationContentHeight, setDictationContentHeight] = React.useState<number | null>(null);
-    const handleDictationContentHeightChange = React.useCallback((height: number | null) => {
-        setDictationContentHeight((prev) => (prev === height ? prev : height));
-    }, []);
 
     const updateAutocompleteState = React.useCallback((
         value: string,
@@ -2569,12 +2544,13 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
 
     const footerGapClass = 'gap-x-1.5 gap-y-0';
     const isVSCode = isVSCodeRuntime();
-    const showLinearPicker = Boolean(runtimeLinear) && !isVSCode;
+    const showLinearPicker = isFeatureAvailable('linear') && Boolean(runtimeLinear) && !isVSCode;
     // The work-status panel carries the agent's todos and the changed-file
     // count, but only on the desktop/web layout — VS Code and mobile have no
     // panel, so these keep their place above the composer there.
     const composerStatusExtrasEnabled = isVSCode || isMobile;
-    const showDraftTargetSelectors = newSessionDraftOpen && !isVSCode;
+    // ANEMOS-PATCH: project/worktree target pickers are part of the cut folder surface.
+    const showDraftTargetSelectors = newSessionDraftOpen && !isVSCode && isFeatureAvailable('folders');
 
     // Which project and directory a new session will target.
     const {
@@ -2608,7 +2584,7 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
         if (isMiniChatSurface) {
             return false;
         }
-        if (isGitRepo !== true || !currentGitStatus || currentGitStatus.isClean) {
+        if (!isFeatureAvailable('git') || isGitRepo !== true || !currentGitStatus || currentGitStatus.isClean) {
             return false;
         }
         return extractGitChangedFiles(currentGitStatus.files, currentGitStatus.diffStats, currentDirectory).length > 0;
@@ -2672,11 +2648,6 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
         if (newSessionDraftOpen) return;
         openNewSessionDraft(currentDirectory ? { directoryOverride: currentDirectory } : undefined);
     }, [newSessionDraftOpen, openNewSessionDraft, currentDirectory]);
-
-    /** The dictation engine listens for this globally; the composer only asks. */
-    const toggleDictation = React.useCallback(() => {
-        window.dispatchEvent(new CustomEvent('openchamber:dictation-toggle'));
-    }, []);
 
     const openMobileAttachSheet = React.useCallback(() => {
         // Same order as handleOpenMobilePanel: mark the sheet open BEFORE the
@@ -2788,7 +2759,7 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
                     onEditMessage={handleQueuedMessageEdit}
                     onSendMessage={handleQueuedMessageSend}
                 />
-                <AutoReviewBanner />
+                 {isFeatureAvailable('git') ? <AutoReviewBanner /> : null}
                 {hasDrafts ? (
                     <ComposerContextChips
                         draftTarget={inlineDraftTarget}
@@ -2796,7 +2767,7 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
                     />
                 ) : null}
 
-                {linkedIssue && !isVSCode ? (
+                {linkedIssue && isFeatureAvailable('github') && !isVSCode ? (
                     <LinkedReferenceRow
                         numberLabel={`#${linkedIssue.number}`}
                         title={linkedIssue.title}
@@ -2808,7 +2779,7 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
                         onRemove={() => setLinkedIssue(null)}
                     />
                 ) : null}
-                {linkedPr && !isVSCode ? (
+                {linkedPr && isFeatureAvailable('github') && !isVSCode ? (
                     <LinkedReferenceRow
                         numberLabel={t('chat.chatInput.linked.pr.number', { number: linkedPr.number })}
                         title={linkedPr.title}
@@ -2821,7 +2792,7 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
                         onRemove={() => setLinkedPr(null)}
                     />
                 ) : null}
-                {linkedLinearIssue && !isVSCode ? (
+                {linkedLinearIssue && isFeatureAvailable('linear') && !isVSCode ? (
                     <LinkedReferenceRow
                         numberLabel={linkedLinearIssue.identifier}
                         title={linkedLinearIssue.title}
@@ -2872,7 +2843,7 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
                 ) : null}
                 <div
                     // Desktop: layout-transparent. Mobile: positioning host for
-                    // the wrapper-level dictation overlay across pill/full states.
+                    // the pill/full composer states.
                     className={cn(
                         !isMobile && 'contents',
                         isMobile && 'relative',
@@ -2890,34 +2861,20 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
                         canAbort={canAbort}
                         footerIconButtonClass={footerIconButtonClass}
                         iconSizeClass={iconSizeClass}
-                        stopIconSizeClass={stopIconSizeClass}
-                        theme={currentTheme}
-                        onExpand={mobileShell.expand}
-                        onApplySuggestion={applyAssistSuggestion}
-                        onNewSession={handleMobileNewSession}
+                         stopIconSizeClass={stopIconSizeClass}
+                         theme={currentTheme}
+                         onExpand={mobileShell.expand}
+                         onNewSession={handleMobileNewSession}
                         onPickLocalFiles={handlePickLocalFiles}
                         onOpenIssuePicker={openIssuePicker}
                         onOpenPrPicker={openPrPicker}
                         showLinearPicker={showLinearPicker}
                         onOpenLinearPicker={openLinearPicker}
                         onOpenAttachSheet={openMobileAttachSheet}
-                        onStartDictation={toggleDictation}
-                        onAbort={handleAbort}
+                         onAbort={handleAbort}
                     />
                 ) : (
                 <>
-                <SessionGoalRow
-                    sessionId={currentSessionId}
-                    directory={currentSessionDirectoryForSync ?? currentDirectory}
-                    className="mb-1.5"
-                />
-                <SessionSuggestionChip
-                    sessionId={currentSessionId}
-                    directory={currentSessionDirectoryForSync ?? currentDirectory}
-                    hidden={hasContent || newSessionDraftOpen}
-                    onApply={applyAssistSuggestion}
-                    className="mb-1.5"
-                />
                 <div
                     className={cn(
                         "flex flex-col relative overflow-visible",
@@ -2978,8 +2935,7 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
                         onAgentSelect={handleAgentSelect}
                         onClose={closeAutocomplete}
                     />
-                    {/* Positioning context for the dictation overlay: covers the
-                        text area + footer exactly. */}
+                    {/* Positioning context for the text area and footer. */}
                     <div className={cn('relative flex flex-col', isComposerExpanded && 'flex-1 min-h-0')}>
                     <div className={cn("overflow-hidden", isComposerExpanded && 'flex flex-1 min-h-0 flex-col')}>
                         {isMobile ? (
@@ -3003,9 +2959,6 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
                             onDropCapture={handleDropCapture}
                             onDrop={handleDrop}
                             onDragEnd={handleDragEnd}
-                            style={dictationContentHeight !== null
-                                ? { minHeight: `${dictationContentHeight}px` }
-                                : undefined}
                         >
                             <ComposerEditor
                                 ref={composerRef}
@@ -3058,10 +3011,7 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
                     <ComposerFooter
                         isMobile={isMobile}
                         isVSCode={isVSCode}
-                        sessionId={currentSessionId}
-                        directory={currentSessionDirectoryForSync ?? currentDirectory}
-                        newSessionDraftOpen={newSessionDraftOpen}
-                        messageLength={message.length}
+                         sessionId={currentSessionId}
                         radius={chatInputRadius}
                         footerPaddingClass={footerPaddingClass}
                         footerGapClass={footerGapClass}
@@ -3075,7 +3025,6 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
                         isExpandedInput={isExpandedInput}
                         permissionAutoAcceptEnabled={permissionAutoAcceptEnabled}
                         isPermissionAutoAcceptInteractive={isPermissionAutoAcceptInteractive}
-                        dictationActive={mobileShell.dictationActive}
                         onOpenSettings={onOpenSettings}
                         onPickLocalFiles={handlePickLocalFiles}
                         onOpenIssuePicker={openIssuePicker}
@@ -3086,37 +3035,14 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
                         onToggleExpandedInput={handleToggleExpandedInput}
                         onTogglePermissionAutoAccept={handlePermissionAutoAcceptToggle}
                         onPrimaryAction={handlePrimaryAction}
-                        onQueueMessage={handleQueueMessage}
-                        onAbort={handleAbort}
-                        onStartDictation={toggleDictation}
-                        onDictationInsert={handleDictationInsert}
-                        onDictationInsertAndSend={handleDictationInsertAndSend}
-                        onDictationContentHeightChange={handleDictationContentHeightChange}
-                    />
+                         onQueueMessage={handleQueueMessage}
+                         onAbort={handleAbort}
+                     />
                     </div>
 
                 </div>
                 </>
                 )}
-                {/* Wrapper-level dictation engine + overlay: stays mounted across
-                    the pill ↔ composer swap so a recording started from the pill
-                    survives the morph. Its absolute overlay covers whichever
-                    shape the wrapper currently has. */}
-                {isMobile ? (
-                    <MemoComposerDictation
-                        radius={chatInputRadius}
-                        isMobile={isMobile}
-                        footerIconButtonClass={footerIconButtonClass}
-                        footerPaddingClass={footerPaddingClass}
-                        iconSizeClass={iconSizeClass}
-                        sendIconSizeClass={sendIconSizeClass}
-                        onInsert={handleDictationInsert}
-                        onInsertAndSend={handleDictationInsertAndSend}
-                        onActiveChange={mobileShell.onDictationActiveChange}
-                        onContentHeightChange={handleDictationContentHeightChange}
-                        renderTrigger={false}
-                    />
-                ) : null}
                 </div>
                 {/* Hidden host for the model/agent/variant bottom sheets. Kept
                     outside the pill conditional so an open panel survives (and
@@ -3139,42 +3065,50 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
         </form>
 
         {/* Issue Picker Dialog */}
-        <GitHubIssuePickerDialog
-            open={issuePickerOpen}
-            onOpenChange={setIssuePickerOpen}
-            mode="select"
-            onSelect={(issue) => {
-                setLinkedIssue(issue);
-                setLinkedPr(null);
-                setLinkedLinearIssue(null);
-            }}
-        />
-        <GitHubPrPickerDialog
-            open={prPickerOpen}
-            onOpenChange={setPrPickerOpen}
-            onSelect={(pr) => {
-                setLinkedPr(pr);
-                setLinkedIssue(null);
-                setLinkedLinearIssue(null);
-            }}
-        />
-        <LinearIssuePickerDialog
-            open={linearPickerOpen}
-            onOpenChange={setLinearPickerOpen}
-            mode="select"
-            onSelect={(issue) => {
-                setLinkedLinearIssue(issue);
-                setLinkedIssue(null);
-                setLinkedPr(null);
-            }}
-        />
-        <ReviewFlowDialog
-            open={reviewDialogOpen}
-            onOpenChange={setReviewDialogOpen}
-            projectDirectory={currentSessionDirectoryForSync ?? currentDirectory ?? null}
-            submitting={reviewFlowSubmitting}
-            onConfirm={handleStartReviewFlow}
-        />
+        {isFeatureAvailable('github') ? (
+            <>
+                <GitHubIssuePickerDialog
+                    open={issuePickerOpen}
+                    onOpenChange={setIssuePickerOpen}
+                    mode="select"
+                    onSelect={(issue) => {
+                        setLinkedIssue(issue);
+                        setLinkedPr(null);
+                        setLinkedLinearIssue(null);
+                    }}
+                />
+                <GitHubPrPickerDialog
+                    open={prPickerOpen}
+                    onOpenChange={setPrPickerOpen}
+                    onSelect={(pr) => {
+                        setLinkedPr(pr);
+                        setLinkedIssue(null);
+                        setLinkedLinearIssue(null);
+                    }}
+                />
+            </>
+        ) : null}
+        {isFeatureAvailable('linear') ? (
+            <LinearIssuePickerDialog
+                open={linearPickerOpen}
+                onOpenChange={setLinearPickerOpen}
+                mode="select"
+                onSelect={(issue) => {
+                    setLinkedLinearIssue(issue);
+                    setLinkedIssue(null);
+                    setLinkedPr(null);
+                }}
+            />
+        ) : null}
+        {isFeatureAvailable('git') ? (
+            <ReviewFlowDialog
+                open={reviewDialogOpen}
+                onOpenChange={setReviewDialogOpen}
+                projectDirectory={currentSessionDirectoryForSync ?? currentDirectory ?? null}
+                submitting={reviewFlowSubmitting}
+                onConfirm={handleStartReviewFlow}
+            />
+        ) : null}
         {attachmentPreviewMounted ? (
             <React.Suspense fallback={null}>
                 <ToolOutputDialog
@@ -3223,46 +3157,6 @@ const ChatInputComponent: React.FC<ChatInputProps> = ({
                         <Icon name="attachment-2" className="h-[18px] w-[18px] flex-shrink-0 text-muted-foreground" />
                         {t('chat.chatInput.actions.attachFiles')}
                     </button>
-                    <button
-                        type="button"
-                        className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2 py-3 text-left typography-ui-label hover:bg-[var(--interactive-hover)]"
-                        onClick={() => {
-                            // Hand-off to the picker: don't sync-restore the
-                            // keyboard under the overlay that opens next frame.
-                            mobileShell.skipNextOverlayCloseRestore();
-                            setMobileAttachMenuOpen(false);
-                            requestAnimationFrame(openIssuePicker);
-                        }}
-                    >
-                        <Icon name="github" className="h-[18px] w-[18px] flex-shrink-0 text-muted-foreground" />
-                        {t('chat.chatInput.actions.linkGithubIssue')}
-                    </button>
-                    <button
-                        type="button"
-                        className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2 py-3 text-left typography-ui-label hover:bg-[var(--interactive-hover)]"
-                        onClick={() => {
-                            mobileShell.skipNextOverlayCloseRestore();
-                            setMobileAttachMenuOpen(false);
-                            requestAnimationFrame(openPrPicker);
-                        }}
-                    >
-                        <Icon name="git-pull-request" className="h-[18px] w-[18px] flex-shrink-0 text-muted-foreground" />
-                        {t('chat.chatInput.actions.linkGithubPr')}
-                    </button>
-                    {showLinearPicker ? (
-                        <button
-                            type="button"
-                            className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2 py-3 text-left typography-ui-label hover:bg-[var(--interactive-hover)]"
-                            onClick={() => {
-                                mobileShell.skipNextOverlayCloseRestore();
-                                setMobileAttachMenuOpen(false);
-                                requestAnimationFrame(openLinearPicker);
-                            }}
-                        >
-                            <Icon name="linear" className="h-[18px] w-[18px] flex-shrink-0 text-muted-foreground" />
-                            {t('chat.chatInput.actions.linkLinearIssue')}
-                        </button>
-                    ) : null}
                 </div>
             </MobileOverlayPanel>
         ) : null}

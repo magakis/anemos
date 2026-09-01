@@ -29,6 +29,7 @@ import { Icon } from "@/components/icon/Icon";
 import { useI18n, type I18nKey, type I18nParams } from '@/lib/i18n';
 import { runtimeFetch } from '@/lib/runtime-fetch';
 import { MermaidLoadFailure, getMermaidDataUrlSourcePromise, isCurrentMermaidLoadRequest, isMermaidLoadFailure, nextMermaidLoadRequestId } from './toolOutputDialogMermaid';
+import { isFeatureAvailable } from '@/features/registry';
 
 interface ToolOutputDialogProps {
     popup: ToolPopupContent;
@@ -725,6 +726,9 @@ const MermaidPreviewDialog: React.FC<{
             const normalizedPath = normalizeFilePath(target.url);
             if (!normalizedPath) {
                 sourcePromise = Promise.reject(mermaidLoadFailure('chat.toolOutputDialog.mermaid.invalidLocalPath'));
+            } else if (!isFeatureAvailable('fs')) {
+                // ANEMOS-PATCH: local-file Mermaid sources use the cut filesystem route.
+                sourcePromise = Promise.reject(new Error('Local file preview is not available in anemos yet'));
             } else {
                 sourcePromise = runtimeFetch('/api/fs/raw', { query: { path: normalizedPath } })
                     .then((response) => {

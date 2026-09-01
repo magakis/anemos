@@ -1,8 +1,8 @@
 /**
  * The collapsed mobile composer.
  *
- * With the keyboard down the composer is a pill: attachments, a one-line
- * preview of the draft, and a mic, with a round new-session button beside it.
+ * With the keyboard down the composer is a pill: attachments and a one-line
+ * preview of the draft, with a round new-session button beside it.
  * Tapping anywhere in it expands the real composer and raises the keyboard in
  * the same gesture — which is why the expand handler must run synchronously
  * from the tap rather than from an effect.
@@ -13,8 +13,6 @@
 
 import { Icon } from '@/components/icon/Icon';
 import { StopIcon } from '@/components/icons/StopIcon';
-import { SessionGoalRow } from '@/components/chat/SessionGoalRow';
-import { SessionSuggestionChip } from '@/components/chat/SessionSuggestionChip';
 import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { Theme } from '@/types/theme';
@@ -33,7 +31,6 @@ export interface MobilePillComposerProps {
     stopIconSizeClass: string;
     theme: Theme;
     onExpand: () => void;
-    onApplySuggestion: (text: string) => void;
     onNewSession: () => void;
     onPickLocalFiles: () => void;
     onOpenIssuePicker: () => void;
@@ -41,12 +38,12 @@ export interface MobilePillComposerProps {
     showLinearPicker?: boolean;
     onOpenLinearPicker?: () => void;
     onOpenAttachSheet: () => void;
-    onStartDictation: () => void;
     onAbort: () => void;
 }
 
 export function MobilePillComposer(props: MobilePillComposerProps) {
     const { t } = useI18n();
+    // ANEMOS-PATCH: the mobile pill intentionally has no Chamber dictation trigger.
     const {
         message,
         sessionId: currentSessionId,
@@ -60,7 +57,6 @@ export function MobilePillComposer(props: MobilePillComposerProps) {
         stopIconSizeClass,
         theme: currentTheme,
         onExpand,
-        onApplySuggestion,
         onNewSession,
         onPickLocalFiles,
         onOpenIssuePicker,
@@ -68,24 +64,11 @@ export function MobilePillComposer(props: MobilePillComposerProps) {
         showLinearPicker,
         onOpenLinearPicker,
         onOpenAttachSheet,
-        onStartDictation,
         onAbort,
     } = props;
 
     return (
         <div className="flex flex-col">
-        <SessionGoalRow
-            sessionId={currentSessionId}
-            directory={directory}
-            className="mb-1.5"
-        />
-        <SessionSuggestionChip
-            sessionId={currentSessionId}
-            directory={directory}
-            hidden={hasContent || newSessionDraftOpen}
-            onApply={onApplySuggestion}
-            className="mb-1.5"
-        />
         <div className="flex items-center gap-2">
             <div
                 data-mobile-composer-pill="true"
@@ -120,17 +103,6 @@ export function MobilePillComposer(props: MobilePillComposerProps) {
                                 ? t('chat.chatInput.placeholder.chatCompact')
                                 : t('chat.chatInput.placeholder.selectSession')}
                     </span>
-                </button>
-                <button
-                    type="button"
-                    className={footerIconButtonClass}
-                    // Starts recording in place; the composer morphs into the
-                    // voice variant once dictation actually goes live.
-                    onClick={onStartDictation}
-                    title={t('chat.dictation.start')}
-                    aria-label={t('chat.dictation.start')}
-                >
-                    <Icon name="mic" className={cn(iconSizeClass, 'text-current')} />
                 </button>
                 {/* Same visibility rule as the full composer's stop control:
                     while a turn is running the stop button takes the mic's

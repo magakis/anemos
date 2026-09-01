@@ -6,17 +6,11 @@
  * model controls for the compact buttons above the text, because the footer
  * has to stay reachable with one thumb.
  *
- * The dictation component is rendered here on desktop only: on mobile it lives
- * at the composer wrapper level so a recording started from the collapsed pill
- * survives the expand.
+ * ANEMOS-PATCH: Phase 4 removes the Chamber dictation controls from both composer layouts.
  */
 
 import React from 'react';
 
-import { SessionGoalButton, SessionGoalObjectiveCounter } from '@/components/chat/SessionGoalButton';
-import { ComposerDictation } from '@/components/dictation/ComposerDictation';
-import { Icon } from '@/components/icon/Icon';
-import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { ModelControls } from '../../ModelControls';
 import { ComposerActionButtons } from './ComposerActionButtons';
@@ -25,16 +19,11 @@ import { FocusModeButton } from './FocusModeButton';
 import { PermissionAutoAcceptButton } from './PermissionAutoAcceptButton';
 
 const MemoModelControls = React.memo(ModelControls);
-const MemoComposerDictation = React.memo(ComposerDictation);
 
 export interface ComposerFooterProps {
     isMobile: boolean;
     isVSCode: boolean;
     sessionId: string | null;
-    directory?: string;
-    newSessionDraftOpen: boolean;
-    messageLength: number;
-
     radius: string;
     footerPaddingClass: string;
     footerGapClass: string;
@@ -49,7 +38,6 @@ export interface ComposerFooterProps {
     isExpandedInput: boolean;
     permissionAutoAcceptEnabled: boolean;
     isPermissionAutoAcceptInteractive: boolean;
-    dictationActive: boolean;
 
     onOpenSettings?: () => void;
     onPickLocalFiles: () => void;
@@ -63,21 +51,13 @@ export interface ComposerFooterProps {
     onPrimaryAction: () => void;
     onQueueMessage: () => void;
     onAbort: () => void;
-    onStartDictation: () => void;
-    onDictationInsert: (text: string) => void;
-    onDictationInsertAndSend: (text: string) => void;
-    onDictationContentHeightChange: (height: number | null) => void;
 }
 
 export function ComposerFooter(props: ComposerFooterProps) {
-    const { t } = useI18n();
     const {
         isMobile,
         isVSCode,
         sessionId: currentSessionId,
-        directory,
-        newSessionDraftOpen,
-        messageLength,
         radius: chatInputRadius,
         footerPaddingClass,
         footerGapClass,
@@ -91,7 +71,6 @@ export function ComposerFooter(props: ComposerFooterProps) {
         isExpandedInput,
         permissionAutoAcceptEnabled,
         isPermissionAutoAcceptInteractive,
-        dictationActive,
         onOpenSettings,
         onPickLocalFiles,
         onOpenIssuePicker,
@@ -104,10 +83,6 @@ export function ComposerFooter(props: ComposerFooterProps) {
         onPrimaryAction,
         onQueueMessage,
         onAbort,
-        onStartDictation,
-        onDictationInsert,
-        onDictationInsertAndSend,
-        onDictationContentHeightChange,
     } = props;
 
     return (
@@ -146,37 +121,9 @@ export function ComposerFooter(props: ComposerFooterProps) {
                                 permissionAutoAcceptEnabled={permissionAutoAcceptEnabled}
                                 handlePermissionAutoAcceptToggle={onTogglePermissionAutoAccept}
                             />
-                            <SessionGoalButton
-                                sessionId={currentSessionId}
-                                directory={directory}
-                                draftOpen={newSessionDraftOpen}
-                                footerIconButtonClass={footerIconButtonClass}
-                                iconSizeClass={iconSizeClass}
-                            />
-                            <SessionGoalObjectiveCounter length={messageLength} />
                         </div>
                         <div className="flex items-center min-w-0 gap-x-1 justify-end">
                             <div className="flex items-center gap-x-1 flex-shrink-0">
-                                <button
-                                    type="button"
-                                    className={footerIconButtonClass}
-                                    // Keep the soft keyboard open (same guard as
-                                    // PermissionAutoAcceptButton); the recording
-                                    // engine lives in the wrapper-level
-                                    // ComposerDictation instance.
-                                    onMouseDown={(event) => event.preventDefault()}
-                                    onPointerDownCapture={(event) => {
-                                        if (event.pointerType === 'touch') {
-                                            event.preventDefault();
-                                        }
-                                    }}
-                                    onClick={onStartDictation}
-                                    disabled={dictationActive}
-                                    title={t('chat.dictation.start')}
-                                    aria-label={t('chat.dictation.start')}
-                                >
-                                    <Icon name="mic" className={cn(iconSizeClass, 'text-current')} />
-                                </button>
                                 <ComposerActionButtons
                                     isMobile={isMobile}
                                     footerIconButtonClass={footerIconButtonClass}
@@ -223,29 +170,9 @@ export function ComposerFooter(props: ComposerFooterProps) {
                             handlePermissionAutoAcceptToggle={onTogglePermissionAutoAccept}
                             withTooltip
                         />
-                        <SessionGoalButton
-                            sessionId={currentSessionId}
-                            directory={directory}
-                            draftOpen={newSessionDraftOpen}
-                            footerIconButtonClass={footerIconButtonClass}
-                            iconSizeClass={iconSizeClass}
-                            withTooltip
-                        />
-                        <SessionGoalObjectiveCounter length={messageLength} />
                     </div>
                     <div className={cn('flex items-center flex-1 justify-end', footerGapClass, 'md:gap-x-3')}>
                         <MemoModelControls className={cn('flex-1 min-w-0 justify-end')} />
-                        <MemoComposerDictation
-                            radius={chatInputRadius}
-                            isMobile={isMobile}
-                            footerIconButtonClass={footerIconButtonClass}
-                            footerPaddingClass={footerPaddingClass}
-                            iconSizeClass={iconSizeClass}
-                            sendIconSizeClass={sendIconSizeClass}
-                            onInsert={onDictationInsert}
-                            onInsertAndSend={onDictationInsertAndSend}
-                            onContentHeightChange={onDictationContentHeightChange}
-                        />
                         <ComposerActionButtons
                             isMobile={isMobile}
                             footerIconButtonClass={footerIconButtonClass}

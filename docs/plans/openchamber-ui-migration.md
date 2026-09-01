@@ -522,6 +522,29 @@ The native lifecycle bridge dispatches `opencode:resume` into Chamber's exported
 
 **Verification:** Unit, browser, and native-shell verification are deferred to the build-fixer/device verification pass; this implementation pass was verified by inspection only.
 
+### Phase 4 results — feature registry and cuts
+
+The Phase 4 registry is `packages/chamber-ui/src/features/registry.ts`. It contains 36 typed dispositions: 13 enabled core features and 23 cut features. Enabled features are `sessions`, `chat`, `composer`, `commands`, `providers`, `models`, `agents`, `mcp`, `permissions`, `questions`, `i18n`, `appearance`, and direct `instances`. Cut entries are `fs`, `git`, `terminal`, `tunnels`, `knowledge`, `folders`, `scheduled-tasks`, `agent-memory`, `browser-control`, `dev-servers`, `quota`, `security`, `small-model`, `system-prompt`, `skills-catalog`, `walkthrough`, `github`, `linear`, `tts-dictation`, `chamber-config`, `client-auth`, `push-web`, and `updates`; each has a reason and can be re-enabled independently.
+
+Gated surfaces:
+
+| Surface | Registry disposition |
+|---|---|
+| Mobile workspace drawer: Changes, Files, Terminal, Notes/Plans | Git, filesystem, terminal, and knowledge stubs; only SDK-backed MCP remains visible |
+| Mobile sessions drawer: project-folder add, worktree discovery/create/edit/delete | Folder/Git actions removed from the mobile navigation and no background Git discovery runs |
+| Mobile connection welcome/instances QR pairing | Client-auth pairing cut; direct URL/token and password connection remain |
+| Composer: dictation, session goals/recaps/suggestions, GitHub/Linear links, file mentions, review/changed-file actions | Voice, knowledge, integration, filesystem, and Git actions are hidden or short-circuited |
+| Context rail/panel and legacy URL tabs | Cut modes are hidden from the rail and render `Not available in anemos` for deep links |
+| Settings navigation/search and settings page content | Only appearance, chat, and SDK-backed providers remain in the mobile settings list; cut deep links render the stub |
+| MCP configuration/OAuth and Chamber settings/config stores | MCP status/connect/disconnect remains SDK-backed; Chamber config loading and OAuth setup are not invoked |
+| Web push/APNs registration and OpenChamber update polling | Disabled pending the Phase 5 fork relay and later update replacement |
+
+Bundle audit by import-graph traversal from `packages/chamber-ui/mobile/mobile-main.tsx` (the Vite build/manifest verification is deferred to build-fixer): 150 eager source modules were resolved; `express`, `simple-git`, `ghostty-web`, `@xenova/transformers`, and `http-proxy-middleware` each have **0** references in the eager graph. The four cut mobile surface modules (`MobileFilesSurface`, `MobileChangesSurface`, `TerminalView`, and `ComposerDictation`) are absent from the mobile entry graph. `heic2any` has one remaining reference in the eagerly resolved OpenCode client, but only as an on-demand dynamic attachment conversion import; it is not eagerly bundled. The full static-plus-dynamic closure was 837 modules and likewise contained no forbidden server/terminal dependency other than that lazy `heic2any` import.
+
+Appearance, typography, and model preference persistence was verified by inspection: Anemos `syncDesktopSettings` reads `anemos.settings.v1:<runtimeKey>` from local storage, `updateDesktopSettings` merges and writes that key without `/api/config/settings`, `OpenChamberVisualSettings` reads the same local record, custom theme loading is skipped, and model metadata's external `models.dev` fetch is skipped. Existing Zustand local persistence remains unchanged.
+
+Build, typecheck, and unit-test commands were not run by the implementation agent per the repository agent boundary; build-fixer owns those execution checks. No live browser/network sweep was performed; the verification agent owns that checklist.
+
 ---
 
 ## 6. Testing Strategy (summary)

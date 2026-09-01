@@ -38,6 +38,7 @@ import { useGitStatus } from '@/stores/useGitStore';
 import { useGitHubAuthStore } from '@/stores/useGitHubAuthStore';
 import { useLinearAuthStore } from '@/stores/useLinearAuthStore';
 import { normalizeContextPanelDirectoryKey, useUIStore } from '@/stores/useUIStore';
+import { featureForContextMode, isFeatureAvailable } from '@/features/registry';
 import { ContextRailSurfacesDialog } from './ContextRailSurfacesDialog';
 
 const RAIL_TOOLTIP_DELAY_MS = 150;
@@ -272,6 +273,10 @@ export const ContextPanelRail: React.FC = () => {
       tabs,
       linearConnected,
       githubConnected,
+    }).filter((surface) => {
+      // ANEMOS-PATCH: the rail cannot expose a surface backed by a cut route.
+      const feature = featureForContextMode(surface.mode);
+      return !feature || isFeatureAvailable(feature);
     });
   }, [contextRailHiddenSurfaces, contextRailOrder, githubConnected, linearConnected, planModeEnabled, screenWidth, tabs]);
 

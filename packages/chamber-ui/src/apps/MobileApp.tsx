@@ -1,13 +1,8 @@
 import React from 'react';
 
-import { AboutSettings } from '@/components/sections/openchamber/AboutSettings';
-import { OpenCodeUpdateToast } from '@/components/update/OpenCodeUpdateToast';
-import { MobileAppUpdateToast } from '@/components/update/MobileAppUpdateToast';
-import { ConfigUpdateOverlay } from '@/components/ui/ConfigUpdateOverlay';
 import { Button } from '@/components/ui/button';
 import { OpenChamberLogo } from '@/components/ui/OpenChamberLogo';
 import { ChatView } from '@/components/views/ChatView';
-import { PlanView } from '@/components/views/PlanView';
 import { SettingsView } from '@/components/views/SettingsView';
 import { AppLinkConfirmDialog } from '@/components/chat/AppLinkConfirmDialog';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
@@ -18,37 +13,25 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import { usePushVisibilityBeacon } from '@/hooks/usePushVisibilityBeacon';
 import { useRouter } from '@/hooks/useRouter';
-import { useUpdatePolling } from '@/hooks/useUpdatePolling';
 import { useWindowTitle } from '@/hooks/useWindowTitle';
 import { opencodeClient } from '@/lib/opencode/client';
 import type { RuntimeAPIs } from '@/lib/api/types';
-import type { ProjectRef } from '@/lib/projectContextApi';
 import { readTabletLayout, useOrientation, useTabletLayout } from '@/lib/device';
 import { useHardwareKeyboard } from '@/lib/hardwareKeyboard';
 import { useI18n } from '@/lib/i18n';
-import { runtimeFetch } from '@/lib/runtime-fetch';
 import { getRuntimeApiBaseUrl, getRuntimeKey, subscribeRuntimeEndpointChanged, switchRuntimeEndpoint, MOBILE_DISCONNECTED_RUNTIME_KEY } from '@/lib/runtime-switch';
 import { isAnemosRuntimeActive } from '@/anemos/server-env';
+import { parseRoute } from '@/lib/router/parseRoute';
 import { refreshGlobalSessions, resolveGlobalSessionDirectory } from '@/stores/useGlobalSessionsStore';
 import { clearLastActiveSession, readLastActiveSession } from '@/sync/last-session-cache';
 import { cn } from '@/lib/utils';
 import { useConfigStore } from '@/stores/useConfigStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
-import { useFeatureFlagsStore } from '@/stores/useFeatureFlagsStore';
-import { useGitHubAuthStore } from '@/stores/useGitHubAuthStore';
-import { useLinearAuthStore } from '@/stores/useLinearAuthStore';
-import { useGitStore } from '@/stores/useGitStore';
-import { useMcpConfigStore, type McpDraft } from '@/stores/useMcpConfigStore';
-import { useProjectsStore } from '@/stores/useProjectsStore';
-import {
-  listProjectWorktrees,
-  partitionWorktreesByRegisteredProject,
-  worktreeMapsEqual,
-} from '@/lib/worktrees/worktreeManager';
 import { useUIStore } from '@/stores/useUIStore';
-import { useUpdateStore } from '@/stores/useUpdateStore';
 import { useSessionUIStore } from '@/sync/session-ui-store';
 import { SyncProvider } from '@/sync/sync-context';
+import { Unavailable } from '@/features/unavailable';
+import { isFeatureEnabled } from '@/features/registry';
 
 import { SyncAppEffects } from './AppEffects';
 import { BusyDots } from '@/components/chat/message/parts/BusyDots';
@@ -76,20 +59,9 @@ import {
 } from './ipadSidebarResize';
 
 const MOBILE_SETTINGS_PAGES = [
-  'general',
   'appearance',
   'chat',
-  'notifications',
-  'sessions',
-  'git',
-  'magic-prompts',
-  'behavior',
-  'mcp',
   'providers',
-  'usage',
-  'voice',
-  'integrations',
-  'about',
 ] as const;
 
 type MobileAppProps = {
@@ -111,28 +83,21 @@ const MobileShell: React.FC<{ onActiveConnectionDeleted: () => void }> = ({ onAc
   // Phone right drawer with the workspace tabs; the tab persists across
   // open/close so the right-edge swipe reopens where the user left off.
   const [workspaceOpen, setWorkspaceOpen] = React.useState(false);
-  const [workspaceTab, setWorkspaceTab] = React.useState<MobileWorkspaceTab>('changes');
+  // ANEMOS-PATCH: start on the SDK-backed MCP pane; cut workspace panes remain deep-link stubs.
+  const [workspaceTab, setWorkspaceTab] = React.useState<MobileWorkspaceTab>('mcp');
   // A plan opened from the workspace drawer's Notes tab, shown as a fullscreen
   // layer on top of it (back returns to the notes).
-  const [openPlan, setOpenPlan] = React.useState<{ id: string; title: string; projectRef: ProjectRef } | null>(null);
   const [settingsInitialMobileStage, setSettingsInitialMobileStage] = React.useState<'nav' | 'page-content'>('nav');
   // When set, the Changes surface opens directly into the per-file diff for this path.
   const [pendingChangesDiff, setPendingChangesDiff] = React.useState<{ path: string; staged: boolean } | null>(null);
   const setSettingsPage = useUIStore((state) => state.setSettingsPage);
   const wideChatLayoutEnabled = useUIStore((state) => state.wideChatLayoutEnabled);
-  const updateAvailable = useUpdateStore((state) => state.available);
-  const updateRuntimeType = useUpdateStore((state) => state.runtimeType);
   const showCapacitorOnlyFeatures = React.useMemo(() => isCapacitorMobileApp(), []);
-  const mcpServers = useMcpConfigStore((state) => state.mcpServers);
-  const setMcpDraft = useMcpConfigStore((state) => state.setMcpDraft);
-  const setSelectedMcp = useMcpConfigStore((state) => state.setSelectedMcp);
-
   // NOTE: pendingChangesDiff is intentionally NOT cleared on close — it keys
   // the persistent Changes pane in the workspace drawer, and clearing it would
   // remount the pane (losing its navigation) on every close.
   const closeSurface = React.useCallback(() => {
     setActiveSurface(null);
-    setOpenPlan(null);
   }, []);
 
   const openSurface = React.useCallback((surface: MobileSurface) => {
@@ -281,6 +246,28 @@ const MobileShell: React.FC<{ onActiveConnectionDeleted: () => void }> = ({ onAc
   );
   useDeepLinkHandlers(deepLinkHandlers);
 
+  React.useEffect(() => {
+    const route = parseRoute();
+    // ANEMOS-PATCH: mobile URL routes enter the same stubbed surface handlers as native deep links.
+    if (route.settingsPath) {
+      setSettingsPage(route.settingsPath);
+      openSettingsSurface('page-content');
+      return;
+    }
+    if (route.tab === 'files') {
+      openFilesSurface();
+      return;
+    }
+    if (route.tab === 'git' || route.tab === 'diff') {
+      openChangesSurface(route.diffFile ? { path: route.diffFile, staged: false } : null);
+      return;
+    }
+    if (route.tab === 'terminal') {
+      setWorkspaceTab('terminal');
+      setWorkspaceOpen(true);
+    }
+  }, [openChangesSurface, openFilesSurface, openSettingsSurface, setSettingsPage]);
+
   // Edge swipes on the chat: left edge opens the sessions drawer (the
   // persistent sidebar on a tablet), right edge the workspace drawer.
   const chatMainRef = React.useRef<HTMLElement>(null);
@@ -296,10 +283,6 @@ const MobileShell: React.FC<{ onActiveConnectionDeleted: () => void }> = ({ onAc
   // (opened from the drawer footer / workspace tabs), so they close before the
   // drawers underneath.
   const handleNativeBack = React.useCallback(() => {
-    if (openPlan) {
-      setOpenPlan(null);
-      return true;
-    }
     if (activeSurface) {
       closeSurface();
       return true;
@@ -313,16 +296,9 @@ const MobileShell: React.FC<{ onActiveConnectionDeleted: () => void }> = ({ onAc
       return true;
     }
     return false;
-  }, [activeSurface, closeSurface, closeWorkspace, openPlan, sessionsSheetOpen, workspaceOpen]);
+  }, [activeSurface, closeSurface, closeWorkspace, sessionsSheetOpen, workspaceOpen]);
 
   useNativeAndroidBackButton(handleNativeBack);
-
-  // Server updates are actionable from a browser (hosted mobile) but not from
-  // the Capacitor shell — the native app updates through the store, and the
-  // server it CONNECTS to is updated elsewhere.
-  const showUpdateItem = !showCapacitorOnlyFeatures
-    && updateAvailable
-    && (updateRuntimeType === 'desktop' || updateRuntimeType === 'web');
 
   // Tablets pack the app-level pages (settings, instances, a plan) into a
   // centered dialog instead of covering the whole screen.
@@ -335,42 +311,9 @@ const MobileShell: React.FC<{ onActiveConnectionDeleted: () => void }> = ({ onAc
       instanceLabel: showCapacitorOnlyFeatures ? getAutoConnectTargetLabel() : null,
       onOpenInstances: showCapacitorOnlyFeatures ? () => openSurface('instances') : undefined,
       onOpenSettings: () => openSettingsSurface('nav'),
-      onOpenUpdate: showUpdateItem ? () => openSurface('update') : undefined,
     }),
-    [openSettingsSurface, openSurface, showCapacitorOnlyFeatures, showUpdateItem],
+    [openSettingsSurface, openSurface, showCapacitorOnlyFeatures],
   );
-
-  const openMcpCreateSettings = React.useCallback(() => {
-    const baseName = 'new-mcp-server';
-    let newName = baseName;
-    let counter = 1;
-    while (mcpServers.some((server) => server.name === newName)) {
-      newName = `${baseName}-${counter}`;
-      counter += 1;
-    }
-
-    const draft: McpDraft = {
-      name: newName,
-      scope: 'user',
-      type: 'local',
-      command: [],
-      url: '',
-      environment: [],
-      headers: [],
-      oauthEnabled: true,
-      oauthClientId: '',
-      oauthClientSecret: '',
-      oauthScope: '',
-      oauthRedirectUri: '',
-      timeout: '',
-      enabled: true,
-    };
-
-    setMcpDraft(draft);
-    setSelectedMcp(newName);
-    setSettingsPage('mcp');
-    openSettingsSurface('page-content');
-  }, [mcpServers, openSettingsSurface, setMcpDraft, setSelectedMcp, setSettingsPage]);
 
   return (
     <DedicatedMobileAppProvider actions={mobileActions}>
@@ -508,8 +451,6 @@ const MobileShell: React.FC<{ onActiveConnectionDeleted: () => void }> = ({ onAc
                   tab={workspaceTab}
                   onTabChange={setWorkspaceTab}
                   pendingChangesDiff={pendingChangesDiff}
-                  onOpenPlan={setOpenPlan}
-                  onOpenMcpSettings={openMcpCreateSettings}
                   variant={workspaceAsPanel ? 'panel' : 'drawer'}
                 />
               </ErrorBoundary>
@@ -530,31 +471,8 @@ const MobileShell: React.FC<{ onActiveConnectionDeleted: () => void }> = ({ onAc
             tab={workspaceTab}
             onTabChange={setWorkspaceTab}
             pendingChangesDiff={pendingChangesDiff}
-            onOpenPlan={setOpenPlan}
-            onOpenMcpSettings={openMcpCreateSettings}
           />
         )}
-
-        {/* Layered above the workspace drawer's Notes tab, which opened it. */}
-        {openPlan ? (
-          <MobileFullscreenSurface
-            open
-            variant={surfaceVariant}
-            onClose={() => setOpenPlan(null)}
-            ariaLabel={openPlan.title}
-            title={openPlan.title}
-          >
-            <ErrorBoundary>
-              <PlanView
-                savedProjectPlan={{ projectRef: openPlan.projectRef, planId: openPlan.id }}
-                onNavigatedToChat={() => {
-                  closeSurface();
-                  closeWorkspace();
-                }}
-              />
-            </ErrorBoundary>
-          </MobileFullscreenSurface>
-        ) : null}
 
         {activeSurface === 'instances' && showCapacitorOnlyFeatures ? (
           <MobileFullscreenSurface
@@ -607,9 +525,7 @@ const MobileShell: React.FC<{ onActiveConnectionDeleted: () => void }> = ({ onAc
             title={t('mobile.menu.update')}
           >
             <ErrorBoundary>
-              <div className="h-full overflow-auto px-5 py-4">
-                <AboutSettings initialUpdateDialogOpen />
-              </div>
+              <Unavailable feature="updates" />
             </ErrorBoundary>
           </MobileFullscreenSurface>
         ) : null}
@@ -632,10 +548,6 @@ export function MobileApp({ apis }: MobileAppProps) {
   const error = useSessionUIStore((state) => state.error);
   const clearError = useSessionUIStore((state) => state.clearError);
   const setIsMobile = useUIStore((state) => state.setIsMobile);
-  const refreshGitHubAuthStatus = useGitHubAuthStore((state) => state.refreshStatus);
-  const refreshLinearAuthStatus = useLinearAuthStore((state) => state.refreshStatus);
-  const setPlanModeEnabled = useFeatureFlagsStore((state) => state.setPlanModeEnabled);
-  const projects = useProjectsStore((state) => state.projects);
   const [connectionEpoch, setConnectionEpoch] = React.useState(0);
   const [runtimeEndpointEpoch, setRuntimeEndpointEpoch] = React.useState(0);
   const [showConnectionRecovery, setShowConnectionRecovery] = React.useState(false);
@@ -675,8 +587,6 @@ export function MobileApp({ apis }: MobileAppProps) {
     // ANEMOS-PATCH: direct Anemos runtimes already carry Basic auth; resume must not probe Chamber's /auth/session.
     if (isAnemosRuntimeActive()) {
       void initializeApp();
-      void refreshGitHubAuthStatus(apis.github, { force: true });
-      void refreshLinearAuthStatus(apis.linear, { force: true });
       if (providersCount === 0) void loadProviders({ source: 'mobileApp:anemosResume' });
       if (agentsCount === 0) void loadAgents({ source: 'mobileApp:anemosResume' });
       return;
@@ -690,8 +600,6 @@ export function MobileApp({ apis }: MobileAppProps) {
     // only refresh in place when the transport is 'unchanged'.
     const refreshInPlace = () => {
       void initializeApp();
-      void refreshGitHubAuthStatus(apis.github, { force: true });
-      void refreshLinearAuthStatus(apis.linear, { force: true });
       if (providersCount === 0) void loadProviders({ source: 'mobileApp:nativeResume' });
       if (agentsCount === 0) void loadAgents({ source: 'mobileApp:nativeResume' });
     };
@@ -760,7 +668,7 @@ export function MobileApp({ apis }: MobileAppProps) {
       lastNativeResumeSyncEventAtRef.current = now;
       window.dispatchEvent(new Event('openchamber:system-resume'));
     }
-  }, [agentsCount, apis.github, apis.linear, initializeApp, loadAgents, loadProviders, providersCount, refreshGitHubAuthStatus, refreshLinearAuthStatus]);
+  }, [agentsCount, initializeApp, loadAgents, loadProviders, providersCount]);
 
   useNativeMobileChrome();
   useNativeMobileLifecycle(handleNativeResume);
@@ -1039,89 +947,6 @@ export function MobileApp({ apis }: MobileAppProps) {
     opencodeClient.setDirectory(currentDirectory);
   }, [currentDirectory, isConnected]);
 
-  // Gated on isConnected (and re-run on reconnect/instance switch): probing the
-  // GitHub auth status before the runtime is reachable cached a "not connected"
-  // answer that stuck until something else forced a re-check.
-  React.useEffect(() => {
-    if (!isConnected) return;
-    void refreshGitHubAuthStatus(apis.github, { force: true });
-    void refreshLinearAuthStatus(apis.linear, { force: true });
-  }, [apis.github, apis.linear, isConnected, refreshGitHubAuthStatus, refreshLinearAuthStatus]);
-
-  // Discover all worktrees for every known project so the draft session's
-  // worktree/branch dropdown can list every available branch — not only the
-  // current one. Mirrors ElectronMiniChatApp + desktop SessionSidebar.
-  // Gated on isConnected: running before the runtime is reachable made every
-  // per-project probe fail silently, leaving the map empty until some later
-  // projects-store update happened to re-run this effect (the "switch projects
-  // back and forth to see worktrees" bug).
-  React.useEffect(() => {
-    if (!isConnected || projects.length === 0) return;
-    let cancelled = false;
-
-    const run = async () => {
-      const worktreesByProject = new Map(useSessionUIStore.getState().availableWorktreesByProject);
-
-      await Promise.all(
-        projects.map(async (project) => {
-          const projectPath = project.path.replace(/\\/g, '/').replace(/\/+$/, '');
-          if (!projectPath) return;
-          try {
-            const cachedIsGitRepo = useGitStore.getState().directories.get(projectPath)?.isGitRepo;
-            const isGitRepo =
-              cachedIsGitRepo ?? (await import('@/lib/gitApi').then((m) => m.checkIsGitRepository(projectPath)));
-            if (!isGitRepo) return;
-            const worktrees = await listProjectWorktrees({ id: project.id, path: projectPath });
-            if (cancelled) return;
-            worktreesByProject.set(projectPath, worktrees);
-          } catch {
-            // Worktree discovery is best-effort per project: a failed probe keeps
-            // that project's previously known (persisted) worktrees instead of
-            // wiping the whole map.
-          }
-        }),
-      );
-
-      if (cancelled) return;
-
-      const partitionedWorktreesByProject = partitionWorktreesByRegisteredProject(projects, worktreesByProject);
-
-      // Skip update if nothing changed — see worktreeMapsEqual JSDoc.
-      const currentByProject = useSessionUIStore.getState().availableWorktreesByProject;
-      if (!worktreeMapsEqual(partitionedWorktreesByProject, currentByProject)) {
-        useSessionUIStore.setState({
-          availableWorktrees: [...partitionedWorktreesByProject.values()].flat(),
-          availableWorktreesByProject: partitionedWorktreesByProject,
-        });
-      }
-    };
-
-    void run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isConnected, projects]);
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    const run = async () => {
-      const res = await runtimeFetch('/health', { method: 'GET' }).catch(() => null);
-      if (!res || !res.ok || cancelled) return;
-      const data = (await res.json().catch(() => null)) as null | { planModeExperimentalEnabled?: unknown };
-      if (!data || cancelled) return;
-      const raw = data.planModeExperimentalEnabled;
-      setPlanModeEnabled(raw === true || raw === 1 || raw === '1' || raw === 'true');
-    };
-
-    void run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [setPlanModeEnabled]);
-
   React.useEffect(() => {
     if (!error) return;
     const timeout = window.setTimeout(() => clearError(), 5000);
@@ -1147,8 +972,7 @@ export function MobileApp({ apis }: MobileAppProps) {
   }, [isConnected, isNativeMobileApp, connectionEpoch, runtimeEndpointEpoch]);
 
   useAppFontEffects();
-  usePushVisibilityBeacon({ enabled: true });
-  useUpdatePolling();
+  usePushVisibilityBeacon({ enabled: isFeatureEnabled('push-web') });
   useWindowTitle();
   useRouter();
   // APNs is the only notification channel on the native app (background-capable,
@@ -1157,7 +981,7 @@ export function MobileApp({ apis }: MobileAppProps) {
   // intentionally disabled — they can't tell foreground from background in a WKWebView
   // (document.hasFocus() is unreliable) and leaked while the app was open; the in-app SSE
   // notification dispatch is routed through the Anemos platform adapter.
-  useNativePushRegistration({ enabled: isNativeMobileApp && isConnected });
+  useNativePushRegistration({ enabled: false });
   // ANEMOS-PATCH: native deep-link events use the opencode:// scheme.
   // Single native deep-link entry point: notification taps AND the opencode:// URL
   // scheme (widgets, Live Activities, external links). Registered unconditionally so a
@@ -1289,15 +1113,13 @@ export function MobileApp({ apis }: MobileAppProps) {
                 </div>
               ) : null}
               <SyncAppEffects embeddedBackgroundWorkEnabled={isInitialized} />
-              <OpenCodeUpdateToast />
-              <MobileAppUpdateToast />
+              {/* ANEMOS-PATCH: Chamber update routes are cut from the Phase 1 mobile shell. */}
               <MobileShell onActiveConnectionDeleted={() => {
                 switchRuntimeEndpoint({ apiBaseUrl: '', clientToken: null, runtimeKey: MOBILE_DISCONNECTED_RUNTIME_KEY });
                 setConnectionEpoch((value) => value + 1);
               }} />
               <AppLinkConfirmDialog />
               <Toaster position="top-center" offset="calc(var(--oc-safe-area-top, 0px) + 16px)" />
-              {isInitialized ? <ConfigUpdateOverlay /> : null}
             </div>
           </TooltipProvider>
         </RuntimeAPIProvider>

@@ -9,9 +9,7 @@ import { cn } from '@/lib/utils';
 import { connectionDisplayUrl, isActiveRuntimeConnection, useMobileConnection } from './mobileConnections';
 import { useDebugPanelLongPress } from './mobileConnectionDebug';
 import { MobileConnectionDebugPanel } from './MobileConnectionDebugPanel';
-import { isQrScanSupported, scanConnectionQr } from './mobileQrScan';
 import { mobileConnectionInputClass, mobileInputKeyboardProps } from './mobileConnectionUi';
-import { MobileQrConnectionLoading, MobileQrScannerOverlay } from './MobileQrScannerOverlay';
 
 export const MobileInstancesSurface: React.FC<{
   onConnect: () => void;
@@ -30,10 +28,6 @@ export const MobileInstancesSurface: React.FC<{
   const [label, setLabel] = React.useState('');
   const [clientToken, setClientToken] = React.useState('');
   const [password, setPassword] = React.useState('');
-  const [isScanning, setIsScanning] = React.useState(false);
-  const [isCompletingScan, setIsCompletingScan] = React.useState(false);
-  const scanAbortRef = React.useRef<AbortController | null>(null);
-  const qrScanSupported = React.useMemo(() => isQrScanSupported(), []);
   // The manual add/edit form is hidden until asked for — the sheet leads with
   // the list of instances (with live status), not a wall of inputs.
   const [formOpen, setFormOpen] = React.useState(false);
@@ -66,59 +60,6 @@ export const MobileInstancesSurface: React.FC<{
       if (saved) resetForm();
     });
   }, [clientToken, editingId, label, resetForm, saveConnection, url]);
-
-  // Scan a pairing QR into the add/edit form fields (does not change edit mode, so
-  // the form-reset effect doesn't wipe the scanned values). The user reviews + saves.
-  const handleScanInstance = React.useCallback(async () => {
-    if (scanAbortRef.current) return;
-    setError(null);
-    setIsScanning(true);
-    const controller = new AbortController();
-    scanAbortRef.current = controller;
-    try {
-      const result = await scanConnectionQr({ signal: controller.signal });
-      if (scanAbortRef.current === controller) {
-        scanAbortRef.current = null;
-        setIsScanning(false);
-      }
-      switch (result.status) {
-        case 'ok':
-          // Legacy token QR: prefill the manual form for review before saving.
-          setUrl(result.url);
-          if (result.label) setLabel(result.label);
-          if (result.clientToken) setClientToken(result.clientToken);
-          setFormOpen(true);
-          break;
-        case 'pairing':
-          setIsCompletingScan(true);
-          await conn.redeemPairingConnection(result.pairing);
-          break;
-        case 'permission-denied':
-          setError(t('mobile.connect.scan.permissionDenied'));
-          break;
-        case 'invalid':
-          setError(t('mobile.connect.scan.invalid'));
-          break;
-        case 'unsupported':
-          setError(t('mobile.connect.scan.unsupported'));
-          break;
-        case 'failed':
-          setError(t('mobile.connect.scan.failed'));
-          break;
-        case 'cancelled':
-        default:
-          break;
-      }
-    } finally {
-      setIsCompletingScan(false);
-      if (scanAbortRef.current === controller) {
-        scanAbortRef.current = null;
-        setIsScanning(false);
-      }
-    }
-  }, [conn, setError, t]);
-
-  React.useEffect(() => () => scanAbortRef.current?.abort(), []);
 
   const handlePasswordSubmit = React.useCallback((event: React.FormEvent) => {
     event.preventDefault();
@@ -193,8 +134,6 @@ export const MobileInstancesSurface: React.FC<{
 
   return (
     <>
-    {isScanning ? <MobileQrScannerOverlay onCancel={() => scanAbortRef.current?.abort()} /> : null}
-    {isCompletingScan ? <MobileQrConnectionLoading /> : null}
     {debugOpen ? <MobileConnectionDebugPanel onClose={() => setDebugOpen(false)} /> : null}
     <div className="flex h-full flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto px-5 py-4">
@@ -299,25 +238,12 @@ export const MobileInstancesSurface: React.FC<{
             </p>
           )}
 
-          {/* Add actions: QR pairing is the primary path; the manual form stays
-              hidden until asked for (or until a row's edit button opens it). */}
-          {!formOpen && !editingConnection ? (
-            <div className="space-y-2">
-              {qrScanSupported ? (
-                <Button
-                  type="button"
-                  size="lg"
-                  className="h-12 w-full"
-                  onClick={() => void handleScanInstance()}
-                  disabled={isScanning}
-                >
-                  <Icon name="scan-2" className={cn('size-[18px]', isScanning && 'animate-pulse')} />
-                  {t('mobile.connect.scanQr')}
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                variant={qrScanSupported ? 'ghost' : 'outline'}
+           {/* ANEMOS-PATCH: direct URL/token entry replaces Chamber QR pairing. */}
+           {!formOpen && !editingConnection ? (
+             <div className="space-y-2">
+               <Button
+                 type="button"
+                 variant="outline"
                 size="lg"
                 className="h-12 w-full"
                 onClick={() => { setError(null); setFormOpen(true); }}

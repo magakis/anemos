@@ -12,6 +12,7 @@ import { opencodeClient } from '@/lib/opencode/client';
 import { useI18n } from '@/lib/i18n';
 import { runtimeFetch } from '@/lib/runtime-fetch';
 import { SETTINGS_PANEL_TITLE_CLASS } from '@/components/sections/shared/SettingsSection';
+import { isFeatureCutRuntime } from '@/features/registry';
 
 const ADD_PROVIDER_ID = '__add_provider__';
 
@@ -65,7 +66,8 @@ export const ProvidersSidebar: React.FC<ProvidersSidebarProps> = ({ onItemSelect
   }, [loadProviders, settingsDirectory]);
 
   React.useEffect(() => {
-    if (providers.length === 0) {
+    // ANEMOS-PATCH: provider data is SDK-backed; source-file provenance is a Chamber route.
+    if (isFeatureCutRuntime() || providers.length === 0) {
       setSourcesByProvider({});
       return;
     }

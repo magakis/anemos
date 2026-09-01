@@ -27,7 +27,7 @@ import {
 } from '@/lib/desktop';
 import { useDeviceInfo } from '@/lib/device';
 import { usePwaDetection } from '@/hooks/usePwaDetection';
-import { updateDesktopSettings } from '@/lib/persistence';
+import { readAnemosLocalSettings, updateDesktopSettings } from '@/lib/persistence';
 import { CODE_FONT_OPTIONS, DEFAULT_MONO_FONT, DEFAULT_UI_FONT, UI_FONT_OPTIONS, type MonoFontOption, type UiFontOption } from '@/lib/fontOptions';
 import { useI18n, type Locale } from '@/lib/i18n';
 import { useConfigStore } from '@/stores/useConfigStore';
@@ -64,6 +64,7 @@ import type { TerminalShellOption } from '@/lib/api/types';
 import { isTerminalShell } from '@/lib/terminalShell';
 import { subscribeRuntimeEndpointChanged } from '@/lib/runtime-switch';
 import { formatShortcutForDisplay } from '@/lib/shortcuts';
+import { isFeatureCutRuntime } from '@/features/registry';
 
 interface Option<T extends string> {
     id: T;
@@ -790,6 +791,17 @@ export const OpenChamberVisualSettings: React.FC<OpenChamberVisualSettingsProps>
 
     React.useEffect(() => {
         if (typeof window === 'undefined' || (!showPwaInstallNameSetting && !showPwaOrientationSetting && !showMobileKeyboardModeSetting)) {
+            return;
+        }
+
+        // ANEMOS-PATCH: appearance settings are restored from local storage, not /api/config/settings.
+        if (isFeatureCutRuntime()) {
+            const settings = readAnemosLocalSettings();
+            const raw = settings?.pwaAppName;
+            const normalized = typeof raw === 'string' ? raw.trim().replace(/\s+/g, ' ').slice(0, 64) : '';
+            if (showPwaInstallNameSetting) setPwaInstallName(normalized || DEFAULT_PWA_INSTALL_NAME);
+            if (showPwaOrientationSetting) setPwaOrientation(normalizePwaOrientation(settings?.pwaOrientation));
+            if (showMobileKeyboardModeSetting) setMobileKeyboardMode(normalizeMobileKeyboardMode(settings?.mobileKeyboardMode));
             return;
         }
 

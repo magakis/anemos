@@ -4,19 +4,14 @@ import { createPortal } from 'react-dom';
 import { Icon } from '@/components/icon/Icon';
 import { McpIcon } from '@/components/icons/McpIcon';
 import { McpDropdownContent } from '@/components/mcp/McpDropdown';
-import { ProjectContextPanel } from '@/components/layout/RightSidebarTabs';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { SortableTabsStrip, type SortableTabsStripItem } from '@/components/ui/sortable-tabs-strip';
-import { TerminalView } from '@/components/views/TerminalView';
+import { Unavailable } from '@/features/unavailable';
+import { isFeatureEnabled } from '@/features/registry';
 import { useI18n } from '@/lib/i18n';
-import type { ProjectRef } from '@/lib/projectContextApi';
 import { cn } from '@/lib/utils';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
-import { useMcpConfigStore } from '@/stores/useMcpConfigStore';
 import { useMcpStore } from '@/stores/useMcpStore';
-
-import { MobileChangesSurface } from './MobileChangesSurface';
-import { MobileFilesSurface } from './MobileFilesSurface';
 
 const DRAWER_ROOT_ID = 'mobile-surface-root';
 const ENTER_DELAY_MS = 16;
@@ -27,15 +22,21 @@ const DRAWER_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 export type MobileWorkspaceTab = 'changes' | 'files' | 'terminal' | 'notes' | 'mcp';
 
-/** Quick MCP enable/disable toggles as a workspace pane, with its own slim
-    action row (add server → settings, refresh) replacing the old fullscreen
-    surface's header actions. */
-const McpWorkspacePane: React.FC<{ onOpenMcpSettings: () => void }> = ({ onOpenMcpSettings }) => {
+const WORKSPACE_TAB_FEATURES = {
+  changes: 'git',
+  files: 'fs',
+  terminal: 'terminal',
+  notes: 'knowledge',
+  mcp: 'mcp',
+} as const;
+
+/** Quick MCP enable/disable toggles as a workspace pane with its own slim
+    refresh action row. */
+const McpWorkspacePane: React.FC = () => {
   const { t } = useI18n();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const currentDirectory = useDirectoryStore((state) => state.currentDirectory);
   const refreshMcpStatus = useMcpStore((state) => state.refresh);
-  const loadMcpConfigs = useMcpConfigStore((state) => state.loadMcpConfigs);
 
   const refresh = () => {
     if (isRefreshing) return;
@@ -43,7 +44,6 @@ const McpWorkspacePane: React.FC<{ onOpenMcpSettings: () => void }> = ({ onOpenM
     const minSpinPromise = new Promise((resolve) => window.setTimeout(resolve, 500));
     void Promise.all([
       refreshMcpStatus({ directory: currentDirectory || null, silent: true }),
-      loadMcpConfigs({ force: true }),
       minSpinPromise,
     ]).finally(() => setIsRefreshing(false));
   };
@@ -51,16 +51,6 @@ const McpWorkspacePane: React.FC<{ onOpenMcpSettings: () => void }> = ({ onOpenM
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex shrink-0 items-center justify-end gap-1 px-2 pt-1">
-        <button
-          type="button"
-          className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-interactive-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          onClick={onOpenMcpSettings}
-          aria-label={t('settings.mcp.sidebar.actions.addServerTitle')}
-          title={t('settings.mcp.sidebar.actions.addServerTitle')}
-          style={{ touchAction: 'manipulation' }}
-        >
-          <Icon name="add" className="size-5" />
-        </button>
         <button
           type="button"
           className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-interactive-hover hover:text-foreground disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -105,12 +95,8 @@ export const MobileWorkspaceDrawer: React.FC<{
   onTabChange: (tab: MobileWorkspaceTab) => void;
   /** When set, the Changes tab opens directly into the per-file diff. */
   pendingChangesDiff: { path: string; staged: boolean } | null;
-  /** Notes tab: opens a plan fullscreen (layered above the drawer). */
-  onOpenPlan: (plan: { id: string; title: string; projectRef: ProjectRef }) => void;
-  /** MCP tab: jump to the MCP settings page pre-seeded with a new server draft. */
-  onOpenMcpSettings: () => void;
   variant?: 'drawer' | 'panel';
-}> = ({ open, onClose, tab, onTabChange, pendingChangesDiff, onOpenPlan, onOpenMcpSettings, variant = 'drawer' }) => {
+}> = ({ open, onClose, tab, onTabChange, pendingChangesDiff, variant = 'drawer' }) => {
   const { t } = useI18n();
   const rootRef = React.useRef<HTMLElement | null>(null);
   const [entered, setEntered] = React.useState(false);
@@ -177,13 +163,18 @@ export const MobileWorkspaceDrawer: React.FC<{
 
   if (variant === 'drawer' && !rootRef.current) return null;
 
-  const tabItems: SortableTabsStripItem[] = [
+  const allTabItems: SortableTabsStripItem[] = [
     { id: 'changes', label: t('mobile.menu.changes'), icon: <Icon name="git-branch" className="h-3.5 w-3.5" /> },
     { id: 'files', label: t('mobile.menu.files'), icon: <Icon name="file-text" className="h-3.5 w-3.5" /> },
     { id: 'terminal', label: t('mobile.menu.terminal'), icon: <Icon name="terminal" className="h-3.5 w-3.5" /> },
     { id: 'notes', label: t('contextRail.surface.notes'), icon: <Icon name="sticky-note" className="h-3.5 w-3.5" /> },
     { id: 'mcp', label: t('mobile.menu.mcp'), icon: <McpIcon className="h-3.5 w-3.5" /> },
   ];
+  // ANEMOS-PATCH: hide cut tabs from the drawer while retaining a stub tab for a deep link.
+  const tabItems = allTabItems.filter((item) => {
+    const feature = WORKSPACE_TAB_FEATURES[item.id as MobileWorkspaceTab];
+    return isFeatureEnabled(feature) || item.id === tab;
+  });
 
   const body = (
     <>
@@ -219,8 +210,7 @@ export const MobileWorkspaceDrawer: React.FC<{
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
         {/* Panes stay MOUNTED once visited (hidden when inactive/closed), so
-            reopening the drawer lands exactly where the user left off — an
-            open diff, an edited file, an attached terminal. */}
+            reopening the drawer lands exactly where the user left off. */}
         {visitedTabs.has('changes') ? (
           <div
             // A newly requested per-file diff remounts the pane so
@@ -229,38 +219,35 @@ export const MobileWorkspaceDrawer: React.FC<{
             className={cn('h-full', tab !== 'changes' && 'hidden')}
           >
             <ErrorBoundary>
-              <MobileChangesSurface
-                initialDiffPath={pendingChangesDiff?.path ?? null}
-                initialDiffStaged={pendingChangesDiff?.staged === true}
-              />
+              <Unavailable feature="git" />
             </ErrorBoundary>
           </div>
         ) : null}
         {visitedTabs.has('files') ? (
           <div className={cn('h-full', tab !== 'files' && 'hidden')}>
             <ErrorBoundary>
-              <MobileFilesSurface />
+              <Unavailable feature="fs" />
             </ErrorBoundary>
           </div>
         ) : null}
         {visitedTabs.has('terminal') ? (
           <div className={cn('h-full', tab !== 'terminal' && 'hidden')}>
             <ErrorBoundary>
-              <TerminalView visible={open && tab === 'terminal'} />
+              <Unavailable feature="terminal" />
             </ErrorBoundary>
           </div>
         ) : null}
         {visitedTabs.has('notes') ? (
           <div className={cn('h-full', tab !== 'notes' && 'hidden')}>
             <ErrorBoundary>
-              <ProjectContextPanel onActionComplete={onClose} onOpenPlan={onOpenPlan} />
+              <Unavailable feature="knowledge" />
             </ErrorBoundary>
           </div>
         ) : null}
         {visitedTabs.has('mcp') ? (
           <div className={cn('h-full', tab !== 'mcp' && 'hidden')}>
             <ErrorBoundary>
-              <McpWorkspacePane onOpenMcpSettings={onOpenMcpSettings} />
+              <McpWorkspacePane />
             </ErrorBoundary>
           </div>
         ) : null}

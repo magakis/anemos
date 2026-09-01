@@ -14,6 +14,7 @@ import { useFilesViewShowGitignored } from '@/lib/filesViewShowGitignored';
 import { useI18n } from '@/lib/i18n';
 import { useUIStore } from '@/stores/useUIStore';
 import { useMobileAutocompleteMaxHeight } from './useMobileAutocompleteMaxHeight';
+import { isFeatureAvailable } from '@/features/registry';
 import { mentionServerQuery, rankFileMentionResults } from './fileMentionResults';
 import { matchesRankQuery, rankByQuery } from '@/lib/search/fuzzySearch';
 import { AutocompleteRowTooltip } from './composer/ui/AutocompleteRowTooltip';
@@ -149,6 +150,13 @@ export const FileMentionAutocomplete = React.forwardRef<FileMentionHandle, FileM
   }, [onClose]);
 
   React.useEffect(() => {
+    // ANEMOS-PATCH: file mention search is part of the cut filesystem surface.
+    if (!isFeatureAvailable('fs')) {
+      setFiles([]);
+      setDirectories([]);
+      setLoading(false);
+      return;
+    }
     if (!currentDirectory) {
       setFiles([]);
       return;
@@ -203,6 +211,10 @@ export const FileMentionAutocomplete = React.forwardRef<FileMentionHandle, FileM
   }, [currentDirectory, debouncedQuery, recentFiles, searchFiles, showHidden, showGitignored]);
 
   React.useEffect(() => {
+    if (!isFeatureAvailable('fs')) {
+      setDirectories([]);
+      return;
+    }
     if (!currentDirectory) {
       setDirectories([]);
       return;

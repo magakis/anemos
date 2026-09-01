@@ -23,6 +23,9 @@ import { Icon } from "@/components/icon/Icon";
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { startMcpAuthorization } from '@/components/sections/mcp/startMcpAuthorization';
+import { isFeatureCutRuntime, isFeatureEnabled } from '@/features/registry';
+
+const chamberConfigAvailable = (): boolean => !isFeatureCutRuntime() || isFeatureEnabled('chamber-config');
 
 const statusTooltip = (
   status: McpStatus | undefined,
@@ -88,15 +91,16 @@ export const McpDropdownContent: React.FC<McpDropdownContentProps> = ({ active, 
   }, [refresh, directory]);
 
   React.useEffect(() => {
+    // ANEMOS-PATCH: MCP status is SDK-backed, but loading its Chamber config is not.
+    if (!chamberConfigAvailable()) return;
     void loadMcpConfigs({ force: true });
   }, [loadMcpConfigs]);
 
   React.useEffect(() => {
     if (!active) return;
-    void Promise.all([
-      refresh({ directory, silent: true }),
-      loadMcpConfigs({ force: true }),
-    ]);
+    const requests: Array<Promise<unknown>> = [refresh({ directory, silent: true })];
+    if (chamberConfigAvailable()) requests.push(loadMcpConfigs({ force: true }));
+    void Promise.all(requests);
   }, [active, refresh, directory, loadMcpConfigs]);
 
   const sortedNames = React.useMemo(() => {
@@ -207,6 +211,11 @@ export const McpDropdownContent: React.FC<McpDropdownContentProps> = ({ active, 
                     // the user has to visit the provider first.
                     const entryStatus = status?.[serverName]?.status;
                     if (entryStatus === 'needs_auth' || entryStatus === 'needs_client_registration') {
+                      // ANEMOS-PATCH: MCP OAuth setup uses Chamber config routes and is deferred.
+                      if (!chamberConfigAvailable()) {
+                        toast.error(t('common.unavailable'));
+                        return;
+                      }
                       const { opened } = await startMcpAuthorization({
                         name: serverName,
                         directory,
@@ -278,16 +287,16 @@ export const McpDropdown: React.FC<McpDropdownProps> = ({ headerIconButtonClass 
   // Fetch on mount and when directory changes
   React.useEffect(() => {
     void refresh({ directory, silent: true });
-    void loadMcpConfigs({ force: true });
+    // ANEMOS-PATCH: do not probe Chamber's /api/config/mcp route on the mobile graph.
+    if (chamberConfigAvailable()) void loadMcpConfigs({ force: true });
   }, [refresh, directory, loadMcpConfigs]);
 
   // Refresh when dropdown opens
   React.useEffect(() => {
     if (!open) return;
-    void Promise.all([
-      refresh({ directory, silent: true }),
-      loadMcpConfigs({ force: true }),
-    ]);
+    const requests: Array<Promise<unknown>> = [refresh({ directory, silent: true })];
+    if (chamberConfigAvailable()) requests.push(loadMcpConfigs({ force: true }));
+    void Promise.all(requests);
   }, [open, refresh, directory, loadMcpConfigs]);
 
   const health = React.useMemo(() => computeMcpHealth(status), [status]);

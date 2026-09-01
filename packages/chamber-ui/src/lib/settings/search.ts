@@ -2,6 +2,7 @@ import type { I18nKey } from '@/lib/i18n/store';
 import { useUIStore } from '@/stores/useUIStore';
 import type { SettingsPageSlug, SettingsRuntimeContext } from './metadata';
 import { getSettingsPageMeta } from './metadata';
+import { featureForSettingsPage, isFeatureCutRuntime, isFeatureEnabled } from '@/features/registry';
 
 interface SettingsSearchItem {
   id: string;
@@ -1073,6 +1074,11 @@ export function buildSettingsSearchResults({
     }
 
     const pageMeta = getSettingsPageMeta(item.page);
+    // ANEMOS-PATCH: settings search must not reopen a cut page through a result.
+    const feature = featureForSettingsPage(item.page);
+    if (isFeatureCutRuntime() && feature && !isFeatureEnabled(feature)) {
+      return [];
+    }
     if (!pageMeta || (pageMeta.isAvailable && !pageMeta.isAvailable(runtimeCtx)) || (item.isAvailable && !item.isAvailable(runtimeCtx))) {
       return [];
     }

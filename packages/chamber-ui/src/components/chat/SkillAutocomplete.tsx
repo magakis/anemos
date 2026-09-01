@@ -6,6 +6,7 @@ import { useUIStore } from '@/stores/useUIStore';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 import { useMobileAutocompleteMaxHeight } from './useMobileAutocompleteMaxHeight';
 import { AutocompleteRowTooltip } from './composer/ui/AutocompleteRowTooltip';
+import { isFeatureAvailable } from '@/features/registry';
 
 interface SkillInfo {
   name: string;
@@ -42,11 +43,13 @@ export const SkillAutocomplete = React.forwardRef<SkillAutocompleteHandle, Skill
   // Skills of the directory the composer sends to (session directory, or the
   // Chats root for a chat draft), not of the project the app was on last.
   const effectiveDirectory = useEffectiveDirectory();
-  const skills = useSkillsStore((s) => selectSkillsForDirectory(s, effectiveDirectory));
+  // ANEMOS-PATCH: cached skill entries cannot expose a cut Chamber config surface.
+  const skills = useSkillsStore((s) => isFeatureAvailable('chamber-config') ? selectSkillsForDirectory(s, effectiveDirectory) : []);
   const loadSkills = useSkillsStore((s) => s.loadSkills);
 
   React.useEffect(() => {
     // Always trigger loadSkills when autocomplete opens to ensure the directory's skills are fresh
+    if (!isFeatureAvailable('chamber-config')) return;
     void loadSkills(effectiveDirectory);
   }, [effectiveDirectory, loadSkills]);
 

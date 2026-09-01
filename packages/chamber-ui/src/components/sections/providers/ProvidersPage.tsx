@@ -41,6 +41,7 @@ import {
 } from './providerAuth';
 import { CustomProviderForm } from './CustomProviderForm';
 import { ProviderOAuthMethods, type ProviderOAuthMethod } from './ProviderOAuthMethods';
+import { isFeatureCutRuntime } from '@/features/registry';
 import {
   buildAuthSetRequest,
   buildProviderUpsertRequest,
@@ -159,6 +160,8 @@ const parseProvidersPayload = (payload: unknown): ProviderOption[] => {
 
 export const ProvidersPage: React.FC = () => {
   const { t } = useI18n();
+  // ANEMOS-PATCH: use SDK provider data while excluding Chamber source/config routes.
+  const anemosRuntime = isFeatureCutRuntime();
   // Settings browses whichever project its own selector points at; the app
   // stays where it is.
   const settingsDirectory = useSettingsDirectory();
@@ -279,7 +282,7 @@ export const ProvidersPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [isAddMode, t]);
+  }, [anemosRuntime, isAddMode, t]);
 
   const connectedProviderIds = React.useMemo(
     () => new Set(providers.map((provider) => provider.id)),
@@ -339,6 +342,8 @@ export const ProvidersPage: React.FC = () => {
     if (!selectedProviderId || selectedProviderId === ADD_PROVIDER_ID) {
       return;
     }
+    // ANEMOS-PATCH: provider source-file metadata is a Chamber-only route.
+    if (anemosRuntime) return;
     const sources = providerSources[selectedProviderId];
     if (!sources) {
       return;
@@ -406,7 +411,7 @@ export const ProvidersPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [selectedProviderId, providerSourcesRevision, settingsDirectory, t]);
+  }, [anemosRuntime, selectedProviderId, providerSourcesRevision, settingsDirectory, t]);
 
   const refreshProviderSources = React.useCallback(() => {
     setProviderSourcesRevision((revision) => revision + 1);
@@ -444,6 +449,8 @@ export const ProvidersPage: React.FC = () => {
   // and disconnects.
   const applyConfigReloadOrRecordDeferred = React.useCallback(
     async (scope: ConfigChangeScope, idForDeferred?: string) => {
+      // ANEMOS-PATCH: provider auth writes are SDK-backed; Chamber reload is not available.
+      if (anemosRuntime) return 'reloaded';
       try {
         await reloadOpenCodeConfiguration({ scopes: [scope], mode: 'active' });
         return 'reloaded';
@@ -458,7 +465,7 @@ export const ProvidersPage: React.FC = () => {
         throw error;
       }
     },
-    [],
+    [anemosRuntime],
   );
   const selectedProvider = providers.find((provider) => provider.id === selectedProviderId);
   const selectedSources = selectedProviderId ? providerSources[selectedProviderId] : undefined;
@@ -499,6 +506,7 @@ export const ProvidersPage: React.FC = () => {
   };
 
   const handleSaveCustomProvider = async (plan: CustomProviderPersistPlan) => {
+    if (anemosRuntime) return;
     const busyKey = `custom:${plan.providerID}`;
     setAuthBusyKey(busyKey);
     setLastCustomPersistId(plan.providerID);
@@ -577,6 +585,17 @@ export const ProvidersPage: React.FC = () => {
   };
 
   const handleDisconnectProvider = async (providerId: string) => {
+    if (anemosRuntime) {
+      try {
+        const result = await opencodeClient.getSdkClient().auth.remove({ providerID: providerId });
+        if (result.error) throw new Error('Provider disconnect failed');
+        setAuthPanelDismissedForId(null);
+        refreshProviderSources();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : t('settings.providers.page.toast.providerDisconnectFailed'));
+      }
+      return;
+    }
     const busyKey = `disconnect:${providerId}`;
     setAuthBusyKey(busyKey);
 
@@ -699,7 +718,7 @@ export const ProvidersPage: React.FC = () => {
                         <ScrollableOverlay outerClassName="max-h-[240px]" className="p-1">
                           {(() => {
                             const customLabel = t('settings.providers.page.custom.optionLabel');
-                            const customMatches = matchesRankQuery([customLabel, 'other', 'custom'], providerSearchQuery);
+          const customMatches = !anemosRuntime && matchesRankQuery([customLabel, 'other', 'custom'], providerSearchQuery);
                             const filtered = rankByQuery(unconnectedProviders, providerSearchQuery, (p) => [p.name || p.id, p.id]);
                             if (filtered.length === 0 && !customMatches) {
                               return <p className="py-4 text-center typography-meta text-muted-foreground">{t('settings.providers.page.connect.noProvidersFound')}</p>;

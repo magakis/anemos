@@ -23,6 +23,7 @@ import { getRuntimeKey, subscribeRuntimeEndpointChanged, subscribeRuntimeEndpoin
 import { DEFAULT_DARK_THEME_ID, DEFAULT_LIGHT_THEME_ID } from '@/lib/theme/themes';
 import { DEFAULT_OPEN_IN_APP_ID } from '@/lib/openInApps';
 import { useSessionDisplayStore } from '@/stores/useSessionDisplayStore';
+import { isFeatureCutRuntime } from '@/features/registry';
 
 export const applyPersistedHomeDirectoryToWindow = (homeDirectory: string): void => {
   if (typeof window === 'undefined') {
@@ -41,6 +42,7 @@ export const applyPersistedHomeDirectoryToWindow = (homeDirectory: string): void
 
 const SETTINGS_MIRROR_INDEX_KEY = 'openchamber.settingsMirror.v2.index';
 const SETTINGS_MIRROR_KEY_PREFIX = 'openchamber.settingsMirror.v2:';
+const ANEMOS_SETTINGS_KEY_PREFIX = 'anemos.settings.v1:';
 const MAX_SETTINGS_MIRROR_RUNTIMES = 5;
 
 export const getRuntimeSettingsMirrorStorageKey = (runtimeKey: string): string =>
@@ -528,7 +530,7 @@ const getPersistApi = (): PersistApi | undefined => {
   return undefined;
 };
 
-const getRuntimeSettingsAPI = () => getRegisteredRuntimeAPIs()?.settings ?? null;
+const getRuntimeSettingsAPI = () => isFeatureCutRuntime() ? null : getRegisteredRuntimeAPIs()?.settings ?? null;
 
 const materializeAuthoritativeUiSettings = (settings: DesktopSettings): DesktopSettings => {
   const defaults = useUIStore.getInitialState();
@@ -1683,6 +1685,29 @@ const sanitizeWebSettings = (payload: unknown): DesktopSettings | null => {
   return result;
 };
 
+const getAnemosSettingsStorageKey = (runtimeKey: string): string =>
+  `${ANEMOS_SETTINGS_KEY_PREFIX}${encodeURIComponent(runtimeKey)}`;
+
+// ANEMOS-PATCH: preserve client-side appearance, typography, and model preferences without Chamber config routes.
+export const readAnemosLocalSettings = (): DesktopSettings | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(getAnemosSettingsStorageKey(getRuntimeKey()));
+    return raw ? sanitizeWebSettings(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeAnemosSettings = (settings: DesktopSettings): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(getAnemosSettingsStorageKey(getRuntimeKey()), JSON.stringify(settings));
+  } catch {
+    return;
+  }
+};
+
 type SettingsRuntimeContext = { runtimeKey: string; generation: number };
 type SettingsMutation = { revision: number; changes: Partial<DesktopSettings> };
 type SettingsOperation = { revision: number };
@@ -1843,6 +1868,12 @@ const fetchWebSettings = async (context = captureSettingsRuntimeContext()): Prom
 
   // Dedup concurrent calls
   if (_settingsInflight && isSameSettingsRuntimeContext(_settingsInflight.context, context)) return _settingsInflight.promise;
+
+  if (isFeatureCutRuntime()) {
+    const settings = readAnemosLocalSettings();
+    _settingsCache = { value: settings, at: Date.now(), context };
+    return settings;
+  }
 
   const inflight = {
     context,
@@ -2129,6 +2160,21 @@ async function _flushSettingsUpdate({ keepalive = false }: { keepalive?: boolean
 
 export const updateDesktopSettings = async (changes: Partial<DesktopSettings>): Promise<void> => {
   if (typeof window === 'undefined') {
+    return;
+  }
+  if (isFeatureCutRuntime()) {
+    const merged = sanitizeWebSettings({ ...(readAnemosLocalSettings() ?? {}), ...changes }) ?? {};
+    writeAnemosSettings(merged);
+    _settingsCache = { value: merged, at: Date.now(), context: captureSettingsRuntimeContext() };
+    const authoritative = materializeAuthoritativeUiSettings(merged);
+    try {
+      persistToLocalStorage(authoritative);
+      applyDesktopUiPreferences(authoritative);
+    } catch {
+      // Local preference persistence is best-effort in restricted WebViews.
+    }
+    dispatchSettingsSynced(authoritative, false);
+    dispatchSettingsSaveState('saved');
     return;
   }
   ensureSettingsRuntimeLifecycle();

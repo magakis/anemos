@@ -28,7 +28,6 @@ import { PermissionCard } from './PermissionCard';
 import { QuestionCard } from './QuestionCard';
 import { hasActiveQuestionToolInCurrentTurn, recoverPendingQuestionWithRetry } from '@/sync/question-recovery';
 import { StatusRowContainer } from './StatusRowContainer';
-import { SessionRecapNote } from '@/components/chat/SessionRecapSpacer';
 import { SessionErrorNotice } from '@/components/chat/SessionErrorNotice';
 import ScrollToBottomButton from './components/ScrollToBottomButton';
 import { PromptNavigatorRail } from './components/PromptNavigatorRail';
@@ -378,8 +377,7 @@ const ChatViewport = React.memo(({
             )}
 
             <SessionErrorNotice sessionId={currentSessionId} directory={directory} />
-            <SessionRecapNote sessionId={currentSessionId} directory={directory} isMobile={isMobile} />
-
+            {/* ANEMOS-PATCH: Phase 4 removes the Chamber session-recap route from the core timeline. */}
             <div className="flex-shrink-0" style={{ height: isMobile ? '40px' : '10vh' }} aria-hidden="true" />
         </>
     ), [currentSessionId, directory, isMobile, sessionPermissions, sessionQuestions]);

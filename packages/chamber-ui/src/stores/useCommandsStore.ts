@@ -13,6 +13,7 @@ import { useProjectsStore } from "@/stores/useProjectsStore";
 import { runtimeFetch } from "@/lib/runtime-fetch";
 import { runBackgroundNetworkTask } from '@/lib/background-network';
 import { noteDeferredRestartFromPayload } from "@/lib/opencode/deferredRestart";
+import { isFeatureCutRuntime } from "@/features/registry";
 
 
 export type CommandScope = 'user' | 'project';
@@ -262,7 +263,8 @@ export const useCommandsStore = create<CommandsStore>()(
                 ));
 
                 const configurableCommands = commands.filter((cmd) => cmd.source !== 'skill');
-                const commandsWithScope = await Promise.all(
+                // ANEMOS-PATCH: slash commands come from the SDK; scope metadata is a Chamber config route.
+                const commandsWithScope = isFeatureCutRuntime() ? configurableCommands : await Promise.all(
                   configurableCommands.map(async (cmd) => {
                     try {
                       // Force no-cache

@@ -7,6 +7,7 @@ import type { RouteState, AppRouteState } from '@/lib/router';
 import { resolveSettingsSlug } from '@/lib/settings/metadata';
 import { isEmbeddedSessionChat } from '@/components/layout/contextPanelEmbeddedChat';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
+import { featureForSettingsPage, isFeatureEnabled } from '@/features/registry';
 
 /**
  * Check if running in VS Code webview context.
@@ -72,7 +73,15 @@ export function useRouter(): void {
 
         // 2. Handle settings first because it is a full-screen overlay.
         if (route.settingsPath) {
-          setSettingsPage(resolveSettingsSlug(route.settingsPath));
+          const settingsSlug = resolveSettingsSlug(route.settingsPath);
+          const feature = featureForSettingsPage(settingsSlug);
+          // ANEMOS-PATCH: preserve cut settings deep links as an unavailable stub, never their route call.
+          if (feature && !isFeatureEnabled(feature)) {
+            setSettingsPage(settingsSlug);
+            setSettingsDialogOpen(true);
+            return;
+          }
+          setSettingsPage(settingsSlug);
           setSettingsDialogOpen(true);
           // Do not process a route view while settings is open.
           return;

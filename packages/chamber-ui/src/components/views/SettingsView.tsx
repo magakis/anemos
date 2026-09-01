@@ -68,6 +68,8 @@ import {
   type SettingsPageMeta,
 } from '@/lib/settings/metadata';
 import { buildSettingsSearchResults, type SettingsSearchResult } from '@/lib/settings/search';
+import { featureForSettingsPage, isFeatureCutRuntime, isFeatureEnabled } from '@/features/registry';
+import { Unavailable } from '@/features/unavailable';
 
 // UI Kit: fixed settings navigation width
 const SETTINGS_NAV_WIDTH = 256;
@@ -133,6 +135,11 @@ function buildRuntimeContext(isDesktop: boolean, isMobile: boolean): SettingsRun
 }
 
 function isPageAvailable(page: SettingsPageMeta, ctx: SettingsRuntimeContext): boolean {
+  // ANEMOS-PATCH: hide settings backed by cut Chamber routes from every nav surface.
+  const feature = featureForSettingsPage(page.slug);
+  if (feature && (ctx.isMobile || isFeatureCutRuntime()) && !isFeatureEnabled(feature)) {
+    return false;
+  }
   if (!page.isAvailable) {
     return true;
   }
@@ -266,6 +273,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onClose, forceMobile
   // Load stores when the settings project changes or a page becomes active.
   React.useEffect(() => {
     if (!isSettingsDialogOpen && !runtimeCtx.isVSCode && !isWindowed) {
+      return;
+    }
+    // ANEMOS-PATCH: a cut settings deep link renders a stub without booting its store.
+    const settingsFeature = featureForSettingsPage(settingsSlug);
+    if (settingsFeature && !isFeatureEnabled(settingsFeature)) {
       return;
     }
 
@@ -611,6 +623,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onClose, forceMobile
   }, [t]);
 
   const renderPageSidebar = React.useCallback((slug: SettingsPageSlug, opts: { onItemSelect?: () => void }) => {
+    const feature = featureForSettingsPage(slug);
+    if (feature && (runtimeCtx.isMobile || isFeatureCutRuntime()) && !isFeatureEnabled(feature)) {
+      return null;
+    }
     switch (slug) {
       case 'projects':
         return <ProjectsSidebar onItemSelect={opts.onItemSelect} />;
@@ -635,10 +651,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onClose, forceMobile
       default:
         return null;
     }
-  }, []);
+  }, [runtimeCtx]);
 
   const renderPageContent = React.useCallback((slug: SettingsPageSlug) => {
     const meta = getSettingsPageMeta(slug);
+    const feature = featureForSettingsPage(slug);
+    if (feature && (runtimeCtx.isMobile || isFeatureCutRuntime()) && !isFeatureEnabled(feature)) {
+      return <Unavailable feature={feature} />;
+    }
     if (meta && !isPageAvailable(meta, runtimeCtx)) {
       return renderUnavailable();
     }
@@ -1006,6 +1026,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onClose, forceMobile
 
     if (!activePageMeta) {
       return <div className="flex-1 bg-background" />;
+    }
+
+    const activeFeature = featureForSettingsPage(settingsSlug);
+    if (activeFeature && (isMobile || isFeatureCutRuntime()) && !isFeatureEnabled(activeFeature)) {
+      // ANEMOS-PATCH: deep links into removed settings always land on the stub, not a blank split stage.
+      return (
+        <div className="flex-1 min-h-0 overflow-y-scroll overflow-x-hidden bg-background">
+          <ErrorBoundary>{renderPageContent(settingsSlug)}</ErrorBoundary>
+        </div>
+      );
     }
 
     if (mobileStage === 'page-sidebar') {
