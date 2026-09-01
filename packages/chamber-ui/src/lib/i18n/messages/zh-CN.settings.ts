@@ -284,7 +284,8 @@ export const settingsDict = {
   'settings.remoteInstances.direct.headers.removeAria': 'Remove header',
   'settings.remoteInstances.direct.actions.add': '添加服务器',
   'settings.remoteInstances.direct.import.description': '粘贴来自另一个 OpenChamber 服务器的连接链接。',
-  'settings.remoteInstances.direct.import.placeholder': 'openchamber://connect?...',
+  // ANEMOS-PATCH: use the app's registered deep-link scheme in connection guidance.
+  'settings.remoteInstances.direct.import.placeholder': 'opencode://connect?...',
   'settings.remoteInstances.direct.import.action': '导入链接',
   'settings.remoteInstances.direct.error.invalidConnectLink': '无效的 OpenChamber 连接链接。',
   'settings.remoteInstances.direct.state.loading': '正在加载服务器...',

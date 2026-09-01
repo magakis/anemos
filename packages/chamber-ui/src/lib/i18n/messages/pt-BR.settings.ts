@@ -284,7 +284,8 @@ export const settingsDict = {
   "settings.remoteInstances.direct.headers.removeAria": "Remove header",
   "settings.remoteInstances.direct.actions.add": "Adicionar servidor",
   "settings.remoteInstances.direct.import.description": "Cole um link de conexão de outro servidor OpenChamber.",
-  "settings.remoteInstances.direct.import.placeholder": "openchamber://connect?...",
+  // ANEMOS-PATCH: use the app's registered deep-link scheme in connection guidance.
+  "settings.remoteInstances.direct.import.placeholder": "opencode://connect?...",
   "settings.remoteInstances.direct.import.action": "Importar link",
   "settings.remoteInstances.direct.error.invalidConnectLink": "Link de conexão do OpenChamber inválido.",
   "settings.remoteInstances.direct.state.loading": "Carregando servidores...",

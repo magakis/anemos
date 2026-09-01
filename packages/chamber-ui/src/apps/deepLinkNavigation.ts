@@ -1,7 +1,8 @@
 import React from 'react';
 
-import { isCapacitorApp } from '@/lib/platform';
+import { isAnemosNativeShell } from '@/lib/platform';
 import { useSessionUIStore } from '@/sync/session-ui-store';
+import { remapDeepLinkScheme } from '@/anemos/deep-links';
 
 import { parseDeepLink, type DeepLinkIntent, type SessionsFilter, type ViewTarget } from './deepLinks';
 
@@ -98,9 +99,10 @@ const applyDeepLinkIntent = (intent: DeepLinkIntent): void => {
   flush();
 };
 
-/** Convenience: parse a raw `openchamber://…` URL and apply it. No-op for unrecognised URLs. */
+/** Convenience: parse a raw `opencode://…` URL and apply it. No-op for unrecognised URLs. */
 const applyDeepLinkUrl = (raw: string | null | undefined): void => {
-  const intent = parseDeepLink(raw);
+  // ANEMOS-PATCH: normalize legacy OpenChamber events before handing them to navigation.
+  const intent = parseDeepLink(typeof raw === 'string' ? remapDeepLinkScheme(raw) : raw);
   if (intent) {
     applyDeepLinkIntent(intent);
   }
@@ -143,9 +145,25 @@ export const useDeepLinkSource = (options: { ready: boolean }): void => {
   }, [isReady]);
 
   React.useEffect(() => {
-    if (!isCapacitorApp()) return;
+    if (!isAnemosNativeShell()) return;
     let disposed = false;
     const cleanup: Array<() => void> = [];
+
+    // ANEMOS-PATCH: consume deep-link events emitted by the Swift and Tauri shells.
+    const handleAnemosDeepLink = (event: Event) => {
+      const detail = (event as CustomEvent<{ urls?: unknown }>).detail;
+      if (!Array.isArray(detail?.urls)) return;
+      for (const url of detail.urls) {
+        if (typeof url === 'string') applyDeepLinkUrl(url);
+      }
+    };
+    window.addEventListener('opencode:deep-link', handleAnemosDeepLink);
+    cleanup.push(() => window.removeEventListener('opencode:deep-link', handleAnemosDeepLink));
+
+    const target = window as typeof window & { __OPENCODE__?: { deepLinks?: string[] } };
+    const pendingUrls = target.__OPENCODE__?.deepLinks ?? [];
+    if (target.__OPENCODE__) target.__OPENCODE__.deepLinks = [];
+    pendingUrls.forEach(applyDeepLinkUrl);
 
     void import('@capacitor/app')
       .then(async ({ App }) => {

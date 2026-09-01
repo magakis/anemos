@@ -25,6 +25,12 @@ type BootstrapSessionRevisionOptions = {
   deletedRevision?: Record<string, number>
 }
 
+// ANEMOS-PATCH: expose the event-pipeline reconnect trigger to native lifecycle adapters.
+export const triggerReconnectRecovery = (_reason = "manual"): void => {
+  if (typeof globalThis.window === "undefined") return
+  globalThis.window.dispatchEvent(new Event("openchamber:system-resume"))
+}
+
 const getParentId = (session: Session): string | null | undefined => (
   (session as Session & { parentID?: string | null }).parentID
 )

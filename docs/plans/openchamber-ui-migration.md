@@ -514,6 +514,14 @@ Verification with `playwright-core` against `/usr/bin/chromium` (`390×844`, `is
 
 Deviation: expected Phase-4 Chamber-only calls to `/api/config/themes` and `/api/push/visibility` still report CORS/404 failures in the browser; they are outside the Phase-2 connection/session path and did not prevent the v2 session/SSE surface from loading.
 
+### Phase 3 results
+
+**Implementation:** Added the Anemos platform/runtime adapter, centralized Capacitor/Tauri/Swift native-shell detection, and connected native notifications, storage, deep links, resume recovery, external links, image sharing, and the existing haptic/share bridge contract. Legacy `opencode.settings.dat:*` values migrate one-way into the Chamber mobile instance list; old keys remain untouched. `openchamber://` is accepted for compatibility, while new pairing guidance and generated links use `opencode://`.
+
+The native lifecycle bridge dispatches `opencode:resume` into Chamber's exported reconnect trigger, and `opencode:deep-link` events consume `detail.urls` with cold-launch queue draining. Direct Anemos runtimes skip Chamber auth probing and use the injected platform notification implementation.
+
+**Verification:** Unit, browser, and native-shell verification are deferred to the build-fixer/device verification pass; this implementation pass was verified by inspection only.
+
 ---
 
 ## 6. Testing Strategy (summary)

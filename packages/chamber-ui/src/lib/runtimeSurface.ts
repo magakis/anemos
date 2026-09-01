@@ -1,5 +1,5 @@
 import { isDesktopShell, isVSCodeRuntime } from '@/lib/desktop';
-import { isCapacitorApp } from '@/lib/platform';
+import { isAnemosNativeShell } from '@/lib/platform';
 
 export type HostedSurface = 'desktop' | 'mobile';
 
@@ -43,7 +43,7 @@ const isPhoneViewport = (): boolean => {
 /**
  * Single authority for the mobile-vs-desktop surface decision.
  *
- * Priority: explicit stamp (set once at boot) → URL override → Capacitor
+ * Priority: explicit stamp (set once at boot) → URL override → native mobile
  * shell (always the mobile surface) → desktop shells → phone heuristic.
  */
 const detectHostedSurface = (): HostedSurface => {
@@ -59,7 +59,8 @@ const detectHostedSurface = (): HostedSurface => {
     return override;
   }
 
-  if (isCapacitorApp()) return 'mobile';
+  // ANEMOS-PATCH: Tauri and Swift WKWebView shells use the same mobile surface as Capacitor.
+  if (isAnemosNativeShell()) return 'mobile';
   if (isDesktopShell() || isVSCodeRuntime()) return 'desktop';
 
   return isPhoneViewport() ? 'mobile' : 'desktop';
@@ -92,7 +93,7 @@ export const isMobileSurfaceRuntime = (): boolean => detectHostedSurface() === '
  */
 export const watchHostedSurfaceViewport = (): (() => void) => {
   if (typeof window === 'undefined') return () => {};
-  if (isCapacitorApp() || isDesktopShell() || isVSCodeRuntime()) return () => {};
+  if (isAnemosNativeShell() || isDesktopShell() || isVSCodeRuntime()) return () => {};
   if (hasSurfaceUrlOverride()) return () => {};
 
   let timeout: ReturnType<typeof setTimeout> | null = null;

@@ -1,11 +1,44 @@
 import { isDesktopShell, isVSCodeRuntime } from '@/lib/desktop';
 
-/** True when running inside the native Capacitor shell (iOS/Android app), not the web/PWA. */
-export const isCapacitorApp = (): boolean => {
+export type AnemosShellPlatform = 'ios' | 'android';
+
+declare global {
+  interface Window {
+    __ANEMOS_SHELL__?: AnemosShellPlatform;
+  }
+}
+
+// ANEMOS-PATCH: centralize native-shell detection for Capacitor, Tauri, and the Swift WKWebView.
+export const isAnemosNativeShell = (): boolean => {
   if (typeof window === 'undefined') return false;
   const capacitor = (window as typeof window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
-  return capacitor?.isNativePlatform?.() === true || window.location.protocol === 'capacitor:';
+  const origin = window.location.origin;
+  return capacitor?.isNativePlatform?.() === true
+    || '__TAURI_INTERNALS__' in window
+    || window.location.protocol === 'capacitor:'
+    || window.location.protocol === 'tauri:'
+    || origin === 'http://tauri.localhost'
+    || window.__ANEMOS_SHELL__ === 'ios'
+    || window.__ANEMOS_SHELL__ === 'android';
 };
+
+export const isNativeShell = isAnemosNativeShell;
+
+export const getAnemosShellPlatform = (): AnemosShellPlatform => {
+  if (typeof window !== 'undefined') {
+    const marker = window.__ANEMOS_SHELL__;
+    if (marker === 'ios' || marker === 'android') {
+      return marker;
+    }
+    const capacitor = (window as typeof window & { Capacitor?: { getPlatform?: () => string } }).Capacitor;
+    const platform = capacitor?.getPlatform?.();
+    if (platform === 'ios' || platform === 'android') return platform;
+  }
+  return 'android';
+};
+
+/** True when running inside any native mobile shell, not the web/PWA. */
+export const isCapacitorApp = isAnemosNativeShell;
 
 // TEMPORARY WORKAROUND — Windows ARM64: native opencode.exe fails with a Bun
 // FFI/TinyCC dlopen error (https://github.com/anomalyco/opencode/issues/19130).
@@ -47,8 +80,8 @@ export const isWindowsArm64 = (): boolean => {
  * platform with real touch points (or a legacy explicit iPad UA).
  */
 export const isIPadApp = (): boolean => {
-  if (typeof window === 'undefined' || !isCapacitorApp()) return false;
-  if (getClientPlatform() !== 'ios') return false;
+  if (typeof window === 'undefined' || !isAnemosNativeShell()) return false;
+  if (getAnemosShellPlatform() !== 'ios') return false;
   const userAgent = navigator.userAgent || '';
   const maxTouchPoints = navigator.maxTouchPoints ?? 0;
   return /iPad/i.test(userAgent)
@@ -64,6 +97,9 @@ export type ClientPlatform = 'ios' | 'android' | 'vscode' | 'desktop' | 'web';
  */
 export const getClientPlatform = (): ClientPlatform => {
   if (typeof window !== 'undefined') {
+    if (window.__ANEMOS_SHELL__ === 'ios' || window.__ANEMOS_SHELL__ === 'android') {
+      return window.__ANEMOS_SHELL__;
+    }
     const capacitor = (window as typeof window & { Capacitor?: { getPlatform?: () => string } }).Capacitor;
     const native = capacitor?.getPlatform?.();
     if (native === 'ios' || native === 'android') return native;

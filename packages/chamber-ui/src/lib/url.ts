@@ -1,4 +1,5 @@
 import { getRegisteredRuntimeAPIs } from '@/contexts/runtimeAPIRegistry';
+import { getPlatformAdapter } from '@/anemos/platform-adapter';
 
 type DesktopBridgeGlobal = {
   openExternal?: (url: string) => Promise<unknown>;
@@ -52,8 +53,8 @@ const BLOCKED_APP_LINK_SCHEMES = new Set([
   // Historically abused Windows handlers can invoke diagnostic, shell, or
   // file-search flows that must not be offered from untrusted chat content.
   'ms-msdt', 'search-ms', 'shell',
-  // OpenChamber's own schemes must not be re-launched from chat content
-  'openchamber', 'openchamber-ui', 'capacitor',
+  // ANEMOS-PATCH: OpenCode/legacy app schemes must not be re-launched from chat content.
+  'openchamber', 'opencode', 'openchamber-ui', 'capacitor',
 ]);
 
 const APP_LINK_SCHEME_RE = /^[a-z][a-z0-9+.-]{1,31}$/;
@@ -181,7 +182,8 @@ const openValidatedExternalUrl = async (url: string): Promise<boolean> => {
   }
 
   try {
-    window.open(normalizedTarget, '_blank', 'noopener,noreferrer');
+    // ANEMOS-PATCH: route external links through the native platform adapter.
+    getPlatformAdapter().openExternal(normalizedTarget);
     return true;
   } catch {
     return false;

@@ -25,7 +25,8 @@ describe('connection payload helpers', () => {
 
     const encoded = encodePairingConnectionPayload(payload);
 
-    expect(encoded.startsWith('openchamber://connect?v=2&p=')).toBe(true);
+    // ANEMOS-PATCH: pairing links use the opencode:// application scheme.
+    expect(encoded.startsWith('opencode://connect?v=2&p=')).toBe(true);
     expect(parsePairingConnectionPayload(encoded)).toEqual({
       ...payload,
       candidates: [
@@ -124,13 +125,15 @@ describe('parsePairingConnectionPayloadString (Android WebView fallback)', () =>
   });
 
   test('recovers a link whose scheme/host case the URL parser would reject', () => {
-    const mixedCase = encoded.replace('openchamber://connect', 'OpenChamber://CONNECT');
+    // ANEMOS-PATCH: exercise case-insensitive parsing for the registered scheme.
+    const mixedCase = encoded.replace('opencode://connect', 'OpenCode://CONNECT');
     expect(parsePairingConnectionPayload(mixedCase)).toBeNull();
     expect(parsePairingConnectionPayloadString(mixedCase)).toEqual(parsePairingConnectionPayload(encoded));
   });
 
   test('tolerates a trailing slash and reordered query params', () => {
-    const trailingSlash = encoded.replace('openchamber://connect?', 'openchamber://connect/?');
+    // ANEMOS-PATCH: exercise the current app scheme with an authority path slash.
+    const trailingSlash = encoded.replace('opencode://connect?', 'opencode://connect/?');
     expect(parsePairingConnectionPayloadString(trailingSlash)).toEqual(parsePairingConnectionPayload(encoded));
 
     const p = encoded.slice(encoded.indexOf('p=') + 2);

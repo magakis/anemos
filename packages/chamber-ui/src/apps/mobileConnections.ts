@@ -3,9 +3,10 @@
 // connections through `useMobileConnection` so the health-check + progressive
 // password unlock + client-token issuance + runtime switch all behave identically.
 //
+// ANEMOS-PATCH: use the injected storage contract for instance metadata.
 // Persistence model (deliberately simple so it is correct-by-inspection):
 //   - Instance *metadata* (id/label/url/lastUsedAt + a `hasToken` flag) lives in
-//     localStorage. On native it NEVER contains the client token.
+//     the configured Anemos storage. On native it NEVER contains the client token.
 //   - The client token lives in the OS secure store (iOS Keychain / Android
 //     Keystore) via @aparajita/capacitor-secure-storage, keyed per instance URL.
 //   - On web (browser-hosted mobile.html) there is no secure store, so the token
@@ -21,6 +22,8 @@ import React from 'react';
 import { useI18n } from '@/lib/i18n';
 import type { PairingConnectionPayload, PairingEndpointCandidate } from '@/lib/connectionPayload';
 import { isCapacitorApp } from '@/lib/platform';
+// ANEMOS-PATCH: persist Chamber mobile instances through the injected shell storage.
+import { ANEMOS_INSTANCE_STORAGE_KEY, ANEMOS_INSTANCE_STORAGE_NAME, getAnemosStorage, migrateLegacyDefaultServer } from '@/anemos/storage';
 import { adoptRelayTunnel, isRelayModeActive } from '@/lib/relay/runtime-tunnel';
 import { createRelayTunnelClient } from '@/lib/relay/tunnel-client';
 import { addRuntimeProxyHeaders, runtimeFetch } from '@/lib/runtime-fetch';
@@ -28,7 +31,7 @@ import { getRuntimeApiBaseUrl, getRuntimeKey, switchRuntimeEndpoint } from '@/li
 
 import { recordMobileConnectDebug } from './mobileConnectionDebug';
 
-const MOBILE_CONNECTIONS_STORAGE_KEY = 'openchamber.mobile.connections.v1';
+const MOBILE_CONNECTIONS_STORAGE_KEY = ANEMOS_INSTANCE_STORAGE_KEY;
 const MOBILE_SECURE_STORAGE_PREFIX = 'openchamber.mobile.';
 const MOBILE_DEVICE_ID_STORAGE_KEY = 'openchamber.mobile.deviceId';
 
@@ -117,6 +120,8 @@ export type MobileSavedConnection = {
   hasToken?: boolean;
   // Web only: the token stored inline. On native this stays undefined in the list.
   clientToken?: string;
+  username?: string;
+  password?: string;
 };
 
 export type MobilePendingConnection = {
@@ -518,7 +523,7 @@ const switchToRelayRuntime = (
 };
 
 // ---------------------------------------------------------------------------
-// Metadata storage (localStorage) — never holds the token on native.
+// Metadata storage — never holds the token on native.
 // ---------------------------------------------------------------------------
 
 const parseCandidate = (value: unknown): MobileTransportCandidate | null => {
@@ -543,11 +548,12 @@ const migrateLegacyCandidates = (c: Record<string, unknown>): MobileTransportCan
   return typeof c.url === 'string' ? directCandidatesFromUrl(c.url) : [];
 };
 
-const readConnections = (): MobileSavedConnection[] => {
-  if (typeof window === 'undefined') return [];
+let asyncStorageConnections: MobileSavedConnection[] | null = null;
+
+const parseConnections = (raw: string | null): MobileSavedConnection[] => {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(window.localStorage.getItem(MOBILE_CONNECTIONS_STORAGE_KEY) || '[]');
+    parsed = JSON.parse(raw || '[]');
   } catch {
     return [];
   }
@@ -571,11 +577,26 @@ const readConnections = (): MobileSavedConnection[] => {
         label,
         candidates,
         lastUsedAt: typeof c.lastUsedAt === 'number' ? c.lastUsedAt : 0,
+        username: typeof c.username === 'string' ? c.username : undefined,
+        password: typeof c.password === 'string' ? c.password : undefined,
       };
       if (native) return [{ ...base, hasToken: Boolean(c.hasToken) || Boolean(inlineToken) }];
       return [{ ...base, clientToken: inlineToken, hasToken: Boolean(inlineToken) }];
     })
     .sort((a, b) => b.lastUsedAt - a.lastUsedAt);
+};
+
+const readConnections = (): MobileSavedConnection[] => {
+  if (typeof window === 'undefined') return asyncStorageConnections ?? [];
+  const storage = getAnemosStorage(ANEMOS_INSTANCE_STORAGE_NAME);
+  const stored = storage.getItemSync?.(MOBILE_CONNECTIONS_STORAGE_KEY);
+  if (stored !== undefined) return parseConnections(stored);
+  if (asyncStorageConnections) return asyncStorageConnections;
+  try {
+    return parseConnections(window.localStorage.getItem(MOBILE_CONNECTIONS_STORAGE_KEY));
+  } catch {
+    return [];
+  }
 };
 
 const serializeCandidate = (c: MobileTransportCandidate): unknown =>
@@ -593,21 +614,28 @@ const writeConnections = (connections: MobileSavedConnection[]): void => {
       label: c.label,
       candidates: c.candidates.map(serializeCandidate),
       lastUsedAt: c.lastUsedAt,
+      ...(c.username ? { username: c.username } : {}),
+      ...(c.password ? { password: c.password } : {}),
     };
     return native
       ? { ...shared, hasToken: Boolean(c.hasToken || c.clientToken) }
       : { ...shared, clientToken: c.clientToken };
   });
-  try {
-    window.localStorage.setItem(MOBILE_CONNECTIONS_STORAGE_KEY, JSON.stringify(serialized));
-  } catch (error) {
-    console.warn('[mobile-storage] failed to persist connection metadata', error);
+  const value = JSON.stringify(serialized);
+  const storage = getAnemosStorage(ANEMOS_INSTANCE_STORAGE_NAME);
+  if (storage.setItemSync) {
+    storage.setItemSync(MOBILE_CONNECTIONS_STORAGE_KEY, value);
+    return;
   }
+  asyncStorageConnections = connections;
+  void storage.setItem(MOBILE_CONNECTIONS_STORAGE_KEY, value).catch((error) => {
+    console.warn('[mobile-storage] failed to persist connection metadata', error);
+  });
 };
 
 const upsertConnectionInList = (
   connections: MobileSavedConnection[],
-  draft: { id?: string; label: string; candidates: MobileTransportCandidate[]; clientToken?: string; hasToken?: boolean },
+  draft: { id?: string; label: string; candidates: MobileTransportCandidate[]; clientToken?: string; hasToken?: boolean; username?: string; password?: string },
 ): MobileSavedConnection[] => {
   const existing = connections.find(
     (item) => (draft.id && item.id === draft.id) || candidateSetsMatch(item.candidates, draft.candidates),
@@ -618,6 +646,8 @@ const upsertConnectionInList = (
     label: draft.label,
     candidates: draft.candidates,
     lastUsedAt: Date.now(),
+    username: draft.username ?? existing?.username,
+    password: draft.password ?? existing?.password,
     ...(native
       ? { hasToken: draft.hasToken ?? (Boolean(draft.clientToken) || existing?.hasToken || false) }
       : { clientToken: draft.clientToken ?? existing?.clientToken, hasToken: Boolean(draft.clientToken ?? existing?.clientToken) }),
@@ -776,6 +806,25 @@ const migrateLegacyInlineTokens = async (): Promise<void> => {
 
 export const loadMobileConnections = async (): Promise<MobileSavedConnection[]> => {
   await migrateLegacyInlineTokens();
+  // ANEMOS-PATCH: hydrate the synchronous connection view from native async storage before auto-connect.
+  const storage = getAnemosStorage(ANEMOS_INSTANCE_STORAGE_NAME);
+  await migrateLegacyDefaultServer({ storage });
+  const stored = await storage.getItem(MOBILE_CONNECTIONS_STORAGE_KEY).catch(() => null);
+  if (storage.getItemSync === undefined) {
+    if (stored !== null) {
+      asyncStorageConnections = parseConnections(stored);
+    } else if (typeof window !== 'undefined') {
+      try {
+        const legacy = window.localStorage.getItem(MOBILE_CONNECTIONS_STORAGE_KEY);
+        if (legacy !== null) {
+          asyncStorageConnections = parseConnections(legacy);
+          await storage.setItem(MOBILE_CONNECTIONS_STORAGE_KEY, legacy).catch(() => undefined);
+        }
+      } catch {
+        asyncStorageConnections = [];
+      }
+    }
+  }
   return readConnections();
 };
 

@@ -4,6 +4,7 @@ import { Icon } from '@/components/icon/Icon';
 import { Button } from '@/components/ui/button';
 import { OpenChamberLogo } from '@/components/ui/OpenChamberLogo';
 import { useI18n } from '@/lib/i18n';
+import { isAnemosDeepLink } from '@/anemos/deep-links';
 import { cn } from '@/lib/utils';
 
 import { connectionDisplayUrl, useMobileConnection } from './mobileConnections';
@@ -49,10 +50,11 @@ export const MobileConnectionWelcome: React.FC<{
     void conn.connect({ url: serverUrl, clientToken, label: connectionName });
   }, [clientToken, conn, connectionName, serverUrl]);
 
-  // Accept a pasted pairing link (openchamber://connect?...) in the URL field and
+  // Accept a pasted pairing link (opencode://connect?...) in the URL field and
   // split it back into the server URL + token.
   const handleUrlChange = React.useCallback((value: string) => {
-    if (/^openchamber:\/\//i.test(value.trim())) {
+    // ANEMOS-PATCH: accept legacy and current application schemes in pasted links.
+    if (isAnemosDeepLink(value.trim())) {
       const payload = parseConnectionPayload(value);
       if (payload) {
         if ('pairing' in payload) {

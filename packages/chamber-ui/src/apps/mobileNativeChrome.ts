@@ -1,16 +1,10 @@
 import React from 'react';
 
 import { observeNativeKeyboardHeight, resetHardwareKeyboardDetection, startHardwareKeyboardBridge } from '@/lib/hardwareKeyboard';
+import { isAnemosNativeShell } from '@/lib/platform';
 
-/** True when running inside the native Capacitor shell (iOS/Android app). */
-export const isCapacitorMobileApp = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  const maybeCapacitor = (window as typeof window & {
-    Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string };
-  }).Capacitor;
-  if (maybeCapacitor?.isNativePlatform?.() === true) return true;
-  return window.location.protocol === 'capacitor:';
-};
+// ANEMOS-PATCH: share the centralized native-shell check with Tauri and Swift WebViews.
+export const isCapacitorMobileApp = isAnemosNativeShell;
 
 export const useNativeMobileChrome = (): void => {
   React.useEffect(() => {

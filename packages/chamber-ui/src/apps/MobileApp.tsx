@@ -28,6 +28,7 @@ import { useHardwareKeyboard } from '@/lib/hardwareKeyboard';
 import { useI18n } from '@/lib/i18n';
 import { runtimeFetch } from '@/lib/runtime-fetch';
 import { getRuntimeApiBaseUrl, getRuntimeKey, subscribeRuntimeEndpointChanged, switchRuntimeEndpoint, MOBILE_DISCONNECTED_RUNTIME_KEY } from '@/lib/runtime-switch';
+import { isAnemosRuntimeActive } from '@/anemos/server-env';
 import { refreshGlobalSessions, resolveGlobalSessionDirectory } from '@/stores/useGlobalSessionsStore';
 import { clearLastActiveSession, readLastActiveSession } from '@/sync/last-session-cache';
 import { cn } from '@/lib/utils';
@@ -246,7 +247,8 @@ const MobileShell: React.FC<{ onActiveConnectionDeleted: () => void }> = ({ onAc
     [openChangesSurface, openFilesSurface, openSettingsSurface],
   );
 
-  // Expose the shell's panel-opening actions to the deep-link layer so openchamber:// URLs
+  // ANEMOS-PATCH: the shell's registered deep-link scheme is opencode://.
+  // Expose the shell's panel-opening actions to the deep-link layer so opencode:// URLs
   // (and notification taps / widgets) can navigate to these surfaces. Session and
   // new-session intents resolve directly against the store, so they aren't wired here.
   const deepLinkHandlers = React.useMemo(
@@ -670,6 +672,15 @@ export function MobileApp({ apis }: MobileAppProps) {
       void autoConnectLastInstance();
       return;
     }
+    // ANEMOS-PATCH: direct Anemos runtimes already carry Basic auth; resume must not probe Chamber's /auth/session.
+    if (isAnemosRuntimeActive()) {
+      void initializeApp();
+      void refreshGitHubAuthStatus(apis.github, { force: true });
+      void refreshLinearAuthStatus(apis.linear, { force: true });
+      if (providersCount === 0) void loadProviders({ source: 'mobileApp:anemosResume' });
+      if (agentsCount === 0) void loadAgents({ source: 'mobileApp:anemosResume' });
+      return;
+    }
     logMobileConnectEvent('resume:reprobe', {});
 
     // Re-probe the active device's transports on resume: the network may have
@@ -891,7 +902,7 @@ export function MobileApp({ apis }: MobileAppProps) {
     // NOTE: do NOT gate on isConnected here — the persisted store can claim a
     // stale `isConnected: true` at mount, which would skip the classification
     // exactly when it's needed. Check it at resolution time instead.
-    if (!isNativeMobileApp || !getRuntimeApiBaseUrl()) return;
+    if (!isNativeMobileApp || !getRuntimeApiBaseUrl() || isAnemosRuntimeActive()) return;
     let cancelled = false;
     const dropToConnectScreen = (notice: MobileConnectionNotice | null) => {
       logMobileConnectEvent('cold-launch:drop', { kind: notice?.kind ?? 'unknown' });
@@ -1142,11 +1153,13 @@ export function MobileApp({ apis }: MobileAppProps) {
   useRouter();
   // APNs is the only notification channel on the native app (background-capable,
   // focus-suppressed server-side via the visibility beacon). Local notifications are
+  // ANEMOS-PATCH: route in-app completion notifications through the shell adapter.
   // intentionally disabled — they can't tell foreground from background in a WKWebView
   // (document.hasFocus() is unreliable) and leaked while the app was open; the in-app SSE
-  // notification dispatch is no-op'd for native in renderMobileApp.
+  // notification dispatch is routed through the Anemos platform adapter.
   useNativePushRegistration({ enabled: isNativeMobileApp && isConnected });
-  // Single native deep-link entry point: notification taps AND the openchamber:// URL
+  // ANEMOS-PATCH: native deep-link events use the opencode:// scheme.
+  // Single native deep-link entry point: notification taps AND the opencode:// URL
   // scheme (widgets, Live Activities, external links). Registered unconditionally so a
   // cold-launch tap/open isn't lost on the connect/splash screen; intents stash until
   // the app is ready (connected + initialized) and shell handlers are registered.

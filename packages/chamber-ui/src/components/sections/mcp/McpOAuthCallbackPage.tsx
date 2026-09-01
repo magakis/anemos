@@ -19,7 +19,8 @@ import { cn } from '@/lib/utils';
 const returnToApp = (startedFromDesktop: boolean): void => {
   if (typeof window === 'undefined') return;
   if (startedFromDesktop) {
-    window.location.href = 'openchamber://focus/mcp-auth';
+    // ANEMOS-PATCH: return to the app through its registered deep-link scheme.
+    window.location.href = 'opencode://focus/mcp-auth';
     return;
   }
   window.location.replace('/');

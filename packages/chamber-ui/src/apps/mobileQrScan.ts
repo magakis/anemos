@@ -5,6 +5,7 @@
 // Google Play Services. iOS keeps the native ready-made scanner.
 
 import { parsePairingConnectionPayload, parsePairingConnectionPayloadString, type PairingConnectionPayload } from '@/lib/connectionPayload';
+import { isAnemosDeepLink } from '@/anemos/deep-links';
 
 export type MobileConnectionPayload = {
   url: string;
@@ -56,7 +57,8 @@ export const parseConnectionPayload = (raw: string): MobileConnectionPayload | M
   const trimmed = raw.trim();
   if (!trimmed) return null;
 
-  if (/^openchamber:\/\//i.test(trimmed)) {
+  // ANEMOS-PATCH: accept both old OpenChamber and current opencode pairing links.
+  if (isAnemosDeepLink(trimmed)) {
     const pairing = parsePairingConnectionPayload(trimmed);
     return pairing ? { pairing } : null;
   }
@@ -68,7 +70,8 @@ export const parseConnectionPayload = (raw: string): MobileConnectionPayload | M
 const resultFromRawValue = (raw: string, options?: { pairingStringFallback?: boolean }): QrScanResult => {
   const payload = parseConnectionPayload(raw);
   if (!payload && options?.pairingStringFallback) {
-    // Old Android WebViews resolve openchamber://… with hostname "" / pathname "//connect",
+    // ANEMOS-PATCH: normalize the scheme before the old WebView fallback parser.
+    // Old Android WebViews resolve the app scheme with hostname "" / pathname "//connect",
     // so the URL-based parse above fails even though the scanned string is intact. Retry
     // with the URL-API-free string parser before declaring the scan invalid.
     const pairing = parsePairingConnectionPayloadString(raw);

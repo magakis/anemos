@@ -20,6 +20,11 @@ import { preloadMarkdownRenderer } from '@/components/chat/markdownRendererLoade
 import { SessionAuthGate } from '@/components/auth/SessionAuthGate';
 import { AnemosBootGuard } from '@/anemos/boot-guard';
 import { isAnemosRuntimeActive } from '@/anemos/server-env';
+import { createAnemosRuntimeAPIs } from '@/anemos/runtime-apis';
+import { configureAnemosStorage, migrateLegacyDefaultServer } from '@/anemos/storage';
+import { getPlatformAdapter, installAnemosPlatformEventBridge } from '@/anemos/platform-adapter';
+import { isAnemosNativeShell } from '@/lib/platform';
+import { loadMobileConnections } from './mobileConnections';
 import { getRuntimeApiBaseUrl } from '@/lib/runtime-switch';
 import { MobileApp } from './MobileApp';
 
@@ -68,18 +73,13 @@ export function renderMobileApp(apis: RuntimeAPIs) {
     throw new Error('Root element not found');
   }
 
-  // The native Capacitor app delivers notifications via APNs only (background, server-side
-  // focus-gated). Disable the in-app notification dispatch on native with a no-op
-  // notifications API: scheduling local notifications can't tell foreground from background
-  // in a WKWebView and leaked while the app was open. (The Web Notifications API the web
-  // runtime uses also doesn't display inside a WKWebView.)
-  const capacitor = (window as typeof window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
-  const isNativeShell = capacitor?.isNativePlatform?.() === true || window.location.protocol === 'capacitor:';
-  // ANEMOS-PATCH: the browser adapter authenticates with direct OpenCode headers and skips Chamber cookie auth.
+  // ANEMOS-PATCH: native shells use the injected Anemos platform instead of Chamber's Capacitor no-op.
+  const isNativeShell = isAnemosNativeShell();
+  const platform = getPlatformAdapter();
+  configureAnemosStorage({ storage: platform.storage });
+  installAnemosPlatformEventBridge();
   const isAnemosRuntime = isAnemosRuntimeActive();
-  const resolvedApis = isNativeShell
-    ? { ...apis, notifications: { notifyAgentCompletion: async () => false, canNotify: () => false } }
-    : apis;
+  const resolvedApis = isNativeShell ? createAnemosRuntimeAPIs(apis, platform) : apis;
 
   // Auth gating differs by shell: the native Capacitor app authenticates via
   // its own instance-connect flow (MobileConnectionWelcome asks for the
@@ -87,6 +87,25 @@ export function renderMobileApp(apis: RuntimeAPIs) {
   // --ui-password server must keep the classic SessionAuthGate unlock page.
   const app = <MobileApp apis={resolvedApis} />;
   const anemosBaseUrl = isAnemosRuntime ? getRuntimeApiBaseUrl() : null;
+  const storageReady = isNativeShell || isAnemosRuntime
+    ? migrateLegacyDefaultServer()
+      .then(() => loadMobileConnections())
+      .catch(() => undefined)
+    : Promise.resolve();
+
+  const AnemosStorageBootstrap: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [ready, setReady] = React.useState(false);
+    React.useEffect(() => {
+      let active = true;
+      void storageReady.then(() => {
+        if (active) setReady(true);
+      });
+      return () => {
+        active = false;
+      };
+    }, []);
+    return ready ? <>{children}</> : null;
+  };
 
   const SharedPreferencesBootstrap: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const started = React.useRef(false);
@@ -101,17 +120,19 @@ export function renderMobileApp(apis: RuntimeAPIs) {
   createRoot(rootElement).render(
     <StrictMode>
       <AnemosBootGuard baseUrl={anemosBaseUrl} enabled={isAnemosRuntime}>
-        <SharedPreferencesBootstrap>
-          <I18nProvider>
-            <ThemeSystemProvider>
-              <ThemeProvider>
-                <DiffWorkerProvider>
-                  {isNativeShell || isAnemosRuntime ? app : <SessionAuthGate>{app}</SessionAuthGate>}
-                </DiffWorkerProvider>
-              </ThemeProvider>
-            </ThemeSystemProvider>
-          </I18nProvider>
-        </SharedPreferencesBootstrap>
+        <AnemosStorageBootstrap>
+          <SharedPreferencesBootstrap>
+            <I18nProvider>
+              <ThemeSystemProvider>
+                <ThemeProvider>
+                  <DiffWorkerProvider>
+                    {isNativeShell || isAnemosRuntime ? app : <SessionAuthGate>{app}</SessionAuthGate>}
+                  </DiffWorkerProvider>
+                </ThemeProvider>
+              </ThemeSystemProvider>
+            </I18nProvider>
+          </SharedPreferencesBootstrap>
+        </AnemosStorageBootstrap>
       </AnemosBootGuard>
     </StrictMode>,
   );

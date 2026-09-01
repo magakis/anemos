@@ -316,7 +316,8 @@ export const settingsDict = {
   'settings.remoteInstances.direct.headers.removeAria': 'Header\'ı kaldır',
   'settings.remoteInstances.direct.actions.add': 'Sunucu ekle',
   'settings.remoteInstances.direct.import.description': 'Başka bir OpenChamber sunucusundan bağlantı linki yapıştırın.',
-  'settings.remoteInstances.direct.import.placeholder': 'openchamber://connect?...',
+  // ANEMOS-PATCH: use the app's registered deep-link scheme in connection guidance.
+  'settings.remoteInstances.direct.import.placeholder': 'opencode://connect?...',
   'settings.remoteInstances.direct.import.action': 'Link\'i içe aktar',
   'settings.remoteInstances.direct.error.invalidConnectLink': 'Geçersiz OpenChamber bağlantı linki.',
   'settings.remoteInstances.direct.state.loading': 'Instance\'lar yükleniyor...',

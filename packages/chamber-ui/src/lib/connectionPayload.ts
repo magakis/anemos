@@ -1,3 +1,5 @@
+import { remapDeepLinkScheme } from '@/anemos/deep-links';
+
 const MAX_PAIRING_PAYLOAD_LENGTH = 16_384;
 
 // A pairing candidate is one way to reach the host's HTTP API. `type`
@@ -193,15 +195,17 @@ export const encodePairingConnectionPayload = (payload: PairingConnectionPayload
   const params = new URLSearchParams();
   params.set('v', '2');
   params.set('p', base64UrlEncode(JSON.stringify(normalized)));
-  return `openchamber://connect?${params.toString()}`;
+  // ANEMOS-PATCH: emit pairing links using the opencode:// app scheme.
+  return `opencode://connect?${params.toString()}`;
 };
 
 export const parsePairingConnectionPayload = (value: string): PairingConnectionPayload | null => {
   const trimmed = value.trim();
   if (!trimmed || trimmed.length > MAX_PAIRING_PAYLOAD_LENGTH) return null;
   try {
-    const url = new URL(trimmed);
-    if (url.protocol !== 'openchamber:' || url.hostname !== 'connect') return null;
+    // ANEMOS-PATCH: accept legacy OpenChamber links while parsing the Anemos scheme.
+    const url = new URL(remapDeepLinkScheme(trimmed));
+    if (url.protocol !== 'opencode:' || url.hostname !== 'connect') return null;
     if (url.searchParams.get('v') !== '2') return null;
     const encoded = url.searchParams.get('p') || '';
     if (!encoded || encoded.length > MAX_PAIRING_PAYLOAD_LENGTH) return null;
@@ -214,7 +218,8 @@ export const parsePairingConnectionPayload = (value: string): PairingConnectionP
 };
 
 // URL-string-only sibling of parsePairingConnectionPayload. Old Android WebViews
-// (e.g. WebView 114) mis-parse non-special schemes: `new URL('openchamber://connect?...')`
+// ANEMOS-PATCH: the pairing parser accepts the registered opencode:// scheme.
+// (e.g. WebView 114) mis-parse non-special schemes: `new URL('opencode://connect?...')`
 // yields hostname "" and pathname "//connect", so the URL-based parser above rejects a
 // perfectly valid pairing link. This parser never touches the URL/URLSearchParams APIs —
 // it matches the head with a regex and reads `v`/`p` straight off the query string.
@@ -224,7 +229,9 @@ export const parsePairingConnectionPayloadString = (value: string): PairingConne
   const trimmed = value.trim();
   if (!trimmed || trimmed.length > MAX_PAIRING_PAYLOAD_LENGTH) return null;
   const question = trimmed.indexOf('?');
-  if (question === -1 || !/^openchamber:\/\/connect\/?$/i.test(trimmed.slice(0, question))) return null;
+  // ANEMOS-PATCH: normalize the legacy scheme before the URL-API-free parser handles old WebViews.
+  const normalized = remapDeepLinkScheme(trimmed);
+  if (question === -1 || !/^opencode:\/\/connect\/?$/i.test(normalized.slice(0, question))) return null;
   let version: string | null = null;
   let encoded: string | null = null;
   for (const part of trimmed.slice(question + 1).split('&')) {
