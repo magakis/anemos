@@ -5,9 +5,14 @@ import WebKit
 final class PlatformBridge {
   weak var webView: WKWebView?
   var onEvent: ((String, Any?) -> Void)?
+  var onSelectUI: ((UISelection) -> Void)?
 
   private let haptics = HapticBridge()
   private let config = ServerConfig()
+
+  func selectedUI() -> String? {
+    config.getSelectedUI()
+  }
 
   func handle(id: String, method: String, params: [String: Any], reply: @escaping (Any?, String?) -> Void) {
     switch method {
@@ -27,11 +32,33 @@ final class PlatformBridge {
       reply(nil, nil)
     case "share":
       reply(share(params: params), nil)
-    case "getDefaultServerUrl":
-      reply(config.getDefaultServerUrl(), nil)
     case "setDefaultServerUrl":
       config.setDefaultServerUrl(params["url"] as? String)
       reply(nil, nil)
+    case "selectUI":
+      guard let id = params["id"] as? String, let selection = UISelection.local(rawValue: id) else {
+        reply(nil, "Unsupported UI")
+        return
+      }
+      config.setSelectedUI(selection.rawValue)
+      reply(["id": selection.rawValue], nil)
+      onSelectUI?(selection)
+    case "getSelectedUI":
+      var result: [String: Any] = [:]
+      if let selection = config.getSelectedUI() {
+        result["id"] = selection
+      } else {
+        result["id"] = NSNull()
+      }
+      reply(result, nil)
+    case "getDefaultServerUrl":
+      var result: [String: Any] = [:]
+      if let url = config.getDefaultServerUrl() {
+        result["url"] = url
+      } else {
+        result["url"] = NSNull()
+      }
+      reply(result, nil)
     case "storageGet":
       reply(config.storageGet(name: params["name"] as? String, key: params["key"] as? String), nil)
     case "storageSet":

@@ -36,8 +36,11 @@ export default defineConfig({
   build: {
     outDir: path.resolve(packageDirectory, 'dist'),
     emptyOutDir: true,
+    assetsDir: 'assets',
     rollupOptions: {
-      input: path.resolve(packageDirectory, 'mobile/index.html'),
+      input: {
+        chamber: path.resolve(packageDirectory, 'mobile/index.html'),
+      },
       external: ['node:child_process', 'node:fs', 'node:path', 'node:url'],
     },
   },

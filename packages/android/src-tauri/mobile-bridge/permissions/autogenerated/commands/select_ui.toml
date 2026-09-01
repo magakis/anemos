@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-select-ui"
+description = "Enables the select_ui command without any pre-configured scope."
+commands.allow = ["select_ui"]
+
+[[permission]]
+identifier = "deny-select-ui"
+description = "Denies the select_ui command without any pre-configured scope."
+commands.deny = ["select_ui"]

@@ -35,7 +35,11 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         .invoke_handler(tauri::generate_handler![
             commands::scan_network,
             commands::cancel_scan,
-            commands::share
+            commands::share,
+            commands::select_ui,
+            commands::get_selected_ui,
+            commands::get_default_server_url,
+            commands::set_default_server_url
         ])
         .setup(|app, api| {
             #[cfg(mobile)]

@@ -67,6 +67,7 @@ const setDefaultServerConfig = async (config: ServerConfig | null) => {
     await store.delete(DEFAULT_SERVER_PASSWORD_KEY).catch(() => undefined)
   }
   await store.save().catch(() => undefined)
+  await bridge.sendAsync("setDefaultServerUrl", { url: config?.url ?? null })
 }
 
 const getDefaultServerUrl = async () => {

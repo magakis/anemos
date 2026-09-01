@@ -10,4 +10,8 @@ permissions = [
   "allow-scan-network",
   "allow-cancel-scan",
   "allow-share",
+  "allow-select-ui",
+  "allow-get-selected-ui",
+  "allow-get-default-server-url",
+  "allow-set-default-server-url",
 ]

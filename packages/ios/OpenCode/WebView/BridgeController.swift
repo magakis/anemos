@@ -75,8 +75,11 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
   private let platform = PlatformBridge()
   private let gestures = GestureBridge()
   private let keyboard = KeyboardBridge()
+  private let selectorEnabled = Self.readSelectorEnabled()
+  private let resetRequested = ProcessInfo.processInfo.arguments.contains("--reset-ui")
   private weak var webView: WKWebView?
   private var schemeHandler: LocalFileSchemeHandler?
+  private var pendingDeepLinks = [URL]()
 
   var configuration: WKWebViewConfiguration {
     let config = WKWebViewConfiguration()
@@ -101,6 +104,9 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
     platform.onEvent = { [weak self] type, payload in
       self?.sendEvent(type: type, payload: payload)
     }
+    platform.onSelectUI = { [weak self] selection in
+      self?.navigate(to: selection)
+    }
   }
 
   func attach(to webView: WKWebView) {
@@ -109,6 +115,9 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
     platform.webView = webView
     gestures.attach(to: webView) { [weak self] type, payload in
       self?.sendEvent(type: type, payload: payload)
+    }
+    if selectorEnabled {
+      attachSelectorGestures(to: webView)
     }
     keyboard.attach(to: webView)
     keyboard.onNavigate = { [weak self] direction in
@@ -122,7 +131,7 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
     }
     keyboard.onDismiss = { webView.endEditing(true) }
     DeepLinkRelay.shared.onOpen = { [weak self] url in
-      self?.injectDeepLink(url)
+      self?.handleDeepLink(url)
     }
     loadStartPage(in: webView)
   }
@@ -133,6 +142,12 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
     guard let method = body["method"] as? String else { return }
     let params = body["params"] as? [String: Any] ?? [:]
 
+    if (method == "selectUI" || method == "getSelectedUI" || method == "getDefaultServerUrl")
+      && !isLocalOrigin(message.frameInfo.securityOrigin) {
+      sendResponse(id: id, result: nil, error: "Native UI selection is only available to local content")
+      return
+    }
+
     platform.handle(id: id, method: method, params: params) { [weak self] result, error in
       self?.sendResponse(id: id, result: result, error: error)
     }
@@ -140,25 +155,125 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
 
   private func loadStartPage(in webView: WKWebView) {
 #if DEBUG
-    if let url = URL(string: "http://192.168.50.251:1421") {
+    if selectorEnabled, !resetRequested, let url = URL(string: "http://192.168.50.251:1421") {
       webView.load(URLRequest(url: url))
       return
     }
 #endif
 
-    // Use custom scheme to avoid file:// CORS restrictions with ES modules
-    if schemeHandler != nil, let url = URL(string: "tauri://localhost/index.html") {
-      print("[OpenCode] Loading via tauri:// scheme")
+    if resetRequested {
+      loadLocalPage(named: "selector.html", in: webView)
+    } else if !selectorEnabled {
+      loadLocalPage(named: UISelection.classic.fileName, in: webView)
+    } else if let selection = UISelection.local(rawValue: platform.selectedUI()) {
+      loadLocalPage(named: selection.fileName, in: webView)
+    } else {
+      loadLocalPage(named: "selector.html", in: webView)
+    }
+  }
+
+  private func loadLocalPage(named name: String, in webView: WKWebView? = nil) {
+    guard let webView = webView ?? self.webView else { return }
+
+    // Use custom scheme to avoid file:// CORS restrictions with ES modules.
+    if schemeHandler != nil, let url = URL(string: "tauri://localhost/\(name)") {
       webView.load(URLRequest(url: url))
       return
     }
 
-    // Fallback to file:// (shouldn't reach here in release)
-    if let url = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "WebAssets") {
+    let resource = URL(fileURLWithPath: name).deletingPathExtension()
+    if let url = Bundle.main.url(
+      forResource: resource.lastPathComponent,
+      withExtension: "html",
+      subdirectory: "WebAssets",
+    ) {
       webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
-    } else if let url = Bundle.main.url(forResource: "index", withExtension: "html") {
+    } else if let url = Bundle.main.url(forResource: resource.lastPathComponent, withExtension: "html") {
       webView.loadFileURL(url, allowingReadAccessTo: Bundle.main.bundleURL)
     }
+  }
+
+  private func navigate(to selection: UISelection) {
+    guard selection != .chamberFull else { return }
+    loadLocalPage(named: selection.fileName)
+  }
+
+  private func navigateToSelector() {
+    guard selectorEnabled else { return }
+    guard currentPage != "selector.html" else { return }
+    loadLocalPage(named: "selector.html")
+  }
+
+  private var currentPage: String? {
+    webView?.url?.pathComponents.last
+  }
+
+  private func handleDeepLink(_ url: URL) {
+    guard url.scheme == "opencode" else { return }
+    let target = UISelection.local(rawValue: platform.selectedUI()) ?? .chamber
+    if currentPage == target.fileName {
+      injectDeepLink(url)
+      return
+    }
+
+    pendingDeepLinks.append(url)
+    navigate(to: target)
+  }
+
+  private func attachSelectorGestures(to webView: WKWebView) {
+    let swipe = UIPanGestureRecognizer(target: self, action: #selector(selectorSwipe(_:)))
+    swipe.minimumNumberOfTouches = 4
+    swipe.maximumNumberOfTouches = 4
+    swipe.cancelsTouchesInView = false
+
+    let doubleTap = UITapGestureRecognizer(target: self, action: #selector(selectorDoubleTap(_:)))
+    doubleTap.numberOfTapsRequired = 2
+    doubleTap.numberOfTouchesRequired = 4
+    doubleTap.cancelsTouchesInView = false
+
+    webView.addGestureRecognizer(swipe)
+    webView.addGestureRecognizer(doubleTap)
+
+#if DEBUG
+    let reset = UILongPressGestureRecognizer(target: self, action: #selector(selectorReset(_:)))
+    reset.minimumPressDuration = 1.2
+    reset.cancelsTouchesInView = false
+    webView.addGestureRecognizer(reset)
+#endif
+  }
+
+  @objc private func selectorSwipe(_ recognizer: UIPanGestureRecognizer) {
+    guard recognizer.state == .ended else { return }
+    let translation = recognizer.translation(in: recognizer.view)
+    let velocity = recognizer.velocity(in: recognizer.view)
+    guard translation.y <= -140, velocity.y <= -600 else { return }
+    navigateToSelector()
+  }
+
+  @objc private func selectorDoubleTap(_ recognizer: UITapGestureRecognizer) {
+    guard recognizer.state == .ended else { return }
+    navigateToSelector()
+  }
+
+#if DEBUG
+  @objc private func selectorReset(_ recognizer: UILongPressGestureRecognizer) {
+    guard recognizer.state == .began else { return }
+    navigateToSelector()
+  }
+#endif
+
+  private func isLocalOrigin(_ origin: WKSecurityOrigin) -> Bool {
+    origin.protocol == "tauri" && origin.host == "localhost"
+  }
+
+  private static func readSelectorEnabled() -> Bool {
+    guard let url = Bundle.main.url(forResource: "selector-config", withExtension: "json", subdirectory: "WebAssets"),
+          let data = try? Data(contentsOf: url),
+          let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let enabled = object["enabled"] as? Bool else {
+      return true
+    }
+    return enabled
   }
 
   /// Locate web assets in the bundle and return a scheme handler for them
@@ -168,13 +283,15 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
 
     // Check for WebAssets subdirectory first (folder reference)
     let webAssetsDir = (bundlePath as NSString).appendingPathComponent("WebAssets")
-    if fileManager.fileExists(atPath: (webAssetsDir as NSString).appendingPathComponent("index.html")) {
+    if fileManager.fileExists(atPath: (webAssetsDir as NSString).appendingPathComponent("classic.html"))
+      || fileManager.fileExists(atPath: (webAssetsDir as NSString).appendingPathComponent("selector.html")) {
       print("[OpenCode] Serving from WebAssets/ subdirectory")
       return LocalFileSchemeHandler(baseDirectory: URL(fileURLWithPath: webAssetsDir))
     }
 
     // Flattened at bundle root
-    if fileManager.fileExists(atPath: (bundlePath as NSString).appendingPathComponent("index.html")) {
+    if fileManager.fileExists(atPath: (bundlePath as NSString).appendingPathComponent("classic.html"))
+      || fileManager.fileExists(atPath: (bundlePath as NSString).appendingPathComponent("selector.html")) {
       print("[OpenCode] Serving from bundle root (flattened)")
       return LocalFileSchemeHandler(baseDirectory: URL(fileURLWithPath: bundlePath))
     }
@@ -223,7 +340,15 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
     print("[OpenCode] Loaded: \(webView.url?.absoluteString ?? "nil")")
     DeepLinkRelay.shared.pageLoaded = true
     for url in DeepLinkRelay.shared.drain() {
-      injectDeepLink(url)
+      handleDeepLink(url)
+    }
+    let target = UISelection.local(rawValue: platform.selectedUI()) ?? .chamber
+    if currentPage == target.fileName, !pendingDeepLinks.isEmpty {
+      let links = pendingDeepLinks
+      pendingDeepLinks = []
+      for url in links {
+        injectDeepLink(url)
+      }
     }
   }
 

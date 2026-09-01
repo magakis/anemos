@@ -30,4 +30,28 @@ impl<R: Runtime> MobileBridge<R> {
             "Mobile bridge is unavailable on this platform".to_string(),
         ))
     }
+
+    pub fn select_ui(&self, _id: String) -> crate::Result<()> {
+        Err(Error::Message(
+            "Mobile bridge is unavailable on this platform".to_string(),
+        ))
+    }
+
+    pub fn get_selected_ui(&self) -> crate::Result<Option<String>> {
+        Err(Error::Message(
+            "Mobile bridge is unavailable on this platform".to_string(),
+        ))
+    }
+
+    pub fn get_default_server_url(&self) -> crate::Result<Option<String>> {
+        Err(Error::Message(
+            "Mobile bridge is unavailable on this platform".to_string(),
+        ))
+    }
+
+    pub fn set_default_server_url(&self, _url: Option<String>) -> crate::Result<()> {
+        Err(Error::Message(
+            "Mobile bridge is unavailable on this platform".to_string(),
+        ))
+    }
 }

@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-get-selected-ui"
+description = "Enables the get_selected_ui command without any pre-configured scope."
+commands.allow = ["get_selected_ui"]
+
+[[permission]]
+identifier = "deny-get-selected-ui"
+description = "Denies the get_selected_ui command without any pre-configured scope."
+commands.deny = ["get_selected_ui"]

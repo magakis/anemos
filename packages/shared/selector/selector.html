@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Select Anemos interface</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+        background: #171515;
+        color: #f8f7f7;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: max(28px, env(safe-area-inset-top)) 20px max(28px, env(safe-area-inset-bottom));
+        display: grid;
+        place-items: center;
+        background: radial-gradient(circle at top, #302929 0, #171515 58%);
+      }
+
+      main {
+        width: min(100%, 560px);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(28px, 8vw, 42px);
+        letter-spacing: -0.04em;
+      }
+
+      p {
+        margin: 10px 0 24px;
+        color: #b9b0b0;
+        font-size: 15px;
+      }
+
+      .cards {
+        display: grid;
+        gap: 12px;
+      }
+
+      .card {
+        width: 100%;
+        border: 1px solid #4a4141;
+        border-radius: 18px;
+        padding: 18px 20px;
+        color: inherit;
+        background: #211d1d;
+        text-align: left;
+        cursor: pointer;
+        transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+      }
+
+      .card:active:not(:disabled) {
+        transform: scale(0.985);
+      }
+
+      .card:hover:not(:disabled),
+      .card.selected {
+        border-color: #e9c46a;
+        background: #2b2520;
+      }
+
+      .card:focus-visible {
+        outline: 3px solid #85c7d9;
+        outline-offset: 3px;
+      }
+
+      .card:disabled {
+        cursor: not-allowed;
+        opacity: 0.52;
+      }
+
+      .name {
+        display: block;
+        font-size: 18px;
+        font-weight: 650;
+      }
+
+      .server {
+        display: block;
+        overflow: hidden;
+        margin-top: 7px;
+        color: #b9b0b0;
+        font-size: 13px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .state {
+        display: block;
+        min-height: 20px;
+        margin-top: 20px;
+        color: #b9b0b0;
+        font-size: 13px;
+      }
+
+      .error {
+        color: #f39a9a;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Select interface</h1>
+      <p>Choose the Anemos experience to open next time.</p>
+      <div class="cards" role="list" aria-label="Anemos interfaces">
+        <button class="card" data-ui="3" type="button" role="listitem">
+          <span class="name">Anemos Chamber</span>
+          <span class="server" data-server="3">OpenCode server · loading…</span>
+        </button>
+        <button class="card" data-ui="2" type="button" role="listitem">
+          <span class="name">Classic</span>
+          <span class="server" data-server="2">OpenCode server · loading…</span>
+        </button>
+        <button class="card" data-ui="1" type="button" role="listitem" disabled aria-disabled="true">
+          <span class="name">Chamber Full</span>
+          <span class="server">Available in a future update</span>
+        </button>
+      </div>
+      <span class="state" id="state" role="status" aria-live="polite"></span>
+    </main>
+    <script>
+      (() => {
+        const pending = new Map();
+        let counter = 0;
+
+        const commandNames = {
+          getDefaultServerUrl: "get_default_server_url",
+          getSelectedUI: "get_selected_ui",
+          selectUI: "select_ui",
+        };
+
+        const unwrap = (value, key) => {
+          if (value && typeof value === "object" && key in value) return value[key];
+          return value;
+        };
+
+        const installWebKitResponseHandler = () => {
+          if (!window.webkit?.messageHandlers?.opencode?.postMessage) return false;
+          window.__OPENCODE_BRIDGE__ = {
+            onResponse: (id, result, error) => {
+              const request = pending.get(id);
+              if (!request) return;
+              pending.delete(id);
+              if (error) request.reject(new Error(error));
+              else request.resolve(result);
+            },
+            onEvent: () => {},
+          };
+          return true;
+        };
+
+        const call = (method, params = {}) => {
+          const tauriInvoke = window.__TAURI_INTERNALS__?.invoke;
+          if (typeof tauriInvoke === "function") {
+            return tauriInvoke(`plugin:mobile-bridge|${commandNames[method]}`, params);
+          }
+
+          if (!installWebKitResponseHandler()) return Promise.resolve(null);
+          const id = `selector:${Date.now()}:${counter++}`;
+          return new Promise((resolve, reject) => {
+            pending.set(id, { resolve, reject });
+            try {
+              window.webkit.messageHandlers.opencode.postMessage({ id, method, params });
+            } catch (error) {
+              pending.delete(id);
+              reject(error);
+            }
+          });
+        };
+
+        const cards = [...document.querySelectorAll("[data-ui]")];
+        const state = document.getElementById("state");
+        const setState = (text, isError = false) => {
+          state.textContent = text;
+          state.classList.toggle("error", isError);
+        };
+
+        const select = async (id) => {
+          if (id !== "2" && id !== "3") return;
+          cards.forEach((card) => card.classList.toggle("selected", card.dataset.ui === id));
+          setState("Opening…");
+          try {
+            await call("selectUI", { id });
+          } catch {
+            setState("Could not save this selection.", true);
+          }
+        };
+
+        cards.forEach((card) => {
+          card.addEventListener("click", () => void select(card.dataset.ui));
+        });
+
+        const initialize = async () => {
+          try {
+            const selected = unwrap(await call("getSelectedUI"), "id");
+            const remembered = selected === "2" || selected === "3" ? selected : "2";
+            cards.forEach((card) => card.classList.toggle("selected", card.dataset.ui === remembered));
+          } catch {
+            cards.find((card) => card.dataset.ui === "2")?.classList.add("selected");
+          }
+
+          try {
+            const server = unwrap(await call("getDefaultServerUrl"), "url");
+            const label = typeof server === "string" && server ? server : "Not configured";
+            document.querySelectorAll("[data-server]").forEach((element) => {
+              element.textContent = `OpenCode server · ${label}`;
+            });
+          } catch {
+            document.querySelectorAll("[data-server]").forEach((element) => {
+              element.textContent = "OpenCode server · Not configured";
+            });
+          }
+        };
+
+        void initialize();
+      })();
+    </script>
+  </body>
+</html>

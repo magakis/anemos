@@ -36,11 +36,59 @@ impl<R: Runtime> MobileBridge<R> {
             .run_mobile_plugin("share", SharePayload { text, url })
             .map_err(Into::into)
     }
+
+    pub fn select_ui(&self, id: String) -> crate::Result<()> {
+        self.0
+            .run_mobile_plugin("selectUI", UISelectionPayload { id })
+            .map_err(Into::into)
+    }
+
+    pub fn get_selected_ui(&self) -> crate::Result<Option<String>> {
+        self.0
+            .run_mobile_plugin::<SelectedUIResponse, _>("getSelectedUI", ())
+            .map(|result| result.id)
+            .map_err(Into::into)
+    }
+
+    pub fn get_default_server_url(&self) -> crate::Result<Option<String>> {
+        self.0
+            .run_mobile_plugin::<ServerURLResponse, _>("getDefaultServerUrl", ())
+            .map(|result| result.url)
+            .map_err(Into::into)
+    }
+
+    pub fn set_default_server_url(&self, url: Option<String>) -> crate::Result<()> {
+        self.0
+            .run_mobile_plugin("setDefaultServerUrl", ServerURLPayload { url })
+            .map_err(Into::into)
+    }
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SharePayload {
     text: Option<String>,
+    url: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UISelectionPayload {
+    id: String,
+}
+
+#[derive(serde::Deserialize)]
+struct SelectedUIResponse {
+    id: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ServerURLPayload {
+    url: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+struct ServerURLResponse {
     url: Option<String>,
 }

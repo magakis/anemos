@@ -3,10 +3,11 @@ import Foundation
 final class ServerConfig {
   private let defaults = UserDefaults.standard
   private let defaultServerKey = "opencode.defaultServerUrl"
+  private let selectedUIKey = "opencode.selectedUI"
   private let storagePrefix = "opencode.storage."
 
   func getDefaultServerUrl() -> String? {
-    defaults.string(forKey: defaultServerKey)
+    defaults.string(forKey: defaultServerKey) ?? storageGet(name: "settings.dat", key: "defaultServerUrl")
   }
 
   func setDefaultServerUrl(_ url: String?) {
@@ -15,6 +16,18 @@ final class ServerConfig {
       return
     }
     defaults.removeObject(forKey: defaultServerKey)
+  }
+
+  func getSelectedUI() -> String? {
+    defaults.string(forKey: selectedUIKey)
+  }
+
+  func setSelectedUI(_ selection: String?) {
+    if let selection {
+      defaults.set(selection, forKey: selectedUIKey)
+    } else {
+      defaults.removeObject(forKey: selectedUIKey)
+    }
   }
 
   func storageGet(name: String?, key: String?) -> String? {

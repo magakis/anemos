@@ -4,6 +4,10 @@ const commands = {
   scanNetwork: "scan_network",
   cancelScan: "cancel_scan",
   share: "share",
+  selectUI: "select_ui",
+  getSelectedUI: "get_selected_ui",
+  getDefaultServerUrl: "get_default_server_url",
+  setDefaultServerUrl: "set_default_server_url",
 } as const
 
 const resolve = (method: string) => {

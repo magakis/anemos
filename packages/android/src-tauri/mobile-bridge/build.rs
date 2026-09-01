@@ -6,6 +6,10 @@ const COMMANDS: &[&str] = &[
     "scan_network",
     "cancel_scan",
     "share",
+    "select_ui",
+    "get_selected_ui",
+    "get_default_server_url",
+    "set_default_server_url",
 ];
 
 fn main() {

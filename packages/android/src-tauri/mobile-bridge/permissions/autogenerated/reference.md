@@ -11,6 +11,10 @@ Default permissions for the mobile bridge plugin
 - `allow-scan-network`
 - `allow-cancel-scan`
 - `allow-share`
+- `allow-select-ui`
+- `allow-get-selected-ui`
+- `allow-get-default-server-url`
+- `allow-set-default-server-url`
 
 ## Permission Table
 
@@ -198,6 +202,110 @@ Enables the share command without any pre-configured scope.
 <td>
 
 Denies the share command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`mobile-bridge:allow-select-ui`
+
+</td>
+<td>
+
+Enables the select_ui command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`mobile-bridge:deny-select-ui`
+
+</td>
+<td>
+
+Denies the select_ui command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`mobile-bridge:allow-get-selected-ui`
+
+</td>
+<td>
+
+Enables the get_selected_ui command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`mobile-bridge:deny-get-selected-ui`
+
+</td>
+<td>
+
+Denies the get_selected_ui command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`mobile-bridge:allow-get-default-server-url`
+
+</td>
+<td>
+
+Enables the get_default_server_url command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`mobile-bridge:deny-get-default-server-url`
+
+</td>
+<td>
+
+Denies the get_default_server_url command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`mobile-bridge:allow-set-default-server-url`
+
+</td>
+<td>
+
+Enables the set_default_server_url command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`mobile-bridge:deny-set-default-server-url`
+
+</td>
+<td>
+
+Denies the set_default_server_url command without any pre-configured scope.
 
 </td>
 </tr>

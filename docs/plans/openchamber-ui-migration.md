@@ -1,24 +1,28 @@
-# Implementation Plan: Replace the anemos Frontend UI with OpenChamber's UI
+# Implementation Plan: OpenChamber UI for anemos — Three-Interface Shell Architecture
 
-- **Date:** 2026-09-01
+- **Date:** 2026-09-01 · **Revision 2:** 2026-09-02 (post-Phase-4 architecture change — see D8)
 - **Repo:** `tidy-island` (anemos mobile fork of `sst/opencode`), branch `opencode/tidy-island`, synced to `origin/main`
-- **Reference clone (read-only):** `/tmp/opencode/openchamber` — upstream `https://github.com/openchamber/openchamber`, vendored candidate commit **`2c8ae9a`** (`v1.22.0-3-g2c8ae9a`), MIT licensed
-- **Status of the working tree:** there is **uncommitted voice/whisper-removal work in progress** (see §3.1). This plan is designed so no phase edits the files that work touches until well after it should have landed.
+- **Reference clone (read-only):** `/tmp/opencode/openchamber` — upstream `https://github.com/openchamber/openchamber`, vendored at commit **`2c8ae9a`** (`v1.22.0-3-g2c8ae9a`), MIT licensed
+- **Execution state:** Phases 0–4 **executed** (commits `37b8697`, `ec0d6d38`, `72db8a70b`, `5c6d196ac`, `8500cc7c6`, `ee2d56cbb`, `72aa96310`). Phases 5–11 are **Rev 2** (restructured; old→new mapping in §5).
+- **Status of the working tree:** the **voice/whisper-removal work is still uncommitted** (see §3.1) — Phases 8+ touch the same mobile-shell files (`entry-*.tsx` neighbors, bridges, rust `mobile-bridge`) and require it landed first. Also untracked: two stray playwright-cli snapshot files `chamber-mobile-initial.yml` / `chamber-mobile-noenv.yml` (phase-verification leftovers — delete; tracked in P11 housekeeping).
 
 ---
 
-## 0. Executive Summary
+## 0. Executive Summary (Rev 2)
 
-We are replacing the SolidJS frontend in `packages/app` (plus its `packages/session-ui` component library and the Solid token library `packages/ui`) with OpenChamber's React 19 browser UI, adapted to run directly against our `opencode serve` backends from the existing native shells (iOS Swift/WKWebView app, Android Tauri app).
+The anemos app ships **three selectable interfaces** behind a native-launched **UI selector screen**:
 
-The end state:
+1. **UI 1 — "Chamber Full"**: the untouched upstream OpenChamber web UI, loaded **remotely** from the user's own OpenChamber server URL (they already run one). All features, including the 23 our direct-connect build cuts (terminal, fs, git, tunnels, knowledge, …). Chamber's own auth applies. No anemos code beyond loading the URL and a native gesture recognizer.
+2. **UI 2 — "Classic"**: the existing SolidJS `packages/app`, **zero changes**, direct opencode connection, as today. Permanent — this dissolves the old cutover phase and is the permanent answer for v1-only servers and the 6 locales UI 3 won't carry at first.
+3. **UI 3 — "Anemos Chamber"**: the vendored `packages/chamber-ui` direct-connect build (Phases 1–4 executed: vendored, connected over SSE with Basic auth, native adapters, feature registry with 13 enabled / 23 cut). Remaining: push (P5), theming/locale hardening (P6), e2e (P7).
 
-- A new vendored package `packages/chamber-ui` (OpenChamber `packages/ui` + the mobile entry shell from `packages/web`), patched to be browser/Tauri-neutral and connected **directly** (absolute base URL + bearer token) to our opencode backends — the same architecture our current app uses, and the same architecture OpenChamber's own Capacitor mobile app uses.
-- The existing `entry-ios.tsx` / `entry-android.tsx` mobile-entry contract is preserved in spirit: React entries in the new package render OpenChamber's `MobileApp` through an adapter that maps our Platform contract (notify / haptic / share / storage / deep links / resume / push pairing) onto OpenChamber's `RuntimeAPIs` + runtime abstractions, reusing the existing framework-agnostic `bridge.ts` / storage modules in each mobile package.
-- Both frontends coexist behind a build-time `FRONTEND` switch in `packages/ios` and `packages/android`; the Solid app remains the default until a final cutover phase, so **iOS/Android builds never break on intermediate commits**.
-- Phase-1 scope is the pure-opencode-SDK core (chat, sessions, composer, providers/models, instance connect). Express-server-dependent features (fs browsing, git surface, terminal, tunnels/QR, knowledge/recaps, scheduled tasks, agent memory, browser control, dev servers, GitHub/Linear, dictation/TTS, chamber config/plugins/skills) are cut initially via a feature registry, with a documented disposition each.
+A **selector screen** is shown at launch (remembering the last choice; initial default = Classic) and reachable from **any** UI via a native **four-finger swipe-up** gesture (iOS) and its Android equivalent (evaluated in D8.3). Because remote pages cannot dispatch our window events, the gesture is intercepted **natively** (Swift gesture recognizer / Kotlin touch handling in the existing mobile-bridge plugin) — which also makes the selector's placement decision easy: **a local HTML selector page + native launch routing and gesture, one WebView, navigation-based switching** (D8.1).
 
-Why: our Solid app is a growing divergence burden (see `SYNC_CHECKLIST.md`, `UPSTREAM_ROADMAP.md` — 198 TAKE / 38 KEEP-CUSTOM / 39 KEEP-DIVERGENCE / 86 INSPECT files vs upstream), while OpenChamber is a very active (≈139 releases/yr), MIT, shell-agnostic React UI with a first-class mobile surface, virtualized timeline, worker-based markdown, and multi-instance support. Buying their UI and carrying a small, documented patch set is cheaper than continuing to maintain ours.
+Per-UI server wiring: UI 1 → the configured OpenChamber server (its own auth); UIs 2 & 3 → the shared opencode default server (existing settings keys + the P3 one-way migration).
+
+Why this shape (Rev 2 rationale): the user already runs an OpenChamber server — full-featured chamber is therefore available *for free* by loading it remotely, which removes the pressure to reimplement the 23 Express-dependent features inside our vendored build, removes the need for a risky cutover, and lets the vendored UI 3 stay a small, aggressively-cut, direct-opencode surface. The cost — maintaining a three-surface shell — is mostly native glue plus the already-executed vendoring work.
+
+**What changed vs Rev 1 (superseded):** the "replace the Solid app, cut over, delete the old stack" end-state is withdrawn. Old Phase 9 (cutover) is **dissolved**; old Phase 10 (deletion) becomes P11 (docs/dead-code only). D2/D5/D7 are annotated where D8 supersedes them. Phases 0–4 below are the unchanged historical record of executed work.
 
 ---
 
@@ -30,12 +34,12 @@ Why: our Solid app is a growing divergence burden (see `SYNC_CHECKLIST.md`, `UPS
 |---|---|
 | App package | `packages/app`, name `@opencode-ai/app`. Exports: `"." → src/index.ts`, `./desktop-menu`, `./updater`, `./wsl/types`, `./vite → vite.js`, `./index.css` |
 | Vite plugin | `packages/app/vite.js` — `vite-plugin-solid` + `@tailwindcss/vite` + `@` alias (→ `packages/app/src`) + `worker.format: "es"` + oc-theme-preload inline script. **Mobile packages import this plugin** (`import appPlugin from "@opencode-ai/app/vite"`). |
-| iOS shell | **Native Swift app**, not Tauri: `packages/ios/OpenCode/*.swift` (e.g. `OpenCodeApp.swift`, `PlatformBridge.swift`), fastlane `script/beam` for private TestFlight. Its vite config (`packages/ios/vite.config.ts`, port 1421, `base: "./"`, `publicDir: "../app/public"`) builds the entry into **`packages/ios/WebAssets/`** — and WebAssets (built, hashed JS chunks) **are committed to git** (visible as deletions in the current `git status`). |
-| Android shell | **Tauri**: `packages/android/src-tauri/tauri.conf.json` → `frontendDist: "../dist"`, `devUrl: http://localhost:1422`, `beforeBuildCommand: "bun run build"` (the android package's own vite build → `outDir: "dist"`). Rust bridge plugin at `packages/android/src-tauri/mobile-bridge/`. |
+| iOS shell | **Native Swift app**, not Tauri: `packages/ios/OpenCode/*.swift` (e.g. `OpenCodeApp.swift`, `PlatformBridge.swift`, `BridgeController.swift` — custom WKURL scheme handler for scheme **`tauri`**, loads `tauri://localhost/index.html`), fastlane `script/beam` for private TestFlight. Its vite config (`packages/ios/vite.config.ts`, port 1421, `base: "./"`, `publicDir: "../app/public"`) builds the entry into **`packages/ios/WebAssets/`** — and WebAssets (built, hashed JS chunks) **are committed to git**. |
+| Android shell | **Tauri**: `packages/android/src-tauri/tauri.conf.json` → `frontendDist: "../dist"`, `devUrl: http://localhost:1422`, `beforeBuildCommand: "bun run build"` (the android package's own vite build → `outDir: "dist"`). Rust bridge plugin at `packages/android/src-tauri/mobile-bridge/` (Kotlin + Rust, permission'd commands — the established place to add native commands). |
 | Mobile entries | `packages/ios/src/entry-ios.tsx` (218 lines), `packages/android/src/entry-android.tsx` (254 lines). Both import from `@opencode-ai/app`: `AppBaseProviders`, `AppInterface`, `PlatformProvider`, `ServerConnection`, `type NotifyOpts`, `type Platform`, plus their own `bridge`, storage (`createBridgeStorage` / `createTauriStorage`), and `Onboarding`. |
-| Bridges are framework-agnostic (verified) | `packages/ios/src/bridge.ts` (151 lines, no solid/react, window-bridge root), `packages/ios/src/ios-storage.ts` (83 lines), `packages/android/src/bridge.ts` (49 lines, `@tauri-apps/*` only), `packages/android/src/storage.ts` (96 lines). **These are directly reusable from React.** |
+| Bridges are framework-agnostic (verified) | `packages/ios/src/bridge.ts` (151 lines, no solid/react, window-bridge root), `packages/ios/src/ios-storage.ts` (83 lines), `packages/android/src/bridge.ts` (49 lines, `@tauri-apps/*` only), `packages/android/src/storage.ts` (96 lines). **Directly reusable from React and from a plain HTML selector page** (local content can call the bridges; remote UI 1 content must NOT be able to — §3.19). |
 | Monorepo | bun `1.3.13` (`packageManager`, husky-enforced), workspaces `packages/*` + `packages/sdk/js`, catalog deps, `patches/` + `patchedDependencies` (bun patch precedent), root `oxlint`, `turbo typecheck` gate, `bunfig.toml` forbids root tests. |
-| Upstream-sync precedent | `SYNC_CHECKLIST.md` + `UPSTREAM_ROADMAP.md` already document divergence-audit methodology vs upstream `opencode` — we will mirror this for chamber tracking. |
+| Upstream-sync precedent | `SYNC_CHECKLIST.md` + `UPSTREAM_ROADMAP.md` already document divergence-audit methodology vs upstream `opencode` — mirrored for chamber tracking (`script/chamber-sync.sh` + `docs/chamber-sync-checklist.md`, landed in Phase 1). |
 
 ### 1.2 Platform contract (must keep working)
 
@@ -51,15 +55,15 @@ Window events consumed (in `packages/app/src/context/push-pair.tsx`, `context/se
 ### 1.3 Boot & backend usage
 
 - `packages/app/src/entry.tsx`: server URL from `VITE_OPENCODE_SERVER_HOST`/`VITE_OPENCODE_SERVER_PORT` (default `localhost:4096`) or `location.origin`; persisted default-server key **`opencode.settings.dat:defaultServerUrl`**; `auth_token` query param → server auth (stripped from URL after use).
-- Protocol negotiation: `packages/app/src/utils/server-protocol.ts` (36 lines; probes `/global/health` vs `/api/health` → `"v1" | "v2"`) and `server-protocol-resilient.ts` (59 lines; `/api/config` must return JSON else downgrade to v1 — guards against the incomplete v2 migration).
-- SDK: workspace `packages/sdk/js` is `@opencode-ai/sdk` **1.18.11** with both `src/gen` (v1) and `src/v2/gen`; v1/v2 hybrid usage throughout.
-- **Installed backend CLI: `opencode 1.18.25`** — exactly the version OpenChamber's UI pins (`@opencode-ai/sdk@1.18.25`, `/v2` imports). See compat matrix §1.7.
+- Protocol negotiation: `packages/app/src/utils/server-protocol.ts` (36 lines; probes `/global/health` vs `/api/health` → `"v1" | "v2"`) and `server-protocol-resilient.ts` (59 lines). **Phase 0 discovered** (§Phase 0 results): `/api/config` is not a v2 route — the Solid app runs 1.18.x servers in v1 mode today, which is fine for it.
+- SDK: workspace `packages/sdk/js` is `@opencode-ai/sdk` **1.18.11** with both `src/gen` (v1) and `src/v2/gen`; chamber-ui keeps its own npm `@opencode-ai/sdk@1.18.25` (exact match to the installed backend).
+- **Installed backend CLI: `opencode 1.18.25`**. Auth is **HTTP Basic** (`Authorization: Basic base64(user:pass)`), not bearer (Phase 0 correction — P2 implemented accordingly).
 
 ### 1.4 i18n, theming, tests
 
 - i18n: 18 locale files in `packages/app/src/i18n/` — `en, de, es, fr, ja, ko, pl, tr, uk, zh, zht, br, ar, ru, th, no, da, bs` + `parity.test.ts`.
-- Theming: `packages/ui` (`@opencode-ai/ui`) Solid token library with `generate:tailwind`; **its only consumer is `packages/session-ui`**, which in turn is only consumed by `packages/app` (verified) — so the whole `app → session-ui → ui` chain can retire together.
-- Tests: `bun test --conditions=solid --preload ./happydom.ts` (note `test:unit` passes `--only-failures`, so scope with the direct command per AGENTS.md); Playwright e2e under `packages/app/e2e/{smoke,regression,user-story,performance}` with fixtures per `packages/app/e2e/AGENTS.md` (import `test`/`expect` from `../fixtures`; `withSession`/`trackSession`/`trackDirectory`; env `PLAYWRIGHT_SERVER_HOST/PORT` default `127.0.0.1:4096`, `PLAYWRIGHT_PORT` default 3000).
+- Theming: `packages/ui` (`@opencode-ai/ui`) Solid token library with `generate:tailwind`; its only consumer is `packages/session-ui`, which in turn is only consumed by `packages/app` (verified). **Rev 2: this chain stays permanently** (UI 2 forever) — no retirement.
+- Tests: `bun test --conditions=solid --preload ./happydom.ts` (scope with the direct command per AGENTS.md — `test:unit` passes `--only-failures`); Playwright e2e under `packages/app/e2e/{smoke,regression,user-story,performance}` with fixtures per `packages/app/e2e/AGENTS.md` (import `test`/`expect` from `../fixtures`; `withSession`/`trackSession`/`trackDirectory`; env `PLAYWRIGHT_SERVER_HOST/PORT` default `127.0.0.1:4096`, `PLAYWRIGHT_PORT` default 3000).
 
 ---
 
@@ -68,141 +72,181 @@ Window events consumed (in `packages/app/src/context/push-pair.tsx`, `context/se
 ### 2.1 Architecture
 
 - Packages: `web` (SPA shell + Express server), `ui` (the shell-agnostic React UI lib), `mobile` (Capacitor app), `electron`, `vscode`, `docs`. Root: bun `1.3.14`, engines `node >=22`.
-- `packages/ui` (`@openchamber/ui@1.22.0`): **build script is only `tsc --noEmit`** — it is a lib, not an app. The runnable SPA entries (HTML + vite config) live in **`packages/web`** (`index.html`, **`mobile.html`**, `mini-chat.html`, `vite.config.ts`, `src/`). Vendoring must therefore take `packages/ui` **plus** the mobile entry bits of `packages/web`.
-- Runtime abstraction (the key to direct-connect): `packages/ui/src/lib/{runtime-url,runtime-fetch,runtime-auth,runtime-auth-expiry,runtime-switch}.ts` + `src/lib/opencode/client.ts` — `DEFAULT_BASE_URL = import.meta.env.VITE_OPENCODE_URL || "/api"` (client.ts:44), absolute-URL + bearer-token injection supported, runtime URL switching for multi-instance. **`process.cwd()` leak at client.ts:584–585** (fallback config discovery candidate) must be guarded for the browser/Tauri build.
-- Surface detection: `src/lib/runtimeSurface.ts` — priority: **explicit `window.__OPENCHAMBER_SURFACE__` stamp → `?surface=mobile|desktop` URL override → Capacitor shell → desktop/VSCode shells → phone-viewport heuristic**. The URL override gives us free mobile-surface testing in a desktop browser.
-- Mobile boot: `src/apps/renderMobileApp.tsx` — takes **`apis: RuntimeAPIs`** (injectable runtime APIs), stamps `__OPENCHAMBER_SURFACE__ = 'mobile'` first, preloads markdown renderer, applies device classes pre-paint, installs a widget-snapshot bridge. Native-shell detection is `window.Capacitor?.isNativePlatform?.() === true || location.protocol === 'capacitor:'`; when native: (a) notifications API replaced with a **no-op** (`notifyAgentCompletion: async () => false`), (b) **`SessionAuthGate` is skipped** (native authenticates per-instance via its own connect flow instead). Both behaviors are exactly what we need — but the native detection must be extended to recognize Tauri/Swift shells.
-- Mobile app surface: `src/apps/MobileApp.tsx` + a large mobile surface family (`MobileConnectionWelcome`, `MobileInstancesSurface`, `MobileSessionsSheet`, `MobileFilesSurface`, `MobileChangesSurface`, `MobileHeader`, deep links via `src/apps/deepLinks.ts` + `deepLinkNavigation.ts`, connections/secure storage via `src/apps/mobileConnections.ts` using `@aparajita/capacitor-secure-storage`).
-- Deep-link scheme is **hardcoded `openchamber://`** (e.g. `openchamber://connect?...` import strings across locale files) — must be remapped to our `opencode://` scheme.
+- `packages/ui` (`@openchamber/ui@1.22.0`): **build script is only `tsc --noEmit`** — it is a lib, not an app. The runnable SPA entries (HTML + vite config) live in **`packages/web`** (`index.html`, **`mobile.html`**, `mini-chat.html`, `vite.config.ts`, `src/`). Vendoring therefore took `packages/ui` **plus** the mobile entry bits of `packages/web`.
+- Runtime abstraction (the key to direct-connect): `packages/ui/src/lib/{runtime-url,runtime-fetch,runtime-auth,runtime-auth-expiry,runtime-switch}.ts` + `src/lib/opencode/client.ts` — `DEFAULT_BASE_URL = import.meta.env.VITE_OPENCODE_URL || "/api"` (client.ts:44), absolute-URL + auth-header injection supported, runtime URL switching for multi-instance. `process.cwd()` leak at client.ts:584–585 guarded in the vendored copy.
+- Surface detection: `src/lib/runtimeSurface.ts` — priority: **explicit `window.__OPENCHAMBER_SURFACE__` stamp → `?surface=mobile|desktop` URL override → Capacitor shell → desktop/VSCode shells → phone-viewport heuristic**. The URL override gives free mobile-surface testing in a desktop browser.
+- Mobile boot: `src/apps/renderMobileApp.tsx` — takes **`apis: RuntimeAPIs`** (injectable runtime APIs), stamps `__OPENCHAMBER_SURFACE__ = 'mobile'` first, preloads markdown renderer, applies device classes pre-paint. Native-shell detection was Capacitor-only; Phase 3 extended it (Tauri checks + `window.__ANEMOS_SHELL__` marker) so `SessionAuthGate` is skipped and notifications route to our implementation. Relevant to **UI 1**: the remote chamber page is chamber's *web* runtime — it will show its own `SessionAuthGate` if the user's server requires a UI password; that is correct and none of our business.
+- Mobile app surface: `src/apps/MobileApp.tsx` + mobile surface family (`MobileConnectionWelcome`, `MobileInstancesSurface`, `MobileSessionsSheet`, `MobileFilesSurface`, `MobileChangesSurface`, `MobileHeader`, deep links via `src/apps/deepLinks.ts` + `deepLinkNavigation.ts`, connections/secure storage via `src/apps/mobileConnections.ts`).
+- Deep-link scheme is **hardcoded `openchamber://`** — remapped to `opencode://` in the vendored copy (P3). For **UI 1** this is inverted: the remote page legitimately uses `openchamber://` links; on a device without the chamber app installed they simply no-op (harmless — noted §3.22).
 - State/sync: `src/sync/` — `sync-context.tsx`, `global-sync-store.ts`, `session-ui-store.ts` (optimistic mutations, client-generated message IDs reconciled via SSE), `streaming.ts`, `child-store.ts`, `notification-store.ts`, plus `use-sync.ts`. Virtualization: `@legendapp/list` 3.3.8, `@tanstack/react-virtual` 3.14.5, `virtua` 0.49.1.
-- Workers: markdown pipeline in `src/components/chat/markdown/markdown-worker.ts` (`markdown-shiki.worker.ts?worker&url`, `type: 'module'`) and diff worker (`@pierre/diffs/worker/worker.js?worker&url`) — needs vite worker bundling (`worker.format: es`, same as our app plugin already does) and CSP-compatible serving in the WebViews.
-- i18n: own lib at `src/lib/i18n`, messages as flat key maps split per domain per locale (`<locale>.ts`, `<locale>.settings.ts`, plus domain files). **12 locales: `en, de, es, fr, ja, ko, pl, pt-BR, tr, uk, zh-CN, zh-TW`** (large — e.g. `pl.settings.ts` alone is ~1.7k lines).
-- Theming: `ThemeSystemProvider` (`src/contexts/`), CSS-var generation, JSON themes in `src/lib/theme/themes/` (aura, ayu, carbonfox, catppuccin, dracula, fields-of-the-shire, flexoki, gruvbox, jetbrains, kanagawa, … light/dark pairs). Custom brand themes are just additional JSON files — our token palette can be ported as an `anemos` theme.
-- Router: custom path registry in `src/lib/router/` (`parseRoute`/`serializeRoute`/`types.ts`) — route gating for feature cuts is a small, central change.
-- Capacitor build pattern to replicate for Tauri: `packages/mobile` scripts — `build` = `bun run --cwd ../web build && node scripts/prepare-web-assets.mjs` (copies dist, `mobile.html` → `index.html`), `sync` = build + `cap sync`.
+- Workers: markdown pipeline in `src/components/chat/markdown/markdown-worker.ts` (`markdown-shiki.worker.ts?worker&url`, `type: 'module'`) and diff worker (`@pierre/diffs/worker/worker.js?worker&url`) — needs vite worker bundling (`worker.format: es`) and CSP-compatible serving in the WebViews.
+- i18n: own lib at `src/lib/i18n`, messages as flat key maps split per domain per locale. **12 locales: `en, de, es, fr, ja, ko, pl, pt-BR, tr, uk, zh-CN, zh-TW`** — all 12 of these languages exist in our 18 (mapping `zh→zh-CN`, `zht→zh-TW`, `br→pt-BR`); the 6 ours-has-that-chamber-lacks are `ar, ru, th, no, da, bs`.
+- Theming: `ThemeSystemProvider` (`src/contexts/`), CSS-var generation, JSON themes in `src/lib/theme/themes/`. Custom brand themes are just additional JSON files — our palette ports as an `anemos` theme.
+- Router: custom path registry in `src/lib/router/` — the Phase 4 feature registry hooks exactly here.
+- Capacitor build pattern (reference for our mobile packaging): `packages/mobile` — `build` = web build + `prepare-web-assets.mjs` (`index.html := mobile.html` byte-copy), `sync` = build + `cap sync`.
 
 ### 2.2 Browser-neutrality problems in `packages/ui` (verified dependency list)
 
-`dependencies` include server/node-only and Capacitor-only packages that must not (or need not) ship in our WebView bundle: `express@^5`, `http-proxy-middleware`, `simple-git`, `ghostty-web` (terminal), `@xenova/transformers` (in-browser ML for browser control), `@capacitor/*` + `@aparajita/capacitor-secure-storage` (mobile-only paths — keep as deps but ensure they are not invoked outside native), plus node types. Strategy: keep the package.json dependency list intact where harmless (workspace install), but **alias/stub the node-only imports at build time** and verify nothing on the mobile render path imports them eagerly.
+`dependencies` include server/node-only and Capacitor-only packages: `express@^5`, `http-proxy-middleware`, `simple-git`, `ghostty-web` (terminal), `@xenova/transformers` (in-browser ML), `@capacitor/*` + `@aparajita/capacitor-secure-storage`. Phase 4's import-graph audit confirmed none of the server-side ones are reachable from the mobile entry (0 eager references; the only lazy exception is `heic2any` for attachment conversion, on-demand). Relevant to **UI 1**: none of this matters there — the remote page ships whatever its own server bundles.
 
 ### 2.3 Express-dependent features (`packages/web/server/lib/*`, verified directory list)
 
-| Chamber feature (server lib) | UI surface | Disposition for us |
+| Chamber feature (server lib) | UI surface | Disposition for UI 3 (direct-connect) |
 |---|---|---|
-| `ui-auth` (JWT cookie gate) | `SessionAuthGate` | **Cut for native** (already skipped when native shell detected); for browser dev we run without `--ui-password` |
-| Client-token pairing / instance auth | `MobileConnectionWelcome`, `mobileConnections.ts` | **Local** — reuse flow but store our bearer tokens via bridge storage instead of chamber's pairing endpoint |
-| `terminal` (+ ghostty-web) | Terminal panel, `MobileChangesSurface` adjunct | **Cut initially** — our current app's PTY usage is desktop-oriented |
-| fs browsing (`/api/fs/*`) | `MobileFilesSurface`, file pickers | **Reimplement later** over opencode SDK file APIs or Tauri fs; cut from phase 1 |
-| git (`/api/git/*`) | `MobileChangesSurface` (diff review) | **Cut initially**; later candidate: port to opencode SDK `vcs` endpoints (our Solid app already does VCS diffs via SDK) |
-| `tunnels` + QR | remote-instance connect | **Cut** (we connect over LAN/localhost directly) |
-| `session-knowledge`, `session-goal`, `session-assist`, `session-folders` | recaps/knowledge/folder UI | **Cut initially** |
-| `scheduled-tasks` | tasks UI | **Cut initially** |
-| agent-memory, browser-control, dev-servers | respective panels | **Cut initially** |
-| github / linear integrations | integration settings | **Cut** |
-| `tts`, `text`, dictation | voice features | **Cut** — aligns with the in-flight voice/whisper removal |
-| push (vapid + APNs relay), `relay` | notification settings | **Reimplement** from opencode SSE events + our fork's push relay/pairing (phase 5) |
-| chamber config / settings / themes / plugins / skills / snippets routes | settings surfaces | **Reimplement minimal subset** (appearance/theme selection is largely client-side via `startAppearanceAutoSave` etc. — verify no `/api` dependency when cutting) |
-| `quota`, `security`, `small-model`, `system-prompt`, `skills-catalog`, `walkthrough` | assorted | **Cut initially** |
+| `ui-auth` (JWT cookie gate) | `SessionAuthGate` | **Cut for native** (skipped for anemos runtimes — P2) |
+| Client-token pairing / instance auth | `MobileConnectionWelcome`, `mobileConnections.ts` | **Local** — direct URL/token + password connection remain (P4: `client-auth` cut, direct instances kept) |
+| `terminal` (+ ghostty-web) | Terminal panel | **Cut in UI 3** — **available in UI 1** |
+| fs browsing (`/api/fs/*`) | `MobileFilesSurface`, file pickers | **Cut in UI 3** — **available in UI 1** |
+| git (`/api/git/*`) | `MobileChangesSurface` (diff review) | **Cut in UI 3** — **available in UI 1** |
+| `tunnels` + QR | remote-instance connect | **Cut in UI 3** — **available in UI 1** |
+| `session-knowledge`, `session-goal`, `session-assist`, `session-folders` | recaps/knowledge/folder UI | **Cut in UI 3** — **available in UI 1** |
+| `scheduled-tasks` | tasks UI | **Cut in UI 3** — **available in UI 1** |
+| agent-memory, browser-control, dev-servers | respective panels | **Cut in UI 3** — **available in UI 1** |
+| github / linear integrations | integration settings | **Cut in UI 3** — **available in UI 1** |
+| `tts`, `text`, dictation | voice features | **Cut in UI 3** (aligns with voice removal) — **available in UI 1** |
+| push (vapid + APNs relay), `relay` | notification settings | **Reimplemented** from opencode SSE events + our fork push relay/pairing (Phase 5) |
+| chamber config / settings / themes / plugins / skills / snippets routes | settings surfaces | **Minimal local subset** (P4 verified appearance/typography/model prefs persist client-side via `anemos.settings.v1:<key>` without these routes) |
+| `quota`, `security`, `small-model`, `system-prompt`, `skills-catalog`, `walkthrough` | assorted | **Cut in UI 3** — **available in UI 1** |
 
-**Pure-opencode-SDK core (kept, phase 1):** sessions, messages/parts streaming (SSE), prompts, commands, permissions/questions, providers/auth incl. OAuth, config, models, agents, tools, MCP — all through `createRuntimeOpencodeClient` with absolute base URL + bearer token.
+> **Rev 2 note:** the "Reimplement later" ambitions of Rev 1 are retired — with UI 1 loading the user's full chamber server, every cut feature remains reachable through UI 1 against a chamber server. UI 3 stays a lean direct-opencode surface; the §2.3 "later" items only return if the user asks for them *without* a chamber server.
+
+**Pure-opencode-SDK core (kept in UI 3):** sessions, messages/parts streaming (SSE), prompts, commands, permissions/questions, providers/auth incl. OAuth, config, models, agents, tools, MCP — all through `createRuntimeOpencodeClient` with absolute base URL + Basic auth.
 
 ### 2.4 Interesting details worth keeping in mind
 
-- Mobile locks transport to **SSE** (`runtime-socket.ts` explicitly notes platform WebSocket rejection on `capacitor://` origins) — matches our WebView constraints.
-- 30s timeout on non-streaming requests in their client — check it fits our long config/model calls.
-- The UI persists appearance/typography/model prefs via auto-save modules (`startAppearanceAutoSave`, `startTypographyWatcher`, `startModelPrefsAutoSave`) — localStorage-based; confirm none of the cut routes are load-bearing for these.
-- `apps/mobileWidgetSnapshot.ts` exposes a widget-snapshot bridge for iOS home-screen widgets — a nice future win for our Swift shell.
-- Chamber's web package also has `mini-chat.html` (Electron mini chat) — out of scope, but shows multi-entry vite setup precedent.
+- Mobile locks transport to **SSE** — matches our WebView constraints (and P2 chose SSE for anemos runtimes because browser WebSockets cannot carry the Basic `Authorization` header).
+- 30s timeout on non-streaming requests in their client — fits our observed config/model call latencies.
+- `apps/mobileWidgetSnapshot.ts` exposes a widget-snapshot bridge for iOS home-screen widgets — a future win for our Swift shell (works in UI 3; not in UI 1).
+- Chamber's web package also has `mini-chat.html` — multi-entry vite precedent.
 
 ### 2.5 Compat matrix (verified versions)
 
 | Component | Version | Notes |
 |---|---|---|
-| Our installed `opencode` CLI backend | **1.18.25** | The thing chamber UI talks to; v2 API complete at this version (same release line chamber pins) |
-| Chamber UI pinned SDK | `@opencode-ai/sdk@1.18.25` (npm) | `/v2` imports only — exact match to our backend |
-| Our workspace `packages/sdk/js` | 1.18.11 | Used by the Solid app only; **do not** point chamber-ui at it — keep chamber's npm dep to avoid shape skew |
-| Their bun / our bun | 1.3.14 / **1.3.13** | Keep ours (packageManager + husky enforce); vendored code doesn't check bun |
-| Their engines | `node >=22` | Satisfied by our bun runtime; record in PROVENANCE |
-| React / Zustand / Tailwind | 19.1 / 5.0.8 / v4 | New deps in our monorepo (workspace catalog additions) |
+| Our installed `opencode` CLI backend | **1.18.25** | Serves the complete v2 surface natively (Phase 0 spike 1) |
+| Chamber UI pinned SDK | `@opencode-ai/sdk@1.18.25` (npm) | `/v2` imports — exact match to our backend |
+| Our workspace `packages/sdk/js` | 1.18.11 | Solid app only; chamber-ui keeps its npm dep |
+| Their bun / our bun | 1.3.14 / **1.3.13** | Keep ours; vendored code doesn't check bun |
+| Their engines | `node >=22` | Satisfied by our runtime; recorded in PROVENANCE |
+| React / Zustand / Tailwind | 19.1 / 5.0.8 / v4 | Present in the vendored package |
+| User's OpenChamber server (UI 1 target) | current, self-run | Whatever version they run; entirely their stack — no coupling to our vendored copy |
 
 ---
 
 ## 3. Caveats / Things to Worry About (checklist)
 
-1. **Uncommitted voice/whisper-removal work in the tree** — touches `packages/app/src/{context/platform.tsx,context/settings.tsx,index.ts,components/prompt-input.tsx,components/settings-mobile-notifications.tsx,i18n/parity.test.ts}`, `packages/{ios,android}/src/*`, native Swift/Kotlin/Rust bridge files, and **deletes tracked built assets** `packages/ios/WebAssets/*.js`. This plan never edits `packages/app` and defers mobile-shell edits to Phase 8; land the voice work first. If it's still uncommitted when Phase 8 starts, coordinate — `entry-android.tsx`, `bridge.ts`, and the rust `mobile-bridge` are shared touchpoints.
-2. **SDK compat** — chamber is **v2-only**. Our resilient v1 downgrade exists because some servers had incomplete v2. Any **v1-only backend will not work** with chamber UI. Mitigation: boot-time v2 guard (probe `/api/config` returns JSON, ported from `server-protocol-resilient.ts`) with an explicit "backend too old" screen; old Solid app remains available for edge servers until cleanup. See Open Question 1.
-3. **CORS / WebView origin** — direct absolute-URL fetches from the WebView (`tauri://`-style or custom scheme origins on iOS, `http://tauri.localhost` on Android) to `http://localhost:42447` are cross-origin. Our current app already does exactly this, so a working mechanism exists — but it must be re-verified for the chamber bundle (different origin/assets). Recent commit `e43d25412 "add webview CORS debugging skill"` suggests this is a known pain point. Phase 0 spike; do not discover this on a device.
-4. **Markdown/diff worker bundling** — `?worker&url` + `type: 'module'` imports require the vendored vite config to set `worker.format: es` (our `packages/app/vite.js` already does; port the setting) and the WebView CSP/asset serving to allow worker script loads. Verify early on both iOS WKWebView and Android WebView.
-5. **`process.cwd()` leak** — `client.ts:584` adds `process.cwd()` as a config-discovery candidate when `process` exists. In bundlers with `process` polyfills this can throw or pollute discovery. Guard with a build-time `define` or patch the condition.
-6. **Browser-neutrality of `@openchamber/ui`** — `express`, `http-proxy-middleware`, `simple-git` in `dependencies` (see §2.2). Even if tree-shaking keeps them out of the mobile bundle, typecheck/install surface remains; plan for vite `resolve.alias` stubs and possibly splitting heavy deps out of the vendored package.json.
-7. **SSE-only transport** — correct for mobile (chamber already locks it), but confirm our backends' SSE headers/heartbeats behave without chamber's Express proxy (they do for our Solid app — same direct connection).
-8. **Upstream churn (≈139 releases/yr)** — vendoring means manual re-sync. Mitigation: PROVENANCE + sync checklist + keep the local diff small and mechanical (prefer adapter packages over in-place edits; mark every in-vendor edit with `// ANEMOS-PATCH:` comments).
-9. **Storage semantics per workspace** — our Platform `storage(name)` is namespaced per workspace; our default-server key `opencode.settings.dat:defaultServerUrl` must be **migrated** into chamber's instance list (secure storage via `mobileConnections`-equivalent using our bridge storage). One-time migration in the adapter; decide key mapping before Phase 3.
-10. **i18n delta** — ours 18 locales vs chamber 12. Language overlap mapping: `zh→zh-CN`, `zht→zh-TW`, `br→pt-BR`; **net-new languages chamber lacks: `ar, ru, th, no, da, bs`** (6). Keys are completely different flat maps — porting is a key-audit + copy exercise, not a rename. Parity test must be ported or replaced.
-11. **MIT attribution** — keep upstream `LICENSE`, add `PROVENANCE.md` (repo URL, commit `2c8ae9a`, tag `v1.22.0-3`, local-change list). Required and also our sync ledger.
-12. **`packages/ios/WebAssets` is committed to git** — the chamber iOS build will regenerate differently-hashed chunks; Phase 8 must commit them (and we should consider gitignoring built assets in cleanup — separate decision, noted in Phase 10).
-13. **Hardcoded `openchamber://` scheme** — remap to `opencode://` in `deepLinks.ts`/`deepLinkNavigation.ts` + locale strings; our Swift/Kotlin shells already emit `opencode://`.
-14. **SessionAuthGate / notifications no-op keyed to Capacitor detection** — must be extended to detect Tauri/Swift native shells (or rely on the pre-stamped surface + injected `RuntimeAPIs`), else the browser-only auth gate appears on device or the no-op kills our native notifications.
-15. **`auth_token` query-param boot** — our current entry supports `?auth_token=`; chamber's equivalent is the connect-URL import (`openchamber://connect?...`). Keep parity in the adapter (accept `auth_token` on cold start).
-16. **Feature-cut discoverability** — chamber has no generic feature-flag system (verified); we introduce one small registry in the vendored package (see Decision 3) and must sweep settings/nav for orphaned entries pointing at cut routes.
-17. **30s non-streaming timeout** in chamber's client — verify provider/model list calls against slow LAN servers still fit.
-18. **Turbo/typecheck gates** — vendored package must fit `tsgo -b`/turbo conventions; chamber uses plain `tsc --noEmit` and an eslint setup we don't have (root is oxlint). Wire typecheck into turbo; lint can be excluded initially.
+1. **Uncommitted voice/whisper-removal work in the tree (STILL UNCOMMITTED as of Rev 2)** — touches `packages/app/src/*`, `packages/{ios,android}/src/*`, native Swift/Kotlin/Rust bridge files, and deletes tracked built assets `packages/ios/WebAssets/*.js`. Phases 0–4 never touched those files. **Phases 8–10 (shell integration) DO share touchpoints** (`entry-*.tsx` neighbors, `bridge.ts`, rust `mobile-bridge` Kotlin/Rust) — the voice work **must land before P8 starts**. Also: two stray untracked playwright-cli snapshots (`chamber-mobile-initial.yml`, `chamber-mobile-noenv.yml`) — delete (P11).
+2. **SDK compat** — chamber is **v2-only**; UI 3 requires a v2-capable backend (boot guard implemented in P2 against `/global/health`). **Rev 2: v1-only servers are permanently served by UI 2 (Classic)** — the old strand-users risk is dissolved; the guard screen in UI 3 should now *suggest switching to Classic* rather than only "update your backend".
+3. **CORS / WebView origin (RESOLVED by Phase 0 spike 2)** — allow-list: `http://localhost:*`, `http://127.0.0.1:*`, `tauri://localhost`, `http(s)://tauri.localhost`, `oc://renderer*`, `*.opencode.ai`; `Authorization` explicitly allowed in preflight; escape hatches `--cors` / `server.cors`. **P8+ constraint: keep the iOS custom scheme exactly `tauri` (host `localhost`); never serve the webview over `https://localhost`.** `capacitor://localhost` is NOT allow-listed (relevant only if debugging with chamber's own Capacitor shell).
+4. **Markdown/diff worker bundling** — `?worker&url` + `type: 'module'`; vendored config sets `worker.format: es` (P1). Still to verify on-device (P10 checklist): worker loads under the WKWebView custom scheme + Android WebView CSP.
+5. **`process.cwd()` leak** — guarded in the vendored copy via the ported `process.env`/`global` defines.
+6. **Browser-neutrality of `@openchamber/ui`** — resolved for the mobile entry by the P4 import-graph audit (0 eager references to express/simple-git/ghostty/transformers; lazy `heic2any` only). Re-audit after every upstream sync.
+7. **SSE-only transport** — correct for mobile; verified live against `:42447` (P2).
+8. **Upstream churn (≈139 releases/yr)** — manual re-sync via PROVENANCE + `script/chamber-sync.sh` + `// ANEMOS-PATCH:` markers. **Rev 2 lowers urgency**: UI 3 is a cut-down surface we control; full-featured chamber comes from the user's own server (UI 1), which tracks upstream independently of our vendored copy.
+9. **Storage semantics per workspace** — our Platform `storage(name)` is per-workspace namespaced; the P3 migration copies `opencode.settings.dat:defaultServerUrl` one-way into chamber's instance list (old key untouched, so UI 2 is unaffected).
+10. **i18n delta (REVISED)** — chamber's 12 locales cover 12 of our 18 languages natively (`zh/zh-CN`, `zht/zh-TW`, `br/pt-BR` mapping). The 6 chamber lacks (`ar, ru, th, no, da, bs`) are **deferred, not gated** (D8.6): UI 2 ships all 18 forever, so no user loses their language. Add net-new languages to UI 3 on demand.
+11. **MIT attribution** — `packages/chamber-ui/LICENSE` + `PROVENANCE.md` (landed P1); refreshed in P11.
+12. **`packages/ios/WebAssets` is committed to git** — the combined three-entry asset bundle (Rev 2) grows the committed tree; measure in P8; consider gitignoring built assets as a separate decision (P11 flags it again).
+13. **Hardcoded `openchamber://` scheme** — remapped in UI 3 (P3). In UI 1 the remote page's own `openchamber://` links no-op on our devices (no chamber app installed) — harmless, but QR/connect links inside UI 1 cannot deep-link back; users copy/paste instead (§3.22).
+14. **SessionAuthGate / notifications keyed to native detection** — extended in P3 for our shells. In UI 1, chamber's web runtime *should* show its own gate when the user's server has a UI password — correct behavior, do not suppress.
+15. **`auth_token` query-param boot** — preserved in UI 3 (P2, Basic semantics).
+16. **Feature-cut discoverability** — registry landed (P4: 13 enabled / 23 cut, every entry individually re-enableable).
+17. **30s non-streaming timeout** — observed fine against LAN servers.
+18. **Turbo/typecheck gates** — chamber-ui wired into turbo; excluded from root oxlint.
+19. **REV 2 — Native bridge must not leak to remote UI 1 content (SECURITY).** With one WebView navigating to the user's chamber URL, every native capability we expose to local pages (notify, push pairing, storage, share, bridge commands) must be origin-gated: (a) iOS — verify WKUserScript injection scope and every `PlatformBridge`/`BridgeController` handler rejects non-`tauri://localhost` origins (check `BridgeController.swift` message handlers); (b) Android/Tauri — do NOT add the chamber server to any remote-IPC capability (`dangerousRemoteDomainIpcRules` stays absent); IPC only for the local `http://tauri.localhost` origin. P9 includes an explicit pen-test: from a page served *by the chamber server*, attempt bridge invokes — all must fail.
+20. **REV 2 — Gesture platform conflicts.** iOS **iPad**: four-finger swipe-up is the system multitasking gesture when Multitasking Gestures are enabled — the system wins and ours never fires. Mitigations: primary gesture stays 4-finger swipe-up (iPhone: no conflict), plus a 4-finger **double-tap** alternate recognizer, plus the selector is always reachable by relaunching the app. Android: no system 4-finger conflicts known (3-finger is the risky one on some OEMs — avoid); implement in the existing `mobile-bridge` Kotlin plugin with deliberate thresholds (pointer count ≥ 4, distance/velocity gates) to avoid accidental triggers during scrolling/typing.
+21. **REV 2 — One WebView, navigation-based switching.** Only one JS runtime alive at a time (memory-safe: chamber full UI is a heavy desktop-class SPA — three live WebViews would be unacceptable on device). Cost: switching UIs reloads them (UI 1 re-hydrates its SPA; UI 3 reconnects SSE) and unsaved composer drafts are lost — acceptable, note in selector copy. Do NOT attempt overlay-WebView architectures.
+22. **REV 2 — UI 1 operational quirks.** Remote page needs https (ATS) or a LAN-http ATS exception on iOS (decide when the user's server URL is configured — if `http://<lan-ip>`, add the exception to `Info.plist`); webview cookie jar is origin-scoped so chamber's UI-password session persists per-server; chamber's own service worker (`sw.js`) will register in the webview — verify it doesn't fight our navigation lifecycle; `openchamber://` links inside UI 1 no-op (§3.13).
+23. **REV 2 — Per-UI server semantics can confuse users.** UI 1 talks to the *chamber server*; UIs 2/3 talk to the *opencode server*. The selector must label each UI's target server (and UI 1's reachability) so nobody sends prompts to the wrong backend. Session histories do not transfer between UI 1 and UI 3 (different servers/stores).
+24. **REV 2 — Three-surface maintenance burden.** UI 2 (frozen but permanent), UI 3 (vendored, synced), UI 1 (external, zero-maintenance for us) + selector glue in two native shells. The plan keeps UI 2 at zero changes and confines shell glue to small, additive native modules; every future feature decision must now state *which UI* it targets.
 
 ---
 
 ## 4. Decision Log
 
-### D1 — Packaging: **Vendor into `packages/chamber-ui` at a pinned upstream commit** (adopted)
+### D1 — Packaging: **Vendor into `packages/chamber-ui` at a pinned upstream commit** (adopted; executed P1)
 
 - Options: (a) vendor copy; (b) git subtree; (c) npm-published fork.
-- **Recommendation: (a) vendor copy** of `packages/ui` + the mobile entry shell from `packages/web` (`mobile.html` + its entry module), at commit `2c8ae9a`, package name kept as **`@openchamber/ui`** (version `1.22.0-anemos.1`) so future upstream diffs stay minimal, consumed as a workspace package.
-- Rationale: subtree merges at 139 releases/yr with our necessary in-vendor patches (native detection, scheme, node-dep stubs) would produce unreviewable histories; an npm fork requires publishing infrastructure we lack and still can't express build-time aliasing; vendoring gives full control, matches the repo's existing divergence-tracking culture (`SYNC_CHECKLIST.md`), and the patch surface is small and comment-marked. Cost — manual re-sync — is mitigated by the sync script + checklist (Phase 1 deliverable).
-- Alternatives rejected: subtree (merge pain), npm fork (infra + still needs patches), rewriting UI into `packages/app` (loses diff-ability against upstream entirely).
+- **Adopted: (a) vendor copy** of `packages/ui` + the mobile entry shell from `packages/web`, at commit `2c8ae9a`, package name kept **`@openchamber/ui`** (version `1.22.0-anemos.1`), consumed as a workspace package.
+- Rationale: subtree merges at 139 releases/yr with our in-vendor patches would be unreviewable; an npm fork needs publishing infrastructure we lack; vendoring matches the repo's divergence-tracking culture. Mitigation for manual re-sync: PROVENANCE + sync script/checklist + `// ANEMOS-PATCH:` markers. **Rev 2 note:** with UI 1 covering full-feature chamber, upstream-sync pressure on the vendored copy drops further.
 
-### D2 — Connection architecture: **(a) Direct absolute URL, no middle layer** (adopted)
+### D2 — Connection architecture: **(a) Direct absolute URL, no middle layer** (adopted; executed P2)
 
-- Options: (a) UI → direct absolute URL to `opencode serve` backends; (b) bundle trimmed Express sidecar inside the Tauri/native shells; (c) hybrid.
-- **Recommendation: (a)** — reuse chamber's runtime abstraction (`runtime-url.ts`, `runtime-auth.ts`, `createRuntimeOpencodeClient`) with `DEFAULT_BASE_URL` resolved from our env (`VITE_OPENCODE_SERVER_HOST/PORT`, default `localhost:4096`, plus the persistent `:42447`), exactly like our Solid app does today and exactly like chamber's own Capacitor app does (absolute URL + bearer token from secure storage, SSE transport).
-- Rationale: zero new moving parts on device (no process supervision, ports, or IPC between WebView and a sidecar inside a mobile app); the Express server's value-add routes are all on the cut list anyway; a sidecar can be added later behind the same runtime abstraction if a killer feature demands it (that's the escape hatch that makes (a) strictly dominate (c) today).
-- **v1/v2 sub-decision:** chamber UI is v2-only; our installed backend line (1.18.25) matches its pinned SDK. We **require a v2-capable backend** and add a boot-time guard (ported probe from `packages/app/src/utils/server-protocol-resilient.ts`: `/api/config` must return JSON) that renders an explicit "backend too old — update opencode" screen instead of silently breaking. We do **not** port the full v1 fallback into chamber (too large a divergence); v1-only servers keep using the old Solid app until it is retired (Open Question 1).
+- Options: (a) UI → direct absolute URL to `opencode serve` backends; (b) bundle trimmed Express sidecar inside the native shells; (c) hybrid.
+- **Adopted: (a)** — chamber's runtime abstraction with `DEFAULT_BASE_URL` resolved from our env, **HTTP Basic** auth injection (Phase 0 correction: not bearer), SSE transport (browser WebSockets can't carry the Basic header). Verified live against `:42447`.
+- **v1/v2 sub-decision:** UI 3 requires a v2-capable backend; boot guard probes `GET <base>/global/health` (JSON + `healthy: true`); no v1 fallback is ported. **Rev 2:** v1-only servers are permanently the domain of UI 2.
+- **Rev 2 amendment:** D2 now governs **UI 3 only**. UI 1 is the counter-case the user adopted deliberately: a full chamber *server* (their own), consumed remotely — no anemos middle layer there either, just a WebView navigation. The Rev 1 "sidecar if a killer feature demands it" escape hatch is retired: killer features now come via UI 1.
 
-### D3 — Auxiliary feature scope: **Phase-1 minimal core + explicit cut list + small feature registry** (adopted)
+### D3 — Auxiliary feature scope: **minimal core + explicit cut list + feature registry** (adopted; executed P4)
 
-- Phase 1 keeps only the pure-opencode-SDK core (see §2.3 table): sessions/chat/timeline, composer (attachments, slash commands, model/provider/agent selection), instance connect (multi-server), settings basics (instances, providers, models, appearance), i18n, theming.
-- **Cut mechanism:** a single `src/features/registry.ts` in the vendored package — a typed map `featureKey → { enabled, reason }` — consulted by (1) the router/route serialization (hide cut routes), (2) nav/command palettes/settings sections (hide entries), and (3) a lazy-import wrapper that renders a "Not available in anemos" stub if a cut surface is reached by URL. Runtime registry (not build-time excludes) first: debuggable, reversible, and immune to import-graph surprises; revisit with build-time tree-shaking only if bundle size demands it (the `@xenova/transformers`/`ghostty-web` class of deps may force per-route lazy loading anyway).
-- Rationale: chamber has no existing flag system (verified); one central registry keeps the ANEMOS-PATCH footprint tiny and auditable, and every disposition in §2.3 maps onto it directly.
+- UI 3 keeps only the pure-opencode-SDK core: 13 enabled features (`sessions`, `chat`, `composer`, `commands`, `providers`, `models`, `agents`, `mcp`, `permissions`, `questions`, `i18n`, `appearance`, direct `instances`); 23 cut with typed reasons, each independently re-enableable (`packages/chamber-ui/src/features/registry.ts`).
+- Runtime registry (not build-time excludes): debuggable, reversible, immune to import-graph surprises; P4's audit proved the mobile entry graph has 0 eager references to server/terminal deps.
+- **Rev 2 note:** the registry is now also the map of "what UI 1 gives you instead" — each cut entry's stub screen in UI 3 should say so (P6 copy pass: "Available in Chamber Full").
 
-### D4 — Native integration: **React entries in the vendored package + Platform adapter; old Solid app coexists via `FRONTEND` build switch** (adopted)
+### D4 — Native integration: **React entries in the vendored package + Platform adapter** (adopted; executed P3)
 
-- New React entry (`packages/chamber-ui/mobile/entry.tsx` + `mobile.html`) calls `renderMobileApp(apis)` with an **`anemosRuntimeAPIs` adapter** that maps our Platform contract onto chamber's `RuntimeAPIs` and reuses the existing framework-agnostic `packages/{ios,android}/src/{bridge,storage}` modules (verified framework-agnostic, §1.1). Deep links, `opencode:resume`, haptics, share, openExternal wire through the same bridge as today; `opencode://` scheme replaces `openchamber://`.
-- **Coexistence:** `packages/ios` and `packages/android` each gain `vite.chamber.config.ts` (selected by `FRONTEND=chamber`) building the chamber mobile entry into the **same output dirs the shells already consume** (`WebAssets/` for iOS, `dist/` for Android) — so `tauri.conf.json`, the Xcode project, `beam`, and the sideload pipeline are untouched. Default (no env var) remains the Solid app. `@opencode-ai/app`'s export surface is not modified at any point before cleanup.
-- Rationale: builds and CI stay green on every intermediate commit by construction; the switch is one env var; rollback is "unset the env var". In-place replacement was rejected because it breaks the always-build-green requirement and removes the v1-only-server fallback during transition.
+- `renderMobileApp` runs via anemos adapters; native detection extended (Tauri checks + `window.__ANEMOS_SHELL__`); storage adapter + one-way `defaultServerUrl` migration; `opencode://` deep links; `opencode:resume` → chamber reconnect; notifications/haptics/share via the existing framework-agnostic bridges.
+- **Rev 2 amendment:** the Rev 1 **`FRONTEND=chamber` build-time either/or switch is superseded** by D8's combined-bundle architecture (both UIs ship together, selection is a launch-time route). The `vite.chamber.config.ts` idea from Rev 1 P8 is replaced by the P8 combined asset layout (`selector.html` + `classic.html` + `chamber.html` in one bundle). The voice-work-before-shell-work constraint carries over to P8.
 
-### D5 — Disposition of `packages/app`, `packages/session-ui`, `packages/ui`, i18n, theming (adopted)
+### D5 — Disposition of `packages/app`, `packages/session-ui`, `packages/ui`, i18n, theming (**SUPERSEDED IN PART BY D8**)
 
-- **`packages/app`:** feature-freeze (critical fixes only) from Phase 1 until cutover; deleted in Phase 10 with its unit/e2e/stability/bench suites. The old e2e suite keeps running (it guards the still-default frontend) until the default flips.
-- **`packages/session-ui` / `packages/ui`:** `session-ui` is consumed only by `app`; `ui` only by `session-ui` (verified). Both retire in Phase 10. (If anything else starts consuming them meanwhile, Phase 10 scope shrinks accordingly.)
-- **i18n:** port all 18 locales. The 12 chamber languages get key-audited ports (mechanical script + manual pass, seeding from chamber's `en.ts` and copying semantics from our locale files); the 6 net-new (`ar, ru, th, no, da, bs`) are written from our existing translations. All 18 land **before cutover** (Phase 6) — shipping fewer locales than the Solid app is a user-visible regression we're not willing to cut over with. Port/replacement of `parity.test.ts` gates this.
-- **Theming:** chamber's `ThemeSystemProvider` + JSON themes become the source of truth; our palette ships as an `anemos` JSON theme (light/dark) alongside chamber's built-ins; `@opencode-ai/ui` tokens retire with Phase 10.
+- Rev 1 said: freeze, then delete at cleanup; port all 18 locales; chamber theming becomes source of truth.
+- **Rev 2 amendment (what stands vs what changed):**
+  - `packages/app` / `session-ui` / `ui`: **permanent, never deleted.** UI 2 is a first-class interface. Maintenance posture: zero-changes (bug fixes only, at the user's discretion) — the §1.1 divergence burden is accepted because Classic is the compatibility floor (v1 servers, 18 locales, familiar UX).
+  - **i18n:** the all-18 gate is **dropped** (D8.6). UI 3 ships chamber's stock 12 (all of which are languages we already serve); the 6 net-new (`ar, ru, th, no, da, bs`) are added on demand. Parity test covers the shipped set.
+  - **Theming:** unchanged — `anemos` JSON theme (light/dark) for UI 3 brand continuity; UI 2 keeps `@opencode-ai/ui` tokens (untouched).
 
-### D6 — Repo hygiene (adopted)
+### D6 — Repo hygiene (adopted; P1 partial → P11 completes)
 
-- `packages/chamber-ui/LICENSE` (upstream MIT, verbatim) + `packages/chamber-ui/PROVENANCE.md`: upstream repo URL, vendored commit `2c8ae9a` / `v1.22.0-3-g2c8ae9a`, date, and the running list of local changes (each also marked `// ANEMOS-PATCH:` in code).
-- `docs/plans/openchamber-ui-migration.md` (this file) is the plan of record; `script/chamber-sync.sh` + `docs/chamber-sync-checklist.md` (Phase 1) regenerate the divergence audit against a fresh upstream tag, mirroring `SYNC_CHECKLIST.md` conventions.
-- `.gitignore`: nothing to add for `/tmp/opencode/openchamber` (outside the repo); PROVENANCE records the reference-clone location and refresh command.
-- Bun: stay on `1.3.13` (enforced by `packageManager` + `.husky/pre-push`). Their `engines.node >=22` is informational under bun; note it in PROVENANCE. Lint: exclude the vendored package from root `oxlint` initially (upstream is eslint-formatted); typecheck: yes, wire into turbo.
+- `packages/chamber-ui/LICENSE` (upstream MIT) + `PROVENANCE.md` (repo URL, commit `2c8ae9a`, local-change ledger). Bun stays 1.3.13; chamber-ui in turbo typecheck, out of root oxlint. `.gitignore`: nothing needed for the `/tmp` clone (PROVENANCE records it).
+- **Rev 2 addition:** P11 also records the UI 1 architecture in PROVENANCE (no code from upstream is used for UI 1 — only a URL) and sweeps the stray snapshot yml files.
 
-### D7 — Rollout & verification (adopted)
+### D7 — Rollout & verification (adopted, amended)
 
-Per repo AGENTS.md, strictly: **browser dev loop first** (chamber dev server against the persistent `:42447` backend, mobile surface via `?surface=mobile` + device toolbar), then **narrowest unit/e2e** (direct `bun test --conditions=…` commands, chamber e2e smoke against `:4096`), then **device** (TestFlight via `beam`, Android build, `scripts/deploy-ipa.mjs` sideload). `bun run typecheck` (turbo, husky-enforced) is the per-commit gate; `bun run --cwd packages/{ios,android} build` must pass on every commit — guaranteed by the `FRONTEND` switch defaulting to the Solid app until Phase 9.
+- Browser dev loop first, narrowest unit/e2e, then device (`beam`, `ANDROID_BUILD.md`, `scripts/deploy-ipa.mjs`); `bun run typecheck` per commit; default mobile builds green on every commit.
+- **Rev 2 amendment:** "default stays Solid until cutover" becomes **"default = remembered selection, initial default Classic; there is no cutover"**. The green-builds invariant is preserved by P8's combined-bundle switch: the selector ships disabled-by-configuration first (launch routes straight to Classic), then gesture/selector, then UI 1 — each step independently revertible.
+
+### D8 — REV 2 — **Three-interface shell architecture with native gesture + HTML selector** (adopted)
+
+The user runs an OpenChamber server and wants three selectable interfaces (1: remote chamber full UI; 2: current Solid app, unchanged; 3: our vendored direct-connect build) plus a launch/selector screen, a four-finger-swipe-up (iOS) return gesture, and per-UI server routing.
+
+**D8.1 — Selector placement: local HTML selector page + native launch routing & gesture (hybrid). RECOMMENDED.**
+- Options: (a) fully native selector screens (Swift view + Android native view); (b) pure web boot-router that stays resident with UIs in overlay WebViews; (c) **hybrid: a tiny local `selector.html` (no framework, ~one screen) loaded into the single WebView; native code owns launch routing, the gesture, and a `selectUI`/`getSelectedUI` bridge; choosing an entry navigates the WebView to the target (local bundle or remote URL)**.
+- Rationale: the gesture *must* be native (remote UI 1 pages can't dispatch our window events — user's own constraint), so native code already sits in the perfect position to trigger the selector — showing it is then just "navigate to `selector.html`", not a second native UI toolkit to build and style in two languages. One selector implementation shared by both platforms, styled with web tech, able to call the existing bridges (it's local content) to read/write selection and per-UI server config. Option (a) doubles native UI code asymmetrically; option (b) either dies once the WebView navigates remote or forces overlay WebViews (memory + lifecycle pain).
+- **D8.2 — WebView model: single WebView, navigation-based switching.** Only one JS runtime alive (chamber full UI is desktop-class heavy; three live runtimes is unacceptable on device). Cost: reload on switch + draft loss — accepted, noted in selector copy.
+- **D8.3 — Gesture: four-finger swipe-up primary (both platforms), four-finger double-tap alternate, deliberate thresholds.** iOS: `UIGestureRecognizer` (4 touches, upward velocity/distance gates) attached to the WKWebView; iPad system-multitasking conflict documented (§3.20). Android: extend the existing `mobile-bridge` Kotlin plugin with touch interception (pointer count ≥ 4 + gesture math); avoid 3-finger (OEM screenshot conflicts). Fallbacks: the alternate recognizer, plus relaunch (selector shows at cold start when no selection is remembered or on a "confirm on launch" setting).
+- **D8.4 — Per-UI server config: UI 1 → chamber server URL (native-stored, editable on the selector; chamber's own auth in-page); UIs 2/3 → shared opencode default server** (existing `defaultServerUrl` settings; UI 3 additionally reads the P3-migrated instance list). Selection remembered in native storage (UserDefaults / the Kotlin plugin's SharedPreferences) so launch routing works before any web content loads.
+- **D8.5 — Remote-content security: origin-gate every native capability** (§3.19) — local scheme only; pen-test from a chamber-server-served page in P9.
+- **D8.6 — i18n scope: UI 3 ships chamber's stock 12 locales; the 18-locale gate is dropped.** Rationale: UI 2 permanently covers all 18; porting/authoring 6 net-new languages for UI 3 was Rev 1's biggest non-shell cost and now protects nobody. Net-new languages become demand-driven backlog. (Supersedes the Rev 1 D5 i18n bullet; see P6.)
+- **What D8 supersedes:** Rev 1 P9 (cutover) — dissolved; Rev 1 P10 (deletion) → P11 docs-only; Rev 1 D4's `FRONTEND` either/or switch → combined bundle; Rev 1 D5 i18n gate → D8.6; Rev 1 §2.3 "reimplement later" items → "available via UI 1".
 
 ---
 
 ## 5. Phased Implementation Plan
 
-> Conventions for every phase: run commands from repo root unless noted; never run tests from repo root (`bunfig.toml` guard); scope unit tests with the direct `bun test --conditions=… --preload ./happydom.ts <file>` command (`test:unit` passes `--only-failures` and cannot be scoped by appending a path); commit each phase separately; `bun run typecheck` green before moving on.
+> Conventions for every phase: run commands from repo root unless noted; never run tests from repo root (`bunfig.toml` guard); scope unit tests with the direct `bun test --conditions=…` command (`test:unit` passes `--only-failures` and cannot be scoped by appending a path); commit each phase separately; `bun run typecheck` green before moving on.
 
-### Phase 0 — Spikes & de-risking (docs only, no product code)
+### Phase mapping (Rev 1 → Rev 2)
+
+| Rev 1 phase | Rev 2 phase | Disposition |
+|---|---|---|
+| P0 spikes | P0 | **EXECUTED** (historical record below) |
+| P1 vendor | P1 | **EXECUTED** |
+| P2 connection runtime | P2 | **EXECUTED** |
+| P3 native adapter | P3 | **EXECUTED** |
+| P4 feature registry | P4 | **EXECUTED** |
+| P5 push | P5 | unchanged scope; device refs renumbered to P10 |
+| P6 i18n parity (all 18) + theming | P6 | **rescoped** — theming + 12-locale hardening + "available in UI 1" copy (D8.6) |
+| P7 e2e smoke | P7 | unchanged |
+| P8 mobile build switch + device verify | P8 + P9 + P10 | **absorbed & expanded** — P8 selector/gesture/launch routing + combined bundle; P9 UI 1 remote surface; P10 three-UI device verification |
+| P9 cutover | — | **DISSOLVED** (no cutover; default = remembered selection, initial Classic) |
+| P10 cleanup/deletion | P11 | **softened** — attribution/sync docs, dead code, housekeeping; NO package deletions |
+
+---
+
+## EXECUTED PHASES 0–4 (historical record — do not modify when executing later phases; results appended at execution time are preserved verbatim)
+
+### Phase 0 — Spikes & de-risking (docs only, no product code) — **EXECUTED** (results in plan commit `37b8697`)
 
 **Goal:** Kill the three biggest unknowns before any vendoring: v2 completeness of target backends, CORS/origin behavior from a WebView-style origin, and a reproducible upstream mobile build.
 
@@ -218,7 +262,7 @@ Per repo AGENTS.md, strictly: **browser dev loop first** (chamber dev server aga
 
 **Rollback:** N/A (docs).
 
-### Phase 1 — Vendor `packages/chamber-ui` + standalone browser render
+### Phase 1 — Vendor `packages/chamber-ui` + standalone browser render — **EXECUTED** (`37b8697`, `ec0d6d38`)
 
 **Goal:** OpenChamber's mobile surface rendering in a browser inside our monorepo, talking to `:42447`, with zero changes to any existing package.
 
@@ -244,7 +288,7 @@ Per repo AGENTS.md, strictly: **browser dev loop first** (chamber dev server aga
 
 **Rollback:** delete `packages/chamber-ui` + root wiring; nothing else references it.
 
-### Phase 2 — Anemos connection runtime + v2 boot guard
+### Phase 2 — Anemos connection runtime + v2 boot guard — **EXECUTED** (`72db8a70b`; live-verified against `:42447`, SSE working)
 
 **Goal:** The chamber UI boots against our default servers with our env vars, carries HTTP Basic credentials, and fails loudly on v1-only backends.
 
@@ -264,7 +308,7 @@ Per repo AGENTS.md, strictly: **browser dev loop first** (chamber dev server aga
 
 **Rollback:** revert phase commit; vendor returns to pure upstream behavior.
 
-### Phase 3 — Native adapter (Tauri/Swift shells)
+### Phase 3 — Native adapter (Tauri/Swift shells) — **EXECUTED** (`5c6d196ac`, `8500cc7c6`; typecheck + 16 unit tests + build PASS)
 
 **Goal:** `renderMobileApp` runs inside our native shells with the right surface, no auth gate, our notifications/storage/deep-links/resume/haptics/share.
 
@@ -279,121 +323,31 @@ Per repo AGENTS.md, strictly: **browser dev loop first** (chamber dev server aga
 
 **Constraints:** the vendored edits stay marked and minimal; prefer adapter files under `src/anemos/` over in-place rewrites.
 
-**Reuse:** `packages/ios/src/{bridge.ts,ios-storage.ts}`, `packages/android/src/{bridge.ts,storage.ts}` (unchanged, imported from the new entries in Phase 8 — for browser dev, adapter falls back to localStorage); Platform method semantics from `packages/app/src/context/platform.tsx`; resume/deep-link handling patterns from `packages/app/src/context/server-sdk.tsx` + `pages/layout/deep-links.ts`.
+**Reuse:** `packages/ios/src/{bridge.ts,ios-storage.ts}`, `packages/android/src/{bridge.ts,storage.ts}`; Platform method semantics from `packages/app/src/context/platform.tsx`; resume/deep-link handling patterns from `packages/app/src/context/server-sdk.tsx` + `pages/layout/deep-links.ts`.
 
-**Verify:** browser (with a `window.__ANEMOS_SHELL__` shim + `?surface=mobile`): auth gate absent, connect flow uses migrated default server, `opencode:resume` dispatch reconnects; unit: `bun run --cwd packages/chamber-ui test -- src/anemos` (or direct bun test command) for the storage migration + scheme remap.
+**Verify:** browser (with a `window.__ANEMOS_SHELL__` shim + `?surface=mobile`): auth gate absent, connect flow uses migrated default server, `opencode:resume` dispatch reconnects; unit: storage migration + scheme remap.
 
 **Rollback:** revert commit; Phase 1–2 behavior unaffected.
 
-### Phase 4 — Feature registry & cuts
+### Phase 4 — Feature registry & cuts — **EXECUTED** (`ee2d56cbb`, `72aa96310`; registry = 13 enabled / 23 cut; bundle audit clean)
 
 **Goal:** No reachable UI surface calls a chamber-Express route; the app presents the phase-1 core cleanly.
 
 **Files:** new `packages/chamber-ui/src/features/registry.ts`; `// ANEMOS-PATCH:` hooks in `src/lib/router/` (route gating), the mobile nav surfaces (`src/apps/MobileApp.tsx`, `MobileFilesSurface`/`MobileChangesSurface`/etc. lazy-import wrappers), settings sections; new stub component `src/features/unavailable.tsx`.
 
 **Steps:**
-1. Define the registry with the §2.3 dispositions encoded (`fs`, `git`, `terminal`, `tunnels`, `knowledge`, `folders`, `scheduled-tasks`, `agent-memory`, `browser-control`, `dev-servers`, `github`, `linear`, `tts-dictation`, `chamber-config`, … all `enabled: false` with reasons; core features `true`).
+1. Define the registry with the §2.3 dispositions encoded (all `enabled: false` with reasons; core features `true`).
 2. Gate routes + nav entries + settings sections through it; lazy-import wrappers render the stub for deep links into cut surfaces.
 3. Sweep for eager imports of cut features from the mobile entry (bundle analyzer) — especially `ghostty-web`, `@xenova/transformers`, `simple-git`, `express` transitively; force lazy or stub.
-4. Confirm appearance/typography/model prefs persistence survives without the chamber config routes (they are client-side auto-save modules — verify, else route them through the registry to a local shim).
+4. Confirm appearance/typography/model prefs persistence survives without the chamber config routes.
 
-**Verify:** browser pass over every remaining nav surface with the network tab clean of non-opencode requests; `bun run --cwd packages/chamber-ui build` with a manifest audit showing no express/simple-git/ghostty chunks in the mobile entry graph.
+**Verify:** browser pass over every remaining nav surface with the network tab clean of non-opencode requests; build with a manifest audit showing no express/simple-git/ghostty chunks in the mobile entry graph.
 
 **Rollback:** flip registry entries to `true` individually.
 
-### Phase 5 — Push notifications (fork relay/pairing)
-
-**Goal:** Feature parity with `settings-mobile-notifications.tsx`: permission, relay URL, pairing flow, preferences, test push — inside chamber settings.
-
-**Files:** new `packages/chamber-ui/src/anemos/push/*` (pairing state machine ported from `packages/app/src/utils/push-pair.ts` + `context/push-pair.tsx`, settings UI component), registry entry `push: true` (fork-specific), wiring `notifications` runtime API → push relay.
-
-**Steps:**
-1. Port `push-pair.ts` state machine verbatim (it is framework-neutral logic — verify no solid imports; adapt the reactive shell to React).
-2. Port the settings UI into chamber's settings surface under an "anemos" section; call the Platform push methods through the Phase 3 adapter.
-3. Map chamber's notification triggers (agent completion, etc.) to our `notify` + `PushPrefs` (approval/question/error semantics from `PushPrefs`).
-4. Unit tests for the pairing machine (port `packages/app/src/utils/push-pair.test.ts`).
-
-**Verify:** `bun test` (direct command) for ported tests; browser walkthrough of the pairing UI against a scratch relay; device verification deferred to Phase 8.
-
-**Rollback:** registry `push: false` hides the section.
-
-### Phase 6 — i18n parity + theming
-
-**Goal:** All 18 locales present with a parity gate; anemos brand theme available.
-
-**Files:** `packages/chamber-ui/src/lib/i18n/messages/*` (port + 6 new locale pairs), registration points in `src/lib/i18n`, new `packages/chamber-ui/src/lib/theme/themes/anemos-{light,dark}.json`, ported parity test `packages/chamber-ui/src/lib/i18n/parity.test.ts`.
-
-**Steps:**
-1. Write a key-audit script (sandbox) comparing chamber `en.ts`/`en.settings.ts` keys against our locale dicts; seed the 12 overlapping locale files from chamber's English and fill semantics from our translations (manual pass; this is the bulk of the phase).
-2. Author `ar, ru, th, no, da, bs` from our existing locale files mapped onto chamber keys.
-3. Register locales; port the parity test concept from `packages/app/src/i18n/parity.test.ts` (all locales must define the union of keys; missing → fail).
-4. Create `anemos` theme JSONs from our `packages/ui` token values; register alongside built-ins; default it on for the mobile surface.
-
-**Verify:** `bun test` parity test green (18 locales); browser visual check of theme + RTL spot-check (ar).
-
-**Rollback:** locales are additive; theme selectable.
-
-### Phase 7 — Chamber e2e smoke suite (browser)
-
-**Goal:** Playwright coverage of the new frontend against a real backend, using our e2e conventions.
-
-**Files:** new `packages/chamber-ui/e2e/` — `fixtures` (port the conventions from `packages/app/e2e/AGENTS.md`: `withSession`/`trackSession`/`trackDirectory`, own `test`/`expect` re-exports), `playwright.config.ts` (reuse env contract `PLAYWRIGHT_SERVER_HOST/PORT`, `PLAYWRIGHT_PORT`; serve the chamber dev/build on its port), `smoke/*.spec.ts`.
-
-**Steps:**
-1. Stand up the chamber UI against a scratch `opencode serve` (same pattern as app e2e, default `:4096`).
-2. Smoke specs: boot + connect; session create → send prompt → timeline renders streamed parts; composer model/agent selection; settings opens; v1-only guard screen (mock server via `e2e/utils/mock-server.ts` pattern from the app suite, if portable — else a stub HTTP server).
-3. Add `test:e2e` script to `packages/chamber-ui`; wire into turbo alongside `@opencode-ai/app#test`.
-
-**Verify:** `bun run --cwd packages/chamber-ui test:e2e -- e2e/smoke/boot.spec.ts` (narrowest first, then full smoke).
-
-**Rollback:** additive; delete specs.
-
-### Phase 8 — Mobile build switch + device verification (default stays Solid)
-
-**Goal:** `FRONTEND=chamber` produces iOS and Android builds running the chamber UI on device; default builds unchanged.
-
-**Files:** `packages/ios/vite.chamber.config.ts`, `packages/android/vite.chamber.config.ts`, small wrapper scripts in `packages/{ios,android}/package.json` (`build:chamber`), `packages/ios/script/*` only if the Xcode copy step needs the entry filename adjusted (it should not — same `WebAssets/index.html` layout).
-
-**Steps:**
-1. Chamber vite configs: build `packages/chamber-ui/mobile/index.html` (entry importing the anemos adapters, choosing iOS/android bridge by build flag), `base: "./"`, same outDirs (`WebAssets` / `dist`), same ports for dev (`1421`/`1422` with `devUrl` untouched — HMR against the chamber dev server config).
-2. `bun run --cwd packages/ios build:chamber` → `bun run --cwd packages/ios beam` (TestFlight private); `FRONTEND=chamber` equivalent for Android (`ANDROID_BUILD.md` toolchain) + `scripts/deploy-ipa.mjs` sideload path.
-3. Device checklist: SSE reconnect on `opencode:resume` (background/foreground), deep link cold-start + warm nav, notifications via relay, haptics, share sheet, keyboard/viewport behavior in the WKWebView/Android WebView (markdown worker loads! — caveat §3.4), rotation/iPad surface heuristics.
-4. Fix what breaks (patches marked; the worker/CORS spikes from Phase 0 pay off here).
-
-**Constraints:** do not change default `build` scripts or `tauri.conf.json`; the voice-removal work must be landed before this phase (shared files: `entry-*.tsx` neighbors, bridges).
-
-**Verify:** `bun run typecheck`; default `bun run --cwd packages/{ios,android} build` still green (proves coexistence); device checklist signed off.
-
-**Rollback:** don't set `FRONTEND=chamber` — default builds never changed.
-
-### Phase 9 — Cutover
-
-**Goal:** Chamber UI becomes the default frontend on all platforms.
-
-**Files:** `packages/{ios,android}/package.json` (swap default `build` to chamber config; keep `build:solid` escape hatch), `packages/app` enters hard freeze, README/AGENTS updates.
-
-**Steps:**
-1. Flip defaults; keep one-release escape hatch (`build:solid`).
-2. Burn-in: one TestFlight cycle + sideload cohort on chamber default; monitor the fork relay/error channels.
-3. Update `AGENTS.md` browser-loop instructions for the chamber dev server + `?surface=mobile`.
-
-**Verify:** default device builds run chamber; `bun run typecheck`; e2e smoke in CI-equivalent invocation.
-
-**Rollback:** revert the default flip (one commit); `build:solid` remains available until Phase 10.
-
-### Phase 10 — Cleanup & attribution finalization
-
-**Goal:** Remove the Solid frontend stack; leave a maintainable vendored UI with sync docs.
-
-**Files (delete):** `packages/app`, `packages/session-ui`, `packages/ui`, old mobile entries (`packages/{ios,android}/src/entry-*.tsx`, `onboarding*`), their vite/plugin wiring (`@opencode-ai/app/vite` imports), root turbo/test references, `build:solid` escape hatches. **Files (update):** `PROVENANCE.md` final change list, `docs/chamber-sync-checklist.md` regeneration, consider gitignoring built WebAssets (separate decision — flagged, not assumed).
-
-**Steps:** delete in one commit per package family (app+session-ui+ui together since they form the dependency chain); fix root references; run full gates.
-
-**Verify:** `bun install && bun run typecheck && bun run --cwd packages/{ios,android} build` all green with the Solid packages gone; chamber e2e smoke green.
-
-**Rollback:** revert deletion commits (git history preserves everything).
-
 ---
+
+## EXECUTION RESULTS RECORD (Phases 0–4, preserved verbatim — appended at execution time)
 
 ## Phase 0 results — spikes executed 2026-09-01
 
@@ -437,7 +391,7 @@ Origin allow-list mapped empirically on :42447 (identical on :4096):
 | `http://127.0.0.1:<any port>` (3000, 4445) | ✅ echoed |
 | `tauri://localhost` | ✅ echoed |
 | `http://tauri.localhost` / `https://tauri.localhost` | ✅ echoed |
-| `https://app.opencode.ai` (regex `^https://([a-z0-9-]+\.)*opencode\.ai$`) | ✅ echoed |
+| `https://app.opencode.ai` (regex `^https:\/\/([a-z0-9-]+\.)*opencode\.ai$`) | ✅ echoed |
 | `oc://renderer*` (desktop app prefix) | ✅ allowed (per binary) |
 | `http://localhost` (no port), `https://localhost:4445`, `http://[::1]:4445` | ❌ no CORS headers |
 | `capacitor://localhost`, `ionic://localhost`, `ios://localhost`, `opencode://…`, `tauri://anemos`, `file://`, `null`, arbitrary hosts | ❌ no CORS headers |
@@ -489,12 +443,12 @@ Node 24.11.1 on host satisfies their `engines.node >=22`; build itself runs unde
 - Their vite config: `worker: { format: 'es' }` ✅ and `define: { 'process.env': {}, global: 'globalThis', __APP_VERSION__: … }` (port the defines to our vendored config — they also blunt the §3.5 `process` leak).
 
 **Surprises / notes for vendoring:**
-1. **Root-absolute asset URLs** (`/assets/…`) and `crossorigin` attributes — our Phase 8 `vite.chamber.config.ts` must override `base: "./"` (as planned; the WKWebView scheme handler serves from a bundle root, and our current iOS/Android configs already use `base: "./"`).
+1. **Root-absolute asset URLs** (`/assets/…`) and `crossorigin` attributes — our mobile vite configs must override `base: "./"` (the WKWebView scheme handler serves from a bundle root, and our current iOS/Android configs already use `base: "./"`).
 2. The PWA plugin rides along (`sw.js`, manifest, icons) — harmless in a webview, but the vendored config can drop it.
-3. Their `dist` bundles **three** entry graphs (desktop/mobile/mini-chat) with duplicated grammar/theme chunks — our mobile-entry-only vendored build will be substantially smaller.
+3. Their `dist` bundles **three** entry graphs (desktop/mobile/mini-chat) with duplicated grammar/theme chunks — our mobile-entry-only vendored build is substantially smaller.
 4. Heaviest chunks to watch in the Phase 4 lazy/stub sweep: `useAppFontEffects` 3.5 MB, `vendor-elkjs` 1.4 MB, `vendor-heic2any` 1.35 MB, `vendor-ghostty-web` 625 KB (cut features), `useAppFontEffects`/heic2any are the surprises not on the §2.2 list.
 
-**Impact on later phases:** Phase 1 reproduces the single mobile entry (`mobile.html` + `src/mobile-main.tsx`), `worker.format: 'es'`, and the `process.env`/`global` defines; Phase 8 reproduces the `index.html := mobile.html` convention into `WebAssets/` / `dist/`. No toolchain blockers (host bun already satisfies their pin; no env vars or version flags needed).
+**Impact on later phases:** Phase 1 reproduces the single mobile entry (`mobile.html` + `src/mobile-main.tsx`), `worker.format: 'es'`, and the `process.env`/`global` defines; the mobile packaging phases reproduce the `index.html := mobile.html` convention into `WebAssets/` / `dist/`. No toolchain blockers (host bun already satisfies their pin; no env vars or version flags needed).
 
 ### Phase 0 wrap-up
 
@@ -547,42 +501,194 @@ Build, typecheck, and unit-test commands were not run by the implementation agen
 
 ---
 
-## 6. Testing Strategy (summary)
+## REMAINING PHASES (Rev 2 — restructured per D8)
 
-- **Unit (per phase):** adapter/storage migration (P3), push pairing machine (P5), i18n parity (P6) — direct `bun test` invocations from within `packages/chamber-ui` (conditions/preload per the package's React setup, mirroring the app's happydom pattern).
-- **Integration/e2e (P7):** Playwright smoke against a real `opencode serve` backend using the fork's fixture conventions (`withSession`/`trackSession`/`trackDirectory`, `modKey`, `data-component` selectors where chamber exposes them).
-- **Device (P8/P9):** TestFlight via `beam`, Android per `ANDROID_BUILD.md`, sideload via `scripts/deploy-ipa.mjs`; explicit checklist (resume/SSE, deep links, push, worker/CSP, keyboard).
-- **Always:** `bun run typecheck` before push (husky-enforced); browser dev loop before device, per AGENTS.md.
+### Phase 5 — Push notifications for UI 3 (fork relay/pairing) — unchanged scope
 
-## 7. Risks & Mitigations
+**Goal:** Feature parity with `settings-mobile-notifications.tsx` inside UI 3: permission, relay URL, pairing flow, preferences, test push.
 
-- **Risk:** Chamber's UI silently requires an Express route we missed on a core path. **Mitigation:** Phase 4 network-tab sweep + registry-gated stubs; e2e smoke runs without any chamber server.
-- **Risk:** CORS/origin breakage on device. **Mitigation:** Phase 0 spike + existing CORS skill; the current app's mechanism is the reference.
-- **Risk:** Worker/CSP failures in WKWebView/Android WebView. **Mitigation:** Phase 0 build repro; Phase 8 checklist item; fallback is disabling the markdown worker (chamber ships a synchronous renderer path for preload — verify).
-- **Risk:** Upstream drift makes syncs painful. **Mitigation:** pinned commit + `// ANEMOS-PATCH:` markers + sync script/checklist; prefer pushing browser-neutrality fixes upstream.
-- **Risk:** v1-only servers strand users. **Mitigation:** boot guard with explicit messaging; old app available via `build:solid` until Phase 10; Open Question 1.
-- **Risk:** i18n port effort balloons (12 × ~2 large files each). **Mitigation:** key-audit script + seed-from-English workflow; timebox per locale; the 6 net-new languages can slip past cutover only if the user explicitly accepts (Open Question 2).
-- **Risk:** Interleaving with the uncommitted voice work. **Mitigation:** plan never edits `packages/app`; Phases 8+ require the voice work landed; flagged in §3.1.
+**Estimate:** M (2–4 days).
 
-## 8. Success Criteria
+**Files:** new `packages/chamber-ui/src/anemos/push/*` (pairing state machine ported from `packages/app/src/utils/push-pair.ts` + `context/push-pair.tsx`, settings UI component), registry entry `push: true` (fork-specific), wiring the `notifications` runtime API → push relay.
 
-- [ ] Chamber mobile surface renders in browser against `:42447` and `:4096` over SSE (P1–2)
-- [ ] v1-only backend produces a clear error screen, not a broken app (P2)
-- [ ] Native shells: no auth gate, our notifications/storage/deep-links/resume work (P3, P8 device checklist)
-- [ ] Zero chamber-Express requests from the shipped UI (P4 audit)
-- [ ] Push pairing parity on device (P5/P8)
-- [ ] 18 locales with parity test green (P6)
-- [ ] Chamber e2e smoke suite green in CI-equivalent invocation (P7)
-- [ ] Default iOS/Android builds never broke on any intermediate commit (P8 gate, enforced by `FRONTEND` switch)
-- [ ] Cutover + burn-in completed; Solid stack deleted; PROVENANCE/sync docs current (P9–10)
+**Steps:**
+1. Port `push-pair.ts` state machine verbatim (framework-neutral logic; adapt the reactive shell to React).
+2. Port the settings UI into chamber's settings surface under an "anemos" section; call the Platform push methods through the P3 adapter.
+3. Map chamber's notification triggers (agent completion, etc.) to our `notify` + `PushPrefs` (approval/question/error semantics).
+4. Unit tests for the pairing machine (port `packages/app/src/utils/push-pair.test.ts`).
 
-## 9. Open Questions
+**Constraints:** no changes to `packages/app` (port, don't share source); all edits in `packages/chamber-ui` marked `// ANEMOS-PATCH:`.
 
-1. **v1-only backends:** are there real deployments/servers you still need to support that run v1-only opencode? If yes, we keep `build:solid` long-term (or scope porting the resilient downgrade into chamber's runtime layer as a post-cutover project). If no, Phase 10 can delete the Solid stack without an escape hatch.
-2. **Locale scope:** all 18 pre-cutover as planned, or accept shipping the 12 + 3 mapped (`zh/zh-CN`, `zht/zh-TW`, `br/pt-BR`) at cutover with the 6 net-new languages following after?
-3. **Diff review (git changes surface):** our current app reviews VCS diffs via the opencode SDK. Chamber's changes surface uses its Express git routes. Cut initially per this plan — confirm, or should porting it onto the SDK's `vcs` endpoints be pulled into Phase 4/5 scope?
-4. **Terminal/files-on-device:** any mobile users depending on the PTY terminal or filesystem browsing today? Both are cut initially.
-5. **Branding pass:** chamber UI carries OpenChamber naming/strings in places beyond the deep-link scheme. How far should the anemos rebrand go in Phase 4 (strings only vs. full visual identity), and is the default theme the current token palette?
+**Verify:** direct `bun test` for ported tests; browser walkthrough of the pairing UI against a scratch relay; device verification happens in **P10** (renumbered from old P8).
+
+**Rollback:** registry `push: false` hides the section.
+
+### Phase 6 — Theming + locale hardening (RESCOPED per D8.6)
+
+**Goal:** `anemos` brand theme in UI 3; UI 3's shipped locale set (chamber's stock 12) verified key-complete with a parity gate; cut-feature stubs point users to UI 1. **The all-18-locale requirement is dropped** — UI 2 permanently covers the 6 remaining languages (`ar, ru, th, no, da, bs` become demand-driven backlog).
+
+**Estimate:** S–M (1–2 days — down from Rev 1's largest non-shell phase).
+
+**Files:** `packages/chamber-ui/src/lib/theme/themes/anemos-{light,dark}.json`, new `packages/chamber-ui/src/lib/i18n/parity.test.ts` (ported concept from `packages/app/src/i18n/parity.test.ts`), stub copy updates in `src/features/unavailable.tsx`, PROVENANCE note recording the D8.6 rescope.
+
+**Steps:**
+1. Create `anemos` theme JSONs from `packages/ui` token values; register alongside built-ins; default for the mobile surface.
+2. Port the parity test over the **shipped** set (chamber's 12): every locale must define the union of keys actually referenced by the UI 3 build (including any ANEMOS-PATCH-added strings); missing → fail. This guards future upstream syncs from silently breaking locales.
+3. Copy pass on cut-feature stub screens: "Not available in anemos — available in **Chamber Full** (UI 1) or **Classic** (UI 2)" wording (registry `reason` fields updated).
+4. Record in PROVENANCE: 6 net-new languages deferred (D8.6); no gate blocks on them.
+
+**Constraints:** do NOT delete chamber's locale files; do not author the 6 net-new languages in this phase.
+
+**Verify:** direct `bun test` parity green (12 locales); browser visual check of the anemos theme; stub screens show the pointer to UI 1.
+
+**Rollback:** theme is selectable; parity test is additive.
+
+### Phase 7 — UI 3 e2e smoke suite (browser) — unchanged scope
+
+**Goal:** Playwright coverage of UI 3 against a real backend, using our e2e conventions.
+
+**Estimate:** M (2–3 days).
+
+**Files:** new `packages/chamber-ui/e2e/` — `fixtures` (port conventions from `packages/app/e2e/AGENTS.md`: `withSession`/`trackSession`/`trackDirectory`, own `test`/`expect` re-exports), `playwright.config.ts` (env contract `PLAYWRIGHT_SERVER_HOST/PORT`, `PLAYWRIGHT_PORT`; chamber dev server on its port), `smoke/*.spec.ts`.
+
+**Steps:**
+1. Stand up UI 3 against a scratch `opencode serve` (default `:4096`).
+2. Smoke specs: boot + connect; session create → send prompt → timeline renders streamed parts; composer model/agent selection; settings opens; boot-guard screen (unreachable backend, per the P2 verification technique with `playwright-core`/chromium).
+3. Add `test:e2e` script to `packages/chamber-ui`; wire into turbo alongside `@opencode-ai/app#test`.
+
+**Verify:** `bun run --cwd packages/chamber-ui test:e2e -- e2e/smoke/boot.spec.ts` (narrowest first, then full smoke).
+
+**Rollback:** additive; delete specs.
+
+### Phase 8 — Shell integration I: UI selector + launch routing + native gesture (UIs 2 & 3; default stays Classic) — **NEW (absorbs old P8 build mechanics)**
+
+**Goal:** Both mobile apps ship **one combined asset bundle** containing `selector.html` + the Classic bundle + the chamber bundle; a native launch router picks the remembered UI (initial default **Classic**); the four-finger-swipe-up gesture (plus alternate) navigates to the selector from either local UI. UI 1 is present but **disabled** (hidden on the selector) until P9.
+
+**Estimate:** L (4–7 days — two native gesture implementations, combined build wiring, selector page).
+
+**Files:**
+- New `packages/shared/selector/selector.html` (or per-shell copies of one source file — decide at implementation; single source, no framework, inline CSS/JS) — three cards (Anemos Chamber / Classic / Chamber Full-disabled), per-UI server labels, "remembered" highlight, calls `selectUI(id)` bridge command.
+- `packages/ios/vite.config.ts` + `packages/android/vite.config.ts` — combined inputs: `selector.html`, `classic.html` (renamed current entry html), `chamber.html` (from `packages/chamber-ui`), **distinct `assetsDir`s** (`assets/classic/`, `assets/chamber/`, `assets/selector/`), `base: "./"`; outDirs unchanged (`WebAssets/` / `dist/`).
+- `packages/chamber-ui` — export/build target for the `chamber.html` entry (mobile entry already exists; add a root-level html output path).
+- iOS Swift: `packages/ios/OpenCode/**` — launch router (read remembered selection from UserDefaults → load `tauri://localhost/{classic|chamber|selector}.html`), `UIGestureRecognizer`s (4-finger swipe-up + 4-finger double-tap with deliberate thresholds) → navigate to `selector.html`, tiny `selectUI`/`getSelectedUI` message handlers on the existing bridge (origin-checked — §3.19 pattern established here, extended in P9).
+- Android: `packages/android/src-tauri/mobile-bridge/**` (Kotlin + Rust) — touch interception (pointer count ≥ 4, up-gesture math with velocity/distance gates) on the WebView, same launch routing (SharedPreferences), same two bridge commands (follow the existing permission'd-command pattern — permissions TOMLs regenerate).
+- **No changes to `packages/app` source** (the Classic build is re-emitted from the existing entry with a renamed html + assetsDir — shell-level only; call this out in the commit message).
+
+**Steps:**
+1. **Combined build:** rework both shells' vite configs to the three-entry layout; verify the Solid app and chamber bundle both boot from `tauri://localhost/classic.html` / `chamber.html` (relative asset URLs; iOS scheme handler path resolution — Phase 0 spike 3 said `base: "./"` is required and sufficient) and `http://tauri.localhost/…` on Android.
+2. **Selector page:** implement `selector.html` (server labels read via bridge: opencode default server for 2/3; UI 1 slot disabled/hidden), `selectUI` persists natively and navigates.
+3. **Launch router (both shells):** remembered selection → target html; no memory → `selector.html`; a `--reset-ui`/long-press dev escape to force the selector.
+4. **Gesture (both shells):** implement per D8.3; from Classic and chamber bundles, gesture → `selector.html`. Threshold tuning on device simulators early.
+5. **Deep-link routing rule:** `opencode://` deep links open the **remembered UI if it is 2 or 3, else UI 3** (never UI 1 — remote page can't consume them; OQ 7 confirms).
+6. **Notification-tap routing:** tapping a fork push notification routes to a UI-2/3 target (same rule as deep links; OQ 7).
+7. Measure the combined bundle size (iOS WebAssets are git-committed — record growth; P11 flags the gitignore question again).
+
+**Constraints:** **the voice-removal work MUST be landed before this phase starts** (shared files: `entry-*.tsx` neighbors, `bridge.ts`, `mobile-bridge` Kotlin/Rust, `WebAssets` deletions). Default behavior with no remembered selection = Classic, so a shipped build with the selector feature-flagged off behaves exactly like today (escape hatch: a shell-level `ANEMOS_SELECTOR=0` build flag that routes launch straight to `classic.html` and disables the recognizers).
+
+**Verify:** `bun run typecheck`; `bun run --cwd packages/ios build` and `bun run --cwd packages/android build` produce combined bundles; packaged-build smoke (simulator/sideload): launch→selector→Classic→gesture→selector→chamber→gesture→selector; remembered selection honored across relaunch; `bun run --cwd packages/app test` (classic suite) still green — proof of zero UI 2 regression.
+
+**Rollback:** `ANEMOS_SELECTOR=0` build (or revert the phase commit) restores today's single-frontend builds byte-for-byte.
+
+### Phase 9 — Shell integration II: UI 1 "Chamber Full" remote surface + per-UI server config — **NEW**
+
+**Goal:** Enable the third interface: the selector's UI 1 card navigates the WebView to the user's configured OpenChamber server URL; chamber's own auth/features apply; our native bridge is provably inaccessible to that remote origin.
+
+**Estimate:** M (2–4 days).
+
+**Files:** `selector.html` (enable UI 1 card + URL edit field + reachability hint), iOS Swift (remote navigation handling + ATS config + origin-gate audit of every bridge/WKScriptMessageHandler), Android Kotlin/Rust (`mobile-bridge`: remote URL load + Tauri IPC capability audit — no remote-domain IPC granted), `packages/ios/OpenCode/Info.plist` (ATS exception policy for LAN-http chamber URLs, if the user's server is http on LAN — OQ 8).
+
+**Steps:**
+1. UI 1 URL config: stored natively (alongside the selection), editable on the selector card; validate scheme (`https://` preferred; `http://<lan>` triggers the ATS decision) and reachability (native HEAD/GET probe with short timeout → card shows ok/unreachable).
+2. Navigate the single WebView to the URL (D8.2); verify chamber's SPA boots, its `SessionAuthGate` (UI password) works in-webview, cookies persist per-origin across switches, and its service worker doesn't break our navigation lifecycle (§3.22 — if `sw.js` causes trouble, scope-block it in the webview settings).
+3. **Security pen-test (D8.5, §3.19):** from a page served by the chamber server (its own UI, or a trivial page), attempt every native capability — bridge invokes, `selectUI`, notification/push/storage/share calls — **all must fail**. Fix any leak before enabling UI 1 in any shipped build. Also verify the gesture still fires over remote content and doesn't fight chamber's own touch handling (swipe-back, sheets).
+4. Resume behavior for UI 1: `opencode:resume` is a no-op for remote content (chamber handles its own reconnect); verify backgrounding/foregrounding mid-stream.
+5. Selector copy: label servers per UI (§3.23) — "Chamber Full → <chamber URL>", "Classic / Anemos Chamber → <opencode server>".
+
+**Constraints:** no anemos code runs inside UI 1 (no user scripts injected into remote origin beyond what iOS/Android inject for ALL pages — and those must be origin-gated); gesture recognizers are attached at the native view level, not page level.
+
+**Verify:** device/simulator: connect to the user's real chamber server; full-chat smoke inside UI 1; gesture returns to selector; pen-test checklist signed off; typecheck + both shell builds green; UI 2/3 smoke unchanged.
+
+**Rollback:** selector hides the UI 1 card (config flag) — ships inert.
+
+### Phase 10 — Device verification & burn-in across all three UIs — **NEW (absorbs old P8 device checklist)**
+
+**Goal:** Signed-off device verification matrix on iOS (TestFlight via `beam`, sideload via `scripts/deploy-ipa.mjs`) and Android (`ANDROID_BUILD.md` toolchain) for all three UIs + the selector.
+
+**Estimate:** M (2–3 days + burn-in calendar time).
+
+**Checklist (matrix: {iOS, Android} × {selector, UI 1, UI 2, UI 3}):**
+- **Selector/launch:** remembered selection across relaunch and OS restart; gesture from every UI (incl. remote UI 1) with thresholds that don't false-trigger during typing/scrolling; alternate gesture works; deep links + push-notification taps route per the P8 rule.
+- **UI 1:** auth/session persistence; SSE streams + reconnect on background/foreground; gesture over chamber's own touch handling; unreachable-server path (native error → return to selector); https + LAN-http ATS behavior.
+- **UI 2 (regression proof):** behaves exactly as today — existing e2e suite green, spot device pass, **zero diffs in `packages/app`** (verify `git diff --stat packages/app` is empty).
+- **UI 3:** boot + Basic auth + SSE live updates; markdown worker loads (custom scheme/CSP — §3.4); deep-link cold start; push pairing end-to-end (P5) incl. notification tap while in UI 1 (routes out of UI 1); haptics/share; i18n spot-check (incl. RTL via `?lang=ar` if shipped — else note deferred).
+- **Cross-cutting:** memory profile switching between the three UIs repeatedly (no leak growth — one runtime at a time, D8.2); bundle size recorded; `bun run typecheck` + both shell builds green on the final commit.
+
+**Verify:** checklist fully signed; failures fixed with marked patches and re-verified.
+
+**Rollback:** per-UI: selector cards are individually hideable; whole phase: `ANEMOS_SELECTOR=0`.
+
+### Phase 11 — Attribution, sync docs, housekeeping (SOFTENED — no deletions) — replaces old P10
+
+**Goal:** Documentation and hygiene for the three-UI end state. **`packages/app`, `packages/session-ui`, `packages/ui` are NOT deleted** — UI 2 is permanent.
+
+**Estimate:** S (≤1 day).
+
+**Files:** `packages/chamber-ui/PROVENANCE.md` (final local-change ledger; note that UI 1 uses no upstream code — only a URL), `docs/chamber-sync-checklist.md` (regenerate against a fresh upstream tag; run `script/chamber-sync.sh`), root `AGENTS.md` (document the three-UI architecture, selector gesture, per-UI server semantics, and which UI future feature work targets — D8.24), delete stray `chamber-mobile-*.yml` snapshots, decide the WebAssets-gitignore question (flagged, not assumed — OQ 9), dead-code sweep limited to genuinely unused artifacts the new architecture orphaned (e.g. any Rev-1-era `FRONTEND=chamber` build scripts superseded by the combined bundle).
+
+**Verify:** `bun run typecheck`; docs reviewed; `git status` clean of strays.
+
+**Rollback:** docs-only; revert.
+
+---
+
+## 6. Testing Strategy (summary, Rev 2)
+
+- **Unit (per phase):** push pairing machine (P5), i18n parity over the shipped 12 (P6) — direct `bun test` invocations from within `packages/chamber-ui`.
+- **Integration/e2e (P7):** Playwright smoke for UI 3 against a real `opencode serve` backend using the fork's fixture conventions. UI 1 is external content — covered by the P9/P10 manual device matrix, not by our e2e (OQ 10 notes an optional uptime probe). UI 2 keeps its existing suites untouched.
+- **Device (P10):** the three-UI × two-platform matrix (selector, gesture, per-UI server routing, security pen-test, memory profile) via `beam`, `ANDROID_BUILD.md`, sideload.
+- **Always:** `bun run typecheck` before push (husky-enforced); browser dev loop before device, per AGENTS.md; `git diff --stat packages/app` must stay empty from P8 onward (UI 2 zero-change invariant).
+
+## 7. Risks & Mitigations (Rev 2)
+
+- **Risk:** Chamber's UI silently requires an Express route we missed on a core path. **Mitigation:** P4 registry + audit (done); P7 e2e runs without any chamber server; residual features reachable via UI 1.
+- **Risk:** CORS/origin breakage on device. **Resolved by Phase 0 spike 2** (allow-list mapped; scheme-preservation rule in P10 checklist).
+- **Risk:** Worker/CSP failures in WKWebView/Android WebView. **Mitigation:** worker bundling proven in builds; on-device check is a P10 matrix line; fallback is the synchronous markdown renderer path.
+- **Risk:** Upstream drift makes syncs painful. **Mitigation:** PROVENANCE + sync script + ANEMOS-PATCH markers; pressure lowered by D8 (full features come from the user's own server in UI 1).
+- **Risk:** v1-only servers strand users. **Dissolved by D8** — UI 2 (Classic) is permanent and speaks v1 today; UI 3's guard screen will point users at Classic (P6 copy).
+- **Risk (NEW):** **Three-surface maintenance burden** — selector glue × two native shells, plus two anemos frontends. **Mitigation:** UI 2 frozen at zero changes (enforced by the P8+ `git diff --stat packages/app` invariant); shell glue confined to small additive native modules; every feature decision states its target UI.
+- **Risk (NEW):** **WebView memory with remote UI 1** (desktop-class SPA). **Mitigation:** single-WebView navigation model (D8.2) — exactly one runtime alive; P10 memory profile line; never overlay WebViews.
+- **Risk (NEW):** **Gesture conflicts** — iPad system 4-finger multitasking wins; OEM touch quirks; chamber's own touch handling inside UI 1. **Mitigation:** alternate 4-finger double-tap recognizer; deliberate thresholds; relaunch always reaches the selector; early on-device threshold tuning (P8 step 4); P9 gesture-over-remote check.
+- **Risk (NEW):** **Native bridge exposure to remote content** (security). **Mitigation:** origin-gating at the bridge boundary on both shells (P8 establishes the pattern, P9 extends + pen-tests); no remote-domain Tauri IPC.
+- **Risk (NEW):** **Selector UX confusion** — accidental triggers, wrong-server expectations, draft loss on switch. **Mitigation:** thresholds; per-UI server labels + reachability hints on the selector (§3.23); switch-cost note in selector copy.
+- **Risk:** Interleaving with the uncommitted voice work. **Mitigation:** Phases 0–4 never touched it; **P8 hard-requires it landed**; flagged in §3.1 and P8 constraints.
+
+## 8. Success Criteria (Rev 2)
+
+- [x] Chamber mobile surface renders in browser against `:42447` and `:4096` over SSE (P1–2, executed)
+- [x] v1-only/unreachable backend produces a clear error screen (P2, executed — copy updated to point at Classic in P6)
+- [x] Zero chamber-Express requests from UI 3's core path (P4 audit, executed)
+- [ ] UI 3 push pairing parity (P5) and 12-locale parity gate + anemos theme (P6)
+- [ ] UI 3 e2e smoke green (P7)
+- [ ] Combined bundle ships selector + Classic + chamber; default (no memory) = Classic; builds green throughout (P8)
+- [ ] Gesture returns to the selector from **all three** UIs on **both** platforms, including remote UI 1 content (P8–10)
+- [ ] UI 1 connects to the user's chamber server with its own auth; full feature surface usable (P9)
+- [ ] Bridge pen-test: remote origin cannot invoke any native capability (P9)
+- [ ] `git diff --stat packages/app` empty from P8 onward — UI 2 provably unchanged (P8–11)
+- [ ] Three-UI device matrix signed off on iOS + Android; memory profile clean (P10)
+- [ ] Attribution/sync docs current; housekeeping done; **no packages deleted** (P11)
+
+## 9. Open Questions (Rev 2)
+
+1. ~~v1-only backends~~ — **resolved by D8**: UI 2 (Classic) is the permanent v1 surface. (Only revisit if you ever want UI 3 itself to speak v1.)
+2. **Locale scope (confirm recommendation):** UI 3 ships chamber's stock 12; `ar, ru, th, no, da, bs` deferred and added on demand (D8.6). Which of the 6, if any, have real users today and should jump the queue?
+3. **Git/diff review, terminal, fs browsing:** now available via UI 1 against your chamber server — confirm no UI 3 port is wanted in the near term.
+4. **Gesture confirmation:** four-finger swipe-up despite the iPad system-multitasking overlap (iPhone unaffected), with 4-finger double-tap as the alternate — acceptable, or prefer a different primary?
+5. **UI 1 server config:** single chamber server URL for v1 of the selector (planned), or multiple chamber instances from day one? And is your chamber server `https://` or LAN `http://` (drives the iOS ATS exception decision, OQ §3.22)?
+6. **Notification-tap routing when the remembered UI is 1:** planned rule is "fork push taps open the remembered UI if it is 2/3, else UI 3" (never UI 1) — confirm.
+7. **`opencode://` deep links when remembered UI is 1:** same rule as 6 (route to UI 3) — confirm.
+8. **Selector localization:** ship English-only at first (planned) or inherit the device language from chamber's locale files?
+9. **WebAssets in git:** the combined bundle (three entries) grows the committed iOS tree — keep committing built assets (current convention) or gitignore them as a follow-up decision?
+10. **UI 1 health monitoring (optional):** add a lightweight uptime/reachability probe of the chamber server to the selector card (planned: on-demand check when the card is visible) — enough, or want background monitoring?
 
 ### Phase 5 results
 
@@ -590,3 +696,11 @@ Build, typecheck, and unit-test commands were not run by the implementation agen
 - Added native adapter push method shapes and bridge forwarding, relay URL and PushPrefs persistence, and notification trigger mapping for completion, approval, question, and error events.
 - Added the registry-gated Anemos Notifications settings section with relay URL, permission, pairing, preferences, diagnostics state, and test push controls.
 - Build and test commands were not run by the implementation agent per the repository agent boundary; build-fixer owns execution verification.
+
+### Phase 8 results
+
+- Added the single-source, framework-free selector at `packages/shared/selector/selector.html`; both shell Vite configs consume it directly and emit the selector build-time configuration.
+- Renamed the shell Classic entry to `classic.html` and added the three-entry combined layout. The Chamber package now emits a root-level `dist/chamber.html`; shell builds copy its assets under `assets/chamber/`, keep Classic assets under `assets/classic/`, and materialize `assets/selector/`.
+- Added native remembered-UI routing, selector bridge commands, local-origin checks, deep-link/notification-intent routing, and development reset escapes on iOS and Android. The iOS gestures are attached to the `WKWebView`; Android observes the `WebView` touch stream with four-pointer distance/velocity gates.
+- `ANEMOS_SELECTOR=0` is carried into the bundle as `selector-config.json`; native launch routing falls back directly to `classic.html` and does not install the selector recognizers.
+- Build, typecheck, unit-test, device, and bundle-size verification remain deferred to build-fixer/device phases per the implementation-agent boundary.

@@ -8,6 +8,14 @@
       "dependsOn": [],
       "outputs": ["dist/**"]
     },
+    "@opencode-ai/ios#build": {
+      "dependsOn": ["@openchamber/ui#build"],
+      "outputs": ["WebAssets/**"]
+    },
+    "@opencode-ai/android#build": {
+      "dependsOn": ["@openchamber/ui#build"],
+      "outputs": ["dist/**"]
+    },
     "@opencode-ai/app#test": {
       "dependsOn": ["^build"],
       "outputs": []
