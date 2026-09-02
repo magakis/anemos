@@ -84,7 +84,8 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
   private let platform = PlatformBridge()
   private let gestures = GestureBridge()
   private let keyboard = KeyboardBridge()
-  private let selectorEnabled = Self.readSelectorEnabled()
+  // ANEMOS-PATCH: Swift disallows covariant Self in stored property initializers.
+  private let selectorEnabled = BridgeController.readSelectorEnabled()
   private let resetRequested = ProcessInfo.processInfo.arguments.contains("--reset-ui")
   private weak var webView: WKWebView?
   private var schemeHandler: LocalFileSchemeHandler?
