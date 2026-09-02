@@ -11,6 +11,12 @@ import { createClient } from "@hey-api/openapi-ts"
 
 const opencode = path.resolve(dir, "../../opencode")
 
+// ANEMOS-PATCH: this fork runs the OpenCode CLI externally, so validate the checked-in SDK when the local runtime package is absent.
+if (!(await Bun.file(path.join(opencode, "package.json")).exists())) {
+  await $`bun tsc`
+  process.exit(0)
+}
+
 await $`bun dev generate > ${dir}/openapi.json`.cwd(opencode)
 
 const document = (await Bun.file("./openapi.json").json()) as {
