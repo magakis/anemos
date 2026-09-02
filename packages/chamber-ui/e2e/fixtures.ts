@@ -1,7 +1,8 @@
 import { test as base, expect, type Page } from '@playwright/test'
 import { createOpencodeClient, type OpencodeClient, type Session } from '@opencode-ai/sdk/v2'
 
-const backendHost = process.env.PLAYWRIGHT_SERVER_HOST?.trim() || 'localhost'
+// ANEMOS-PATCH: align SDK calls with the IPv4 loopback used by opencode serve.
+const backendHost = process.env.PLAYWRIGHT_SERVER_HOST?.trim() || '127.0.0.1'
 const backendPort = process.env.PLAYWRIGHT_SERVER_PORT?.trim() || '4096'
 
 export const backendUrl = `http://${backendHost}:${backendPort}`

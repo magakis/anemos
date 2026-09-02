@@ -10,11 +10,13 @@ const portFromEnv = (value: string | undefined, fallback: number): number => {
   return Number.isInteger(parsed) && parsed > 0 && parsed < 65_536 ? parsed : fallback
 }
 
-const backendHost = process.env.PLAYWRIGHT_SERVER_HOST?.trim() || 'localhost'
+// ANEMOS-PATCH: use IPv4 loopback because opencode serve binds 127.0.0.1, not ::1.
+const backendHost = process.env.PLAYWRIGHT_SERVER_HOST?.trim() || '127.0.0.1'
 const backendPort = portFromEnv(process.env.PLAYWRIGHT_SERVER_PORT, 4096)
 const chamberPort = portFromEnv(process.env.PLAYWRIGHT_PORT, 4456)
 const backendUrl = `http://${backendHost}:${backendPort}`
-const chamberUrl = `http://localhost:${chamberPort}`
+// ANEMOS-PATCH: make the Vite readiness URL use the same IPv4 loopback family.
+const chamberUrl = `http://127.0.0.1:${chamberPort}`
 
 const configuredChromiumPath = process.env.PLAYWRIGHT_CHROMIUM_PATH?.trim()
 const systemChromiumPath = configuredChromiumPath || '/usr/bin/chromium'
@@ -40,7 +42,8 @@ export default defineConfig({
     isMobile: true,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    // ANEMOS-PATCH: avoid Playwright's separate ffmpeg download; traces/screenshots retain failure diagnostics.
+    video: 'off',
     launchOptions: chromiumLaunchOptions,
   },
   projects: [

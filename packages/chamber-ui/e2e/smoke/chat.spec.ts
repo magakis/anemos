@@ -17,7 +17,8 @@ test.describe('UI 3 chat smoke', () => {
       await expect(pill).toBeVisible()
       await pill.locator('button').last().click()
 
-      const editor = page.locator('[data-testid="chat-input"]')
+      // ANEMOS-PATCH: target CodeMirror's editable node rather than its wrapper div.
+      const editor = page.locator('[data-testid="chat-input"] [contenteditable="true"]')
       await expect(editor).toBeVisible()
       await editor.fill(prompt)
 
