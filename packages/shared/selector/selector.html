@@ -286,75 +286,21 @@
           chamberProbe.className = `probe${kind ? ` ${kind}` : ""}`;
         };
 
-        const isPrivateIPv4 = (host) => {
-          const parts = host.split(".");
-          if (parts.length !== 4 || parts.some((part) => !/^\d+$/.test(part))) return false;
-          const octets = parts.map(Number);
-          if (octets.some((octet) => octet < 0 || octet > 255)) return false;
-          return (
-            octets[0] === 10 ||
-            (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
-            (octets[0] === 192 && octets[1] === 168) ||
-            (octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127)
-          );
-        };
-
-        const isAllowedIPv6 = (host) => {
-          if (!host.includes(":")) return false;
-          const sections = host.split("::");
-          if (sections.length > 2) return false;
-          const groups = (section) => {
-            if (!section) return [];
-            const values = section.split(":");
-            if (values.some((value) => !/^[0-9a-f]{1,4}$/i.test(value))) return null;
-            return values;
-          };
-          const left = groups(sections[0]);
-          const right = groups(sections.length === 2 ? sections[1] : "");
-          if (!left || !right) return false;
-          const count = left.length + right.length;
-          if (sections.length === 1 ? count !== 8 : count >= 8) return false;
-          const first = left[0] || right[0];
-          if (!first) return false;
-          const firstValue = Number.parseInt(first, 16);
-          return (firstValue & 0xfe00) === 0xfc00 || (firstValue & 0xffc0) === 0xfe80;
-        };
-
-        const isAllowedHttpHost = (host) => {
-          const normalized = host.toLowerCase();
-          const unbracketed = normalized.startsWith("[") && normalized.endsWith("]")
-            ? normalized.slice(1, -1)
-            : normalized;
-          return (
-            unbracketed === "localhost" ||
-            unbracketed === "127.0.0.1" ||
-            unbracketed === "::1" ||
-            unbracketed.endsWith(".local") ||
-            unbracketed.endsWith(".ts.net") ||
-            unbracketed.endsWith(".lan") ||
-            unbracketed.endsWith(".internal") ||
-            unbracketed.endsWith(".home.arpa") ||
-            (!unbracketed.includes(".") && !unbracketed.includes(":")) ||
-            isPrivateIPv4(unbracketed) ||
-            isAllowedIPv6(unbracketed)
-          );
-        };
-
         const parseChamberUrl = (value) => {
           const input = value.trim();
-          if (!input) return { error: "Enter the Chamber server URL." };
+          if (!input) return { error: "Enter a valid http:// or https:// URL." };
           let url;
           try {
             url = new URL(input);
           } catch {
-            return { error: "Enter a valid https:// URL or a local http:// URL." };
+            return { error: "Enter a valid http:// or https:// URL." };
           }
           if (!url.hostname || url.username || url.password || (url.port && (Number(url.port) < 1 || Number(url.port) > 65535))) {
-            return { error: "Enter a valid server URL without credentials." };
+            return { error: "Enter a valid http:// or https:// URL." };
           }
           if (url.protocol === "https:") return { url: url.href, secure: true };
-          if (url.protocol === "http:" && isAllowedHttpHost(url.hostname)) return { url: url.href, secure: false };
-          return { error: "Plain http is only allowed for local addresses (hostname, LAN/Tailscale IP, .local/.ts.net/.lan/.internal/.home.arpa names) — use https otherwise." };
+          if (url.protocol === "http:") return { url: url.href, secure: false };
+          return { error: "Enter a valid http:// or https:// URL." };
         };
 
         const updateChamberUrlState = () => {

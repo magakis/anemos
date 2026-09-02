@@ -482,68 +482,14 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
     private fun chamberServerUri(raw: String? = configPreferences.getString(CHAMBER_SERVER_URL_KEY, null)): Uri? {
         val uri = raw?.trim()?.let(Uri::parse) ?: return null
         val scheme = uri.scheme?.lowercase() ?: return null
-        val host = uri.host ?: return null
         val parsed = try {
             URI(uri.toString())
         } catch (_: Throwable) {
             return null
         }
         if (parsed.host == null || parsed.userInfo != null || parsed.port !in -1..65535 || parsed.port == 0) return null
-        if (scheme == "https") return uri
-        if (scheme == "http" && isAllowedHttpHost(host)) return uri
-        return null
-    }
-
-    private fun isAllowedHttpHost(host: String): Boolean {
-        val normalized = host.lowercase()
-        val unbracketed = if (normalized.startsWith("[") && normalized.endsWith("]")) {
-            normalized.substring(1, normalized.length - 1)
-        } else {
-            normalized
-        }
-        if (unbracketed == "localhost"
-            || unbracketed == "127.0.0.1"
-            || unbracketed == "::1"
-            || unbracketed.endsWith(".local")
-            || unbracketed.endsWith(".ts.net")
-            || unbracketed.endsWith(".lan")
-            || unbracketed.endsWith(".internal")
-            || unbracketed.endsWith(".home.arpa")
-            || (!unbracketed.contains(".") && !unbracketed.contains(":"))
-        ) return true
-        return isPrivateIPv4(unbracketed) || isAllowedIPv6(unbracketed)
-    }
-
-    private fun isPrivateIPv4(host: String): Boolean {
-        val parts = host.split('.')
-        if (parts.size != 4 || parts.any { it.isEmpty() || it.any { character -> character !in '0'..'9' } }) return false
-        val octets = parts.map { it.toIntOrNull() ?: return false }
-        if (octets.size != 4 || octets.any { it !in 0..255 }) return false
-        return octets[0] == 10 ||
-                (octets[0] == 172 && octets[1] in 16..31) ||
-                (octets[0] == 192 && octets[1] == 168) ||
-                (octets[0] == 100 && octets[1] in 64..127)
-    }
-
-    private fun isAllowedIPv6(host: String): Boolean {
-        if (!host.contains(':')) return false
-        val sections = host.split("::")
-        if (sections.size > 2) return false
-
-        fun groups(section: String): List<String>? {
-            if (section.isEmpty()) return emptyList()
-            val values = section.split(':')
-            if (values.any { it.isEmpty() || it.length > 4 || it.any { character -> character !in "0123456789abcdef" } }) return null
-            return values
-        }
-
-        val left = groups(sections[0]) ?: return false
-        val right = groups(if (sections.size == 2) sections[1] else "") ?: return false
-        val count = left.size + right.size
-        if (if (sections.size == 1) count != 8 else count >= 8) return false
-        val first = left.firstOrNull() ?: right.firstOrNull() ?: return false
-        val firstValue = first.toInt(16)
-        return (firstValue and 0xfe00) == 0xfc00 || (firstValue and 0xffc0) == 0xfe80
+        if (scheme != "http" && scheme != "https") return null
+        return uri
     }
 
     private fun probeUrl(raw: String): ProbeResult {
@@ -717,7 +663,7 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
         const val SELECTED_UI_KEY = "selectedUI"
         const val DEFAULT_SERVER_URL_KEY = "defaultServerUrl"
         const val CHAMBER_SERVER_URL_KEY = "chamberServerUrl"
-        const val INVALID_CHAMBER_SERVER_URL_MESSAGE = "Plain http is only allowed for local addresses (hostname, LAN/Tailscale IP, .local/.ts.net/.lan/.internal/.home.arpa names) — use https otherwise."
+        const val INVALID_CHAMBER_SERVER_URL_MESSAGE = "Enter a valid http:// or https:// URL."
         const val RESET_UI_EXTRA = "reset-ui"
         const val SELECTOR_PAGE = "selector.html"
         const val CLASSIC_PAGE = "classic.html"
