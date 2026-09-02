@@ -60,7 +60,8 @@ final class LocalFileSchemeHandler: NSObject, WKURLSchemeHandler {
       return mime
     }
     switch ext.lowercased() {
-    case "js", "mjs": return "application/javascript"
+    case "js": return "text/javascript"
+    case "mjs": return "text/javascript"
     case "css": return "text/css"
     case "html", "htm": return "text/html"
     case "json": return "application/json"
@@ -69,6 +70,8 @@ final class LocalFileSchemeHandler: NSObject, WKURLSchemeHandler {
     case "woff2": return "font/woff2"
     case "ttf": return "font/ttf"
     case "png": return "image/png"
+    case "wasm": return "application/wasm"
+    case "webp": return "image/webp"
     case "ico": return "image/x-icon"
     case "aac": return "audio/aac"
     case "webmanifest": return "application/manifest+json"

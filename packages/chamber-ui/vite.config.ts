@@ -40,6 +40,12 @@ export default defineConfig({
       express: browserStub,
       'http-proxy-middleware': browserStub,
       'simple-git': browserStub,
+      // ANEMOS-PATCH: alias Node builtins so production browser chunks never
+      // contain unresolved node: import specifiers.
+      'node:child_process': browserStub,
+      'node:fs': browserStub,
+      'node:path': browserStub,
+      'node:url': browserStub,
     },
   },
   worker: {
@@ -61,7 +67,6 @@ export default defineConfig({
       input: {
         chamber: path.resolve(packageDirectory, 'mobile/index.html'),
       },
-      external: ['node:child_process', 'node:fs', 'node:path', 'node:url'],
     },
   },
 })

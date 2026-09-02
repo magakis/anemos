@@ -6,7 +6,7 @@ import {
   createAnemosStorage,
   type AnemosLegacySettings,
 } from '@openchamber/ui/anemos/storage';
-import { createBridgePlatformAdapter } from '@openchamber/ui/anemos/platform-adapter';
+import { createBridgePlatformAdapter, createPlatformAdapter } from '@openchamber/ui/anemos/platform-adapter';
 import {
   createNativeBridge,
   createNativeStorage,
@@ -34,20 +34,27 @@ const installNativePlatform = (): void => {
   // document-start user-script support; native shells also inject this marker.
   if (isLocalShellOrigin()) root.__ANEMOS_SHELL__ = platform;
 
-  const bridge = createNativeBridge(platform);
-  const adapter = createBridgePlatformAdapter({
-    platform,
-    bridge,
-    storage: createNativeStorage(platform, bridge),
-  });
-  window.__ANEMOS_PLATFORM__ = adapter;
-  configureAnemosStorage({
-    storage: adapter.storage,
-    legacyStorage: createAnemosLegacySettingsStorage(
-      () => bridge.sendAsync<AnemosLegacySettings>('readLegacySettings'),
-      createAnemosStorage(),
-    ),
-  });
+  try {
+    const bridge = createNativeBridge(platform);
+    const adapter = createBridgePlatformAdapter({
+      platform,
+      bridge,
+      storage: createNativeStorage(platform, bridge),
+    });
+    window.__ANEMOS_PLATFORM__ = adapter;
+    configureAnemosStorage({
+      storage: adapter.storage,
+      legacyStorage: createAnemosLegacySettingsStorage(
+        () => bridge.sendAsync<AnemosLegacySettings>('readLegacySettings'),
+        createAnemosStorage(),
+      ),
+    });
+  } catch (error) {
+    // ANEMOS-PATCH: a bridge hiccup must not prevent the browser adapters and
+    // the visible connection flow from rendering.
+    console.warn('[platform-bootstrap] native bridge setup failed; using browser adapters', error);
+    window.__ANEMOS_PLATFORM__ = createPlatformAdapter();
+  }
 };
 
 installNativePlatform();
