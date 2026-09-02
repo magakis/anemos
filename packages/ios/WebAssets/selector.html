@@ -164,6 +164,14 @@
       .error {
         color: #f39a9a;
       }
+
+      .gesture-hint {
+        margin: 20px 0 0;
+        color: #817777;
+        font-size: 12px;
+        line-height: 1.45;
+        text-align: center;
+      }
     </style>
   </head>
   <body>
@@ -194,11 +202,12 @@
               spellcheck="false"
               placeholder="https://chamber.example.com"
             />
-            <span class="hint" id="chamber-hint" role="status" aria-live="polite">HTTPS is preferred. HTTP is limited to LAN IPs.</span>
+            <span class="hint" id="chamber-hint" role="status" aria-live="polite">HTTPS is preferred. HTTP is limited to local and Tailscale addresses.</span>
             <span class="probe" id="chamber-probe" role="status" aria-live="polite">Not checked</span>
           </div>
         </div>
         <span class="state" id="state" role="status" aria-live="polite"></span>
+        <footer class="gesture-hint">Switch anytime: swipe up with four fingers (or double-tap with four fingers) in any interface to return here.</footer>
     </main>
     <script>
       (() => {
@@ -277,35 +286,21 @@
           chamberProbe.className = `probe${kind ? ` ${kind}` : ""}`;
         };
 
-        const isPrivateIPv4 = (host) => {
-          const parts = host.split(".");
-          if (parts.length !== 4 || parts.some((part) => !/^\d+$/.test(part))) return false;
-          const octets = parts.map(Number);
-          if (octets.some((octet) => octet < 0 || octet > 255)) return false;
-          return (
-            octets[0] === 10 ||
-            octets[0] === 127 ||
-            (octets[0] === 169 && octets[1] === 254) ||
-            (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
-            (octets[0] === 192 && octets[1] === 168)
-          );
-        };
-
         const parseChamberUrl = (value) => {
           const input = value.trim();
-          if (!input) return { error: "Enter the Chamber server URL." };
+          if (!input) return { error: "Enter a valid http:// or https:// URL." };
           let url;
           try {
             url = new URL(input);
           } catch {
-            return { error: "Enter a valid https:// URL or a LAN http:// URL." };
+            return { error: "Enter a valid http:// or https:// URL." };
           }
           if (!url.hostname || url.username || url.password || (url.port && (Number(url.port) < 1 || Number(url.port) > 65535))) {
-            return { error: "Enter a valid server URL without credentials." };
+            return { error: "Enter a valid http:// or https:// URL." };
           }
           if (url.protocol === "https:") return { url: url.href, secure: true };
-          if (url.protocol === "http:" && isPrivateIPv4(url.hostname)) return { url: url.href, secure: false };
-          return { error: "HTTP is allowed only for a private LAN IP; use HTTPS for other hosts." };
+          if (url.protocol === "http:") return { url: url.href, secure: false };
+          return { error: "Enter a valid http:// or https:// URL." };
         };
 
         const updateChamberUrlState = () => {

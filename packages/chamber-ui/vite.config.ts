@@ -53,6 +53,8 @@ export default defineConfig({
   },
   define: {
     'process.env': {},
+    // ANEMOS-PATCH: keep transitive server utility probes inert in the browser bundle.
+    'process.platform': '"browser"',
     global: 'globalThis',
   },
   server: {
