@@ -142,6 +142,21 @@ usable. Confirm the custom origin stays exactly `tauri://localhost`.
 | Cross-cutting | [ ] | [ ] | Repeatedly switch selector → UI 1 → UI 2 → UI 3; memory returns to baseline with one WebView runtime at a time. | |
 | Cross-cutting | [ ] | [ ] | Four-finger swipe-up does not false-trigger during typing/scrolling; four-finger double-tap fallback works. | |
 
+## Deferred until proper distribution (sideload era)
+
+Remote push delivery is intentionally disabled for SideStore/sideloaded builds.
+The P5 implementation remains in UI 3 for a future proper-distribution build.
+When APNs is available and push is re-enabled in the feature registry, verify:
+
+- [ ] **Pairing flow:** request notification permission, start pairing, complete
+      relay pairing, and confirm repair/clear flows recover cleanly.
+- [ ] **Relay URL:** confirm the configured relay URL is validated, persisted,
+      restored after relaunch, and used by pairing and relay requests.
+- [ ] **Preferences:** confirm completion, error, question, and subtask
+      preferences persist and the corresponding event mappings honor them.
+- [ ] **Test push:** send the settings test push and confirm delivery while the
+      app is foregrounded, backgrounded, and relaunched on both platforms.
+
 ## How to report failures back
 
 For a failure, record platform, device/OS, build or commit, selected UI, exact

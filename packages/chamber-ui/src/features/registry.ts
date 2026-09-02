@@ -21,7 +21,7 @@ export const FEATURE_REGISTRY = {
   i18n: { enabled: true, reason: 'Locale selection is client-side.' },
   appearance: { enabled: true, reason: 'Theme and typography preferences are client-side.' },
   instances: { enabled: true, reason: 'Direct instance connection uses the Anemos adapter.' },
-  push: { enabled: true, reason: 'Fork relay push uses the Anemos platform adapter.' },
+  push: { enabled: false, reason: 'Remote push requires proper distribution (APNs). Sideloaded builds cannot receive it; code retained for the TestFlight/App Store build — flip back when proper distribution lands.' },
 
   fs: { enabled: false, reason: 'Not available in anemos — available in Chamber Full (UI 1) or Classic (UI 2)' },
   git: { enabled: false, reason: 'Not available in anemos — available in Chamber Full (UI 1) or Classic (UI 2)' },

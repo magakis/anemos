@@ -754,3 +754,18 @@ Static origin-policy and source-gate checks are signed off by the harness; real 
 - Build readiness: the SDK package has a `build` script, and the chamber and shell packages expose the requested build scripts. The latest supplied gates are green for the combined iOS and Android shell builds; current artifact sizes are `packages/ios/WebAssets` 71M, `packages/android/dist` 71M, and `packages/chamber-ui/dist` 38M. The implementation-agent boundary does not permit executing builds; build execution remains assigned to build-fixer.
 - No untracked `chamber-mobile-*.yml` strays are present.
 - The physical iOS/Android × selector/UI 1/UI 2/UI 3 matrix is handed to the user in [`docs/plans/device-verification-checklist.md`](device-verification-checklist.md), including TestFlight, sideload, Android toolchain, and `ANEMOS_SELECTOR=0` control-build commands. Headless gates recorded as DONE there are e2e 4/4, the pen-test harness, parity, and the supplied shell-build results.
+
+### Review remediation (2026-09-02)
+
+- **Track A — push disposition and reviewer small fixes:** keep the P5 push
+  implementation intact but disable its registry visibility for the sideload era;
+  gate the upstream web-push settings behind `push-web`; add the locale marker
+  headers and sync-runbook exception; wire the chamber package test script and
+  Turbo task; update the settings smoke expectation; and document the deferred
+  proper-distribution push verification.
+- **Track B — adapter attachment and migration/credentials:** MAJOR-1 adapter
+  attachment and MAJOR-2 migration/credentials are being implemented in parallel
+  by Agent B across the Anemos adapters, mobile entry, and native bridges.
+- **Track C — URL policy and permissions:** MAJOR-3 URL policy and MINOR-3
+  permissions TOMLs are being implemented in parallel by Agent C across the
+  native server configuration, selector, Android bridge, and permission files.

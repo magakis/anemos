@@ -1,3 +1,5 @@
+// ANEMOS-PATCH: +2 unavailable-feature keys (see PROVENANCE)
+
 import type { I18nKey } from './en';
 import { settingsDict } from './zh-CN.settings';
 import { linearIssuePickerI18n } from './linear-issue-picker.i18n';

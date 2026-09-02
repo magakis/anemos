@@ -44,18 +44,30 @@ by D8.6; they are not a UI 3 parity gate because UI 2 permanently retains all
 18 existing locales.
 
 The P5 push pairing and relay implementation is covered by local unit tests.
-End-to-end notification delivery and native push verification are deferred to
-the packaged sideload/device pass (P10), where the iOS build can be installed
-and exercised. This is a verification deferral, not a removal of the UI 3 push
-surface.
+End-to-end notification delivery and native push verification are deferred until
+proper distribution (TestFlight/App Store with APNs); SideStore/sideloaded builds
+cannot receive remote push. This is a verification and visibility deferral, not
+a removal of the UI 3 push surface.
+
+### Review remediation ledger (2026-09-02)
+
+- The `push` registry entry is disabled for the sideload era because remote push
+  requires proper APNs distribution; the P5 implementation remains retained for
+  the future TestFlight/App Store build.
+- Each shipped locale dictionary carries the standardized `+2 unavailable-feature
+  keys (see PROVENANCE)` header marker, with the reviewed exception recorded in
+  `docs/chamber-sync-checklist.md`.
+- `OpenChamberPage` gates the upstream web-push `NotificationSettings` component
+  through `push-web`, alongside the existing registry gate for the Anemos push
+  settings, so the cut mobile settings surface exposes no push controls.
 
 ## Counted source patch inventory
 
-On 2026-09-02, the summed result of `grep -rc "ANEMOS-PATCH" packages/chamber-ui`
-is **149 matches**: **148 source marker occurrences in 93 files**, plus the one
-literal reference in this sentence. The table below is the complete source
-ledger; counts are grouped by area and multiple sites in one file are listed
-in the reason column.
+On 2026-09-02, the tracked vendor-source marker inventory contains **160 source
+marker occurrences in 105 files**; the one literal reference in this sentence
+makes **161** matches when the ledger itself is included. The table below is the
+complete source ledger; counts are grouped by area and multiple sites in one
+file are listed in the reason column.
 
 | Area | Files | Source markers |
 |---|---:|---:|
@@ -67,11 +79,11 @@ in the reason column.
 | `src/contexts/` | 1 | 1 |
 | `src/features/` | 2 | 2 |
 | `src/hooks/` | 2 | 2 |
-| `src/lib/` | 24 | 33 |
+| `src/lib/` | 36 | 45 |
 | `src/shims/` | 1 | 1 |
 | `src/stores/` | 5 | 6 |
 | `src/sync/` | 2 | 2 |
-| **Total** | **93** | **148** |
+| **Total** | **105** | **160** |
 
 ### `mobile/` — 5 sites in 3 files
 
@@ -165,25 +177,36 @@ in the reason column.
 | `src/hooks/useWebNotificationStream.ts` | 1 | Preserve event semantics so fork PushPrefs can distinguish notification kinds. |
 | `src/shims/browser-stub.ts` | 1 | Provide a browser-safe fallback if a server-only module enters the mobile graph. |
 
-### `src/lib/` — 33 sites in 24 files
+### `src/lib/` — 45 sites in 36 files
 
 | File | Sites | One-line reason for each site |
 |---|---:|---|
 | `src/lib/connectionPayload.test.ts` | 3 | Cover the registered scheme, case-insensitive parsing, and authority-path parsing. |
 | `src/lib/connectionPayload.ts` | 4 | Emit `opencode://` links; accept legacy OpenChamber links; parse the registered scheme; normalize legacy links for URL-API-free WebViews. |
 | `src/lib/i18n/messages/de.settings.ts` | 1 | Use the app's registered scheme in connection guidance. |
+| `src/lib/i18n/messages/de.ts` | 1 | Retain the two local unavailable-feature keys across upstream locale syncs. |
 | `src/lib/i18n/messages/en.settings.ts` | 1 | Use the app's registered scheme in connection guidance. |
+| `src/lib/i18n/messages/en.ts` | 1 | Retain the two local unavailable-feature keys across upstream locale syncs. |
 | `src/lib/i18n/messages/es.settings.ts` | 1 | Use the app's registered scheme in connection guidance. |
+| `src/lib/i18n/messages/es.ts` | 1 | Retain the two local unavailable-feature keys across upstream locale syncs. |
 | `src/lib/i18n/messages/fr.settings.ts` | 1 | Use the app's registered scheme in connection guidance. |
+| `src/lib/i18n/messages/fr.ts` | 1 | Retain the two local unavailable-feature keys across upstream locale syncs. |
 | `src/lib/i18n/messages/ja.settings.ts` | 1 | Use the app's registered scheme in connection guidance. |
+| `src/lib/i18n/messages/ja.ts` | 1 | Retain the two local unavailable-feature keys across upstream locale syncs. |
 | `src/lib/i18n/messages/ko.settings.ts` | 1 | Use the app's registered scheme in connection guidance. |
+| `src/lib/i18n/messages/ko.ts` | 1 | Retain the two local unavailable-feature keys across upstream locale syncs. |
 | `src/lib/i18n/messages/pl.settings.ts` | 1 | Use the app's registered scheme in connection guidance. |
+| `src/lib/i18n/messages/pl.ts` | 1 | Retain the two local unavailable-feature keys across upstream locale syncs. |
 | `src/lib/i18n/messages/pt-BR.settings.ts` | 1 | Use the app's registered scheme in connection guidance. |
+| `src/lib/i18n/messages/pt-BR.ts` | 1 | Retain the two local unavailable-feature keys across upstream locale syncs. |
 | `src/lib/i18n/messages/tr.settings.ts` | 1 | Use the app's registered scheme in connection guidance. |
-| `src/lib/i18n/messages/tr.ts` | 1 | Complete Turkish translations for the Git discovery labels added in Phase 6. |
+| `src/lib/i18n/messages/tr.ts` | 1 | Complete Turkish translations for the Git discovery labels added in Phase 6; retain the two local unavailable-feature keys across upstream locale syncs. |
 | `src/lib/i18n/messages/uk.settings.ts` | 1 | Use the app's registered scheme in connection guidance. |
+| `src/lib/i18n/messages/uk.ts` | 1 | Retain the two local unavailable-feature keys across upstream locale syncs. |
 | `src/lib/i18n/messages/zh-CN.settings.ts` | 1 | Use the app's registered scheme in connection guidance. |
+| `src/lib/i18n/messages/zh-CN.ts` | 1 | Retain the two local unavailable-feature keys across upstream locale syncs. |
 | `src/lib/i18n/messages/zh-TW.settings.ts` | 1 | Use the app's registered scheme in connection guidance. |
+| `src/lib/i18n/messages/zh-TW.ts` | 1 | Retain the two local unavailable-feature keys across upstream locale syncs. |
 | `src/lib/opencode/client.ts` | 2 | Use the fork's direct URL only when Anemos env is active while preserving Chamber `/api` defaults; keep plain v2 routes out of `/api`. |
 | `src/lib/persistence.ts` | 1 | Preserve client-side appearance, typography, and model preferences without Chamber config routes. |
 | `src/lib/platform.ts` | 1 | Centralize native-shell detection for Capacitor, Tauri, and Swift WKWebView. |

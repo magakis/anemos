@@ -72,6 +72,10 @@ been re-applied and all gates below pass.
 - [ ] Restore the Anemos adapter, Basic-auth, SSE/reconnect, storage,
       deep-link, feature-registry, push, theme, locale, and unavailable-stub
       changes.
+- [ ] Restore the `// ANEMOS-PATCH: +2 unavailable-feature keys (see PROVENANCE)`
+      header on each shipped locale dictionary. This is the reviewed sync
+      exception for retaining two local unavailable-feature keys in every
+      shipped locale.
 - [ ] Restore the package-local tests and remove any copied upstream test
       runner wiring that is not part of the UI 3 test setup.
 - [ ] Update the upstream ref/date and the counted area/file totals in
@@ -115,9 +119,10 @@ option. Run the e2e smoke against a real v2-capable `opencode serve` backend.
 - [ ] On device/simulator, verify selector launch, remembered selection,
       four-finger swipe-up and double-tap return gestures, UI 1 remote
       navigation/bridge denial, UI 3 SSE/workers, and UI 2 regression.
-- [ ] Complete native push delivery verification through the packaged
-      sideload/device path; unit push tests alone do not sign off APNs/relay
-      delivery.
+- [ ] Complete native push delivery verification after proper APNs distribution;
+      SideStore/sideloaded builds cannot receive remote push. Use the deferred
+      push checklist in `docs/plans/device-verification-checklist.md` when the
+      registry entry is re-enabled.
 - [ ] Finish with `git status --short`: only the reviewed sync, ledger, and
       intended generated WebAssets changes may remain.
 

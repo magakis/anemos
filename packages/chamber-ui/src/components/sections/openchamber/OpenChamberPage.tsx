@@ -231,7 +231,7 @@ const NotificationSectionContent: React.FC = () => {
     // ANEMOS-PATCH: registry-gate the native fork relay section for reversible rollout.
     return (
         <>
-            <NotificationSettings />
+            {isFeatureAvailable('push-web') && <NotificationSettings />}
             {isFeatureAvailable('push') && <AnemosPushSettings />}
         </>
     );
