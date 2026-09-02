@@ -1,9 +1,27 @@
 import { addPluginListener, invoke } from "@tauri-apps/api/core"
 
+declare global {
+  interface Window {
+    __ANEMOS_SHELL__?: "ios" | "android" | "web"
+  }
+}
+
+// ANEMOS-PATCH: mark only the local Tauri page so the native shell identity
+// cannot leak into a remote Chamber Full server.
+if (typeof window !== "undefined"
+  && window.location.protocol === "http:"
+  && window.location.host === "tauri.localhost") {
+  window.__ANEMOS_SHELL__ = "android"
+}
+
 const commands = {
   scanNetwork: "scan_network",
   cancelScan: "cancel_scan",
   share: "share",
+  openLink: "open_link",
+  notify: "notify",
+  haptic: "haptic",
+  readLegacySettings: "read_legacy_settings",
   selectUI: "select_ui",
   getSelectedUI: "get_selected_ui",
   getDefaultServerUrl: "get_default_server_url",

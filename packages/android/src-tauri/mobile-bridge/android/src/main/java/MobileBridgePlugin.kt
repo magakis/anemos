@@ -1,16 +1,28 @@
 package ai.opencode.mobilebridge
 
+import android.Manifest
 import android.app.Activity
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.view.MotionEvent
 import android.webkit.WebView
+import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.PermissionCallback
@@ -26,6 +38,7 @@ import java.net.NetworkInterface
 import java.net.Socket
 import java.net.URI
 import java.net.URL
+import java.io.File
 import java.util.Collections
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -46,6 +59,26 @@ class ServerUrlArgs {
     var url: String? = null
 }
 
+@InvokeArg
+class OpenLinkArgs {
+    var url: String? = null
+}
+
+@InvokeArg
+class NotifyArgs {
+    var title: String? = null
+    var description: String? = null
+    var href: String? = null
+    var kind: String? = null
+    var requireHidden: Boolean = false
+    var generic: Boolean = false
+}
+
+@InvokeArg
+class HapticArgs {
+    var style: String? = null
+}
+
 private data class ScanEntry(val host: String, val port: Int, val url: String)
 private data class WifiAddressInfo(val address: String, val prefixLength: Int)
 private data class ProbeResult(val reachable: Boolean, val status: Int?)
@@ -58,6 +91,8 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
     private val scanExecutor = Executors.newSingleThreadExecutor()
     private val probeExecutor = Executors.newCachedThreadPool()
     private var webView: WebView? = null
+    private var shellMarkerInstalled = false
+    private var notificationId = 0
     private var selectorEnabled = true
     private var fourFingerStartY = 0f
     private var fourFingerLastY = 0f
@@ -91,6 +126,9 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
 
     override fun load(webView: WebView) {
         this.webView = webView
+        // ANEMOS-PATCH: inject the Android shell marker at document start and
+        // gate it to the same local origin used by the bridge commands.
+        installShellMarker(webView)
         selectorEnabled = readSelectorEnabled()
         if (selectorEnabled) installSelectorGestures(webView)
 
@@ -149,10 +187,11 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
     @Command
     fun share(invoke: Invoke) {
         if (rejectRemote(invoke)) return
+        // ANEMOS-PATCH: return the boolean shape expected by the shared adapter.
         val args = invoke.parseArgs(ShareArgs::class.java)
         val parts = listOfNotNull(args.text?.trim()?.takeIf { it.isNotEmpty() }, args.url?.trim()?.takeIf { it.isNotEmpty() })
         if (parts.isEmpty()) {
-            invoke.resolve(JSObject().put("success", false))
+            invoke.resolve(false)
             return
         }
 
@@ -165,10 +204,95 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
 
         try {
             activity.startActivity(Intent.createChooser(sendIntent, null))
-            invoke.resolve(JSObject().put("success", true))
+            invoke.resolve(true)
         } catch (_: Throwable) {
-            invoke.resolve(JSObject().put("success", false))
+            invoke.resolve(false)
         }
+    }
+
+    @Command
+    fun openLink(invoke: Invoke) {
+        if (rejectRemote(invoke)) return
+        val args = invoke.parseArgs(OpenLinkArgs::class.java)
+        val raw = args.url?.trim()
+        val uri = raw?.let(Uri::parse)
+        val scheme = uri?.scheme?.lowercase()
+        if (raw.isNullOrEmpty() || (scheme != "http" && scheme != "https")) {
+            invoke.resolve(false)
+            return
+        }
+        try {
+            activity.startActivity(Intent(Intent.ACTION_VIEW, uri))
+            invoke.resolve(true)
+        } catch (_: Throwable) {
+            invoke.resolve(false)
+        }
+    }
+
+    @Command
+    fun notify(invoke: Invoke) {
+        if (rejectRemote(invoke)) return
+        val args = invoke.parseArgs(NotifyArgs::class.java)
+        if (args.generic || (args.requireHidden && activity.hasWindowFocus())) {
+            invoke.resolve(false)
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+            && activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                activity,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                NOTIFICATION_PERMISSION_REQUEST_CODE,
+            )
+            invoke.resolve(false)
+            return
+        }
+
+        val manager = activity.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        if (manager == null) {
+            invoke.resolve(false)
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            manager.createNotificationChannel(
+                NotificationChannel(NOTIFICATION_CHANNEL_ID, "Anemos", NotificationManager.IMPORTANCE_DEFAULT),
+            )
+        }
+        val notification = NotificationCompat.Builder(activity, NOTIFICATION_CHANNEL_ID)
+            .setSmallIcon(if (activity.applicationInfo.icon != 0) activity.applicationInfo.icon else android.R.drawable.ic_dialog_info)
+            .setContentTitle(args.title ?: "OpenCode")
+            .setContentText(args.description ?: "")
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+            || NotificationManagerCompat.from(activity).areNotificationsEnabled()) {
+            manager.notify(notificationId++, notification)
+            invoke.resolve(true)
+        } else {
+            invoke.resolve(false)
+        }
+    }
+
+    @Command
+    fun haptic(invoke: Invoke) {
+        if (rejectRemote(invoke)) return
+        val style = invoke.parseArgs(HapticArgs::class.java).style
+        val duration = when (style) {
+            "heavy" -> 36L
+            "medium", "warning", "error" -> 24L
+            else -> 14L
+        }
+        val vibrator = activity.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        if (vibrator != null && vibrator.hasVibrator()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(duration)
+            }
+        }
+        invoke.resolve()
     }
 
     @Command
@@ -207,6 +331,23 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
     fun getDefaultServerUrl(invoke: Invoke) {
         if (rejectRemote(invoke)) return
         invoke.resolve(JSObject().put("url", configPreferences.getString(DEFAULT_SERVER_URL_KEY, null)))
+    }
+
+    @Command
+    fun readLegacySettings(invoke: Invoke) {
+        if (rejectRemote(invoke)) return
+        val result = JSObject()
+        val values = readLegacySettingsFile()
+        LEGACY_SETTINGS_KEYS.forEach { key ->
+            val value = values?.opt(key)
+            if (value is String && value.isNotBlank()) result.put(key, value)
+        }
+        // ANEMOS-PATCH: retain the bridge-mirrored URL as a fallback for old
+        // installs that never flushed the Tauri store file.
+        if (!result.has(DEFAULT_SERVER_URL_KEY)) {
+            configPreferences.getString(DEFAULT_SERVER_URL_KEY, null)?.let { result.put(DEFAULT_SERVER_URL_KEY, it) }
+        }
+        invoke.resolve(result)
     }
 
     @Command
@@ -433,6 +574,41 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    // ANEMOS-PATCH: read the legacy Tauri store without exposing it to remote
+    // pages; the store is a JSON object under the app data directory.
+    private fun readLegacySettingsFile(): JSONObject? {
+        val candidates = listOf(
+            File(activity.dataDir, LEGACY_SETTINGS_STORE),
+            File(activity.dataDir, "app_data/$LEGACY_SETTINGS_STORE"),
+            File(activity.filesDir, LEGACY_SETTINGS_STORE),
+            File(activity.filesDir, "app_data/$LEGACY_SETTINGS_STORE"),
+        )
+        for (file in candidates) {
+            if (!file.isFile) continue
+            try {
+                return JSONObject(file.readText())
+            } catch (_: Throwable) {
+                continue
+            }
+        }
+        return null
+    }
+
+    private fun installShellMarker(webView: WebView) {
+        if (shellMarkerInstalled || !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) return
+        try {
+            WebViewCompat.addDocumentStartJavaScript(
+                webView,
+                "if ((location.protocol === 'http:' && location.host === 'tauri.localhost')) window.__ANEMOS_SHELL__ = 'android';",
+                setOf("http://tauri.localhost/*"),
+            )
+            shellMarkerInstalled = true
+        } catch (_: Throwable) {
+            // The Chamber bootstrap supplies the same origin-gated fallback on
+            // WebViews that do not expose document-start scripts.
+        }
+    }
+
     private fun installSelectorGestures(webView: WebView) {
         webView.setOnTouchListener { _, event ->
             handleSelectorTouch(event)
@@ -537,6 +713,10 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
         const val CLASSIC_PAGE = "classic.html"
         const val CHAMBER_PAGE = "chamber.html"
         const val CHAMBER_FULL_PAGE = "chamber-full.html"
+        const val LEGACY_SETTINGS_STORE = "opencode.settings.dat"
+        const val NOTIFICATION_CHANNEL_ID = "anemos"
+        const val NOTIFICATION_PERMISSION_REQUEST_CODE = 4701
+        val LEGACY_SETTINGS_KEYS = listOf("defaultServerUrl", "defaultServerUsername", "defaultServerPassword")
     }
 
     private fun runScan(gen: Int): ArrayList<JSObject> {

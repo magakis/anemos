@@ -12,6 +12,12 @@ describe('parseConnectionPayload', () => {
     expect(parseConnectionPayload('  http://192.168.1.10:2606 ')).toEqual({ url: 'http://192.168.1.10:2606' });
   });
 
+  test('accepts optional credentials in an opencode connect link', () => {
+    expect(parseConnectionPayload(
+      'opencode://connect?url=https%3A%2F%2Foc.example&username=alice&password=secret',
+    )).toEqual({ url: 'https://oc.example', username: 'alice', password: 'secret' });
+  });
+
   test('parses a v2 pairing link with direct + relay candidates', () => {
     const url = encodePairingConnectionPayload(buildPairingConnectionPayload({
       pairingId: 'pair_abc',

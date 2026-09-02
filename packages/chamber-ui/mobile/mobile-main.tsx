@@ -1,3 +1,4 @@
+import './platform-bootstrap';
 import { createConfiguredWebAPIs } from './runtimeConfig';
 import { consumeAuthTokenFromLocation } from '@openchamber/ui/anemos/auth';
 import { resolveServerEnv } from '@openchamber/ui/anemos/server-env';

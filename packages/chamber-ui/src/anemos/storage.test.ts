@@ -54,4 +54,42 @@ describe('legacy default-server migration', () => {
     expect(second.alreadyMigrated).toBe(true);
     expect(JSON.parse((await target.getItem('openchamber.mobile.connections.v1')) ?? '[]')).toHaveLength(1);
   });
+
+  test('prefers the native legacy source over the target storage fallback', async () => {
+    const legacy = createMemoryStorage();
+    const target = createMemoryStorage();
+    await legacy.setItem('defaultServerUrl', 'https://native.example/');
+    await target.setItem('defaultServerUrl', 'https://browser.example/');
+
+    const result = await migrateLegacyDefaultServer({ storage: target, legacyStorage: legacy });
+
+    expect(result.url).toBe('https://native.example');
+    const instances = JSON.parse((await target.getItem('openchamber.mobile.connections.v1')) ?? '[]') as Array<Record<string, unknown>>;
+    expect(instances[0]?.url).toBe('https://native.example');
+  });
+
+  test('leaves migration retryable when the legacy URL is invalid', async () => {
+    const legacy = createMemoryStorage();
+    const target = createMemoryStorage();
+    await legacy.setItem('defaultServerUrl', 'file:///not-a-server');
+
+    await migrateLegacyDefaultServer({ storage: target, legacyStorage: legacy });
+
+    expect(await target.getItem('anemos.default-server-migrated.v1')).toBeNull();
+  });
+
+  test('leaves migration retryable when the instance write cannot be verified', async () => {
+    const legacy = createMemoryStorage();
+    const target = createMemoryStorage();
+    await legacy.setItem('defaultServerUrl', 'https://native.example/');
+    const originalSetItem = target.setItem;
+    target.setItem = async (key, value) => {
+      if (key === 'openchamber.mobile.connections.v1') return;
+      await originalSetItem(key, value);
+    };
+
+    await migrateLegacyDefaultServer({ storage: target, legacyStorage: legacy });
+
+    expect(await target.getItem('anemos.default-server-migrated.v1')).toBeNull();
+  });
 });

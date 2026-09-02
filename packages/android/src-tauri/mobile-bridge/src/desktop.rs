@@ -6,6 +6,8 @@ use crate::{
     models::{ProbeResult, ScanResult},
 };
 
+// ANEMOS-PATCH: keep the command surface coherent for non-mobile compilation.
+
 pub fn init<R: Runtime, C: DeserializeOwned>(
     _app: &AppHandle<R>,
     _api: PluginApi<R, C>,
@@ -34,6 +36,32 @@ impl<R: Runtime> MobileBridge<R> {
         ))
     }
 
+    pub fn open_link(&self, _url: String) -> crate::Result<bool> {
+        Err(Error::Message(
+            "Mobile bridge is unavailable on this platform".to_string(),
+        ))
+    }
+
+    pub fn notify(
+        &self,
+        _title: String,
+        _description: Option<String>,
+        _href: Option<String>,
+        _kind: Option<String>,
+        _require_hidden: bool,
+        _generic: bool,
+    ) -> crate::Result<bool> {
+        Err(Error::Message(
+            "Mobile bridge is unavailable on this platform".to_string(),
+        ))
+    }
+
+    pub fn haptic(&self, _style: String) -> crate::Result<()> {
+        Err(Error::Message(
+            "Mobile bridge is unavailable on this platform".to_string(),
+        ))
+    }
+
     pub fn select_ui(&self, _id: String) -> crate::Result<()> {
         Err(Error::Message(
             "Mobile bridge is unavailable on this platform".to_string(),
@@ -47,6 +75,12 @@ impl<R: Runtime> MobileBridge<R> {
     }
 
     pub fn get_default_server_url(&self) -> crate::Result<Option<String>> {
+        Err(Error::Message(
+            "Mobile bridge is unavailable on this platform".to_string(),
+        ))
+    }
+
+    pub fn read_legacy_settings(&self) -> crate::Result<crate::LegacySettings> {
         Err(Error::Message(
             "Mobile bridge is unavailable on this platform".to_string(),
         ))

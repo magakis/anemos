@@ -29,6 +29,12 @@ export type AnemosStorageLike = {
 
 export type AnemosStorageSource = AnemosStorage | ((name?: string) => AnemosStorageLike);
 
+export type AnemosLegacySettings = {
+  defaultServerUrl?: string;
+  defaultServerUsername?: string;
+  defaultServerPassword?: string;
+};
+
 const hasStorage = (): boolean => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
 const createBrowserStorage = (): AnemosStorage => {
@@ -138,6 +144,33 @@ export const adaptAnemosStorage = (storage: AnemosStorageLike): AnemosStorage =>
       return this.getLength();
     },
   };
+};
+
+// ANEMOS-PATCH: expose native legacy settings through the same read-only storage
+// shape as localStorage, while keeping localStorage available as a dev fallback.
+export const createAnemosLegacySettingsStorage = (
+  read: () => Promise<AnemosLegacySettings | null | undefined>,
+  fallback?: AnemosStorage,
+): AnemosStorage => {
+  let values: Promise<AnemosLegacySettings | null> | null = null;
+  const load = (): Promise<AnemosLegacySettings | null> => {
+    if (!values) values = read().then((result) => result ?? null).catch(() => null);
+    return values;
+  };
+  const settingKey = (key: string): keyof AnemosLegacySettings => key.slice(key.lastIndexOf(':') + 1) as keyof AnemosLegacySettings;
+
+  return adaptAnemosStorage({
+    getItem: async (key) => {
+      const value = (await load())?.[settingKey(key)];
+      if (typeof value === 'string' && value.trim()) return value;
+      return fallback?.getItem(key) ?? null;
+    },
+    setItem: async () => undefined,
+    removeItem: async () => undefined,
+    clear: async () => undefined,
+    key: async () => null,
+    getLength: async () => 0,
+  });
 };
 
 export const createAnemosStorage = (source?: string | AnemosStorageLike): AnemosStorage =>
@@ -264,7 +297,8 @@ export const migrateLegacyDefaultServer = async (options: {
   const rawUrl = await readFirst(sources, legacyKeys('defaultServerUrl'));
   const url = rawUrl ? normalizeServerUrl(rawUrl) : null;
   if (!url) {
-    await storage.setItem(ANEMOS_DEFAULT_SERVER_MIGRATION_KEY, '1').catch(() => undefined);
+    // An invalid or unavailable legacy URL must remain retryable. In particular,
+    // a native store may be read before its old settings have become available.
     const instances = parseStoredInstances(await storage.getItem(ANEMOS_INSTANCE_STORAGE_KEY).catch(() => null));
     return { migrated: false, alreadyMigrated: false, url: null, instanceCount: instances.length };
   }
@@ -298,7 +332,12 @@ export const migrateLegacyDefaultServer = async (options: {
     ...(password ? { password } : {}),
   };
 
-  await storage.setItem(ANEMOS_INSTANCE_STORAGE_KEY, JSON.stringify([instance, ...current])).catch(() => undefined);
+  const nextInstances = JSON.stringify([instance, ...current]);
+  await storage.setItem(ANEMOS_INSTANCE_STORAGE_KEY, nextInstances).catch(() => undefined);
+  const storedInstances = await storage.getItem(ANEMOS_INSTANCE_STORAGE_KEY).catch(() => null);
+  if (storedInstances !== nextInstances) {
+    return { migrated: false, alreadyMigrated: false, url, instanceCount: current.length };
+  }
   await storage.setItem(ANEMOS_DEFAULT_SERVER_MIGRATION_KEY, '1').catch(() => undefined);
   return { migrated: true, alreadyMigrated: false, url, instanceCount: current.length + 1 };
 };

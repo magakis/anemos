@@ -29,6 +29,9 @@ export const MobileConnectionWelcome: React.FC<{
   const [serverUrl, setServerUrl] = React.useState('');
   const [connectionName, setConnectionName] = React.useState('');
   const [clientToken, setClientToken] = React.useState('');
+  // ANEMOS-PATCH: collect direct-instance credentials alongside the URL/token.
+  const [connectionUsername, setConnectionUsername] = React.useState('');
+  const [connectionPassword, setConnectionPassword] = React.useState('');
   // Which saved connection is being connected to, for the per-row spinner.
   const [connectingId, setConnectingId] = React.useState<string | null>(null);
   const [password, setPassword] = React.useState('');
@@ -39,8 +42,14 @@ export const MobileConnectionWelcome: React.FC<{
 
   const handleSubmit = React.useCallback((event: React.FormEvent) => {
     event.preventDefault();
-    void conn.connect({ url: serverUrl, clientToken, label: connectionName });
-  }, [clientToken, conn, connectionName, serverUrl]);
+    void conn.connect({
+      url: serverUrl,
+      clientToken,
+      label: connectionName,
+      username: connectionUsername,
+      password: connectionPassword,
+    });
+  }, [clientToken, connectionName, connectionPassword, connectionUsername, conn, serverUrl]);
 
   // Accept a pasted pairing link (opencode://connect?...) in the URL field and
   // split it back into the server URL + token.
@@ -57,6 +66,8 @@ export const MobileConnectionWelcome: React.FC<{
         setServerUrl(payload.url);
         if (payload.label) setConnectionName(payload.label);
         if (payload.clientToken) setClientToken(payload.clientToken);
+        if (payload.username) setConnectionUsername(payload.username);
+        if (payload.password) setConnectionPassword(payload.password);
         return;
       }
     }
@@ -158,7 +169,14 @@ export const MobileConnectionWelcome: React.FC<{
                         className="flex min-h-14 w-full items-center gap-3 border-b border-border/70 px-3.5 py-2.5 text-left last:border-b-0 hover:bg-interactive-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary disabled:opacity-70"
                         onClick={() => {
                           setConnectingId(connection.id);
-                          void conn.connect({ id: connection.id, candidates: connection.candidates, clientToken: connection.clientToken, label: connection.label })
+                          void conn.connect({
+                            id: connection.id,
+                            candidates: connection.candidates,
+                            clientToken: connection.clientToken,
+                            label: connection.label,
+                            username: connection.username,
+                            password: connection.password,
+                          })
                             .finally(() => setConnectingId(null));
                         }}
                       >
@@ -207,6 +225,25 @@ export const MobileConnectionWelcome: React.FC<{
                       autoCapitalize="words"
                       autoCorrect="off"
                       spellCheck={false}
+                      className={cn(mobileConnectionInputClass, 'text-center')}
+                    />
+                    <input
+                      {...mobileInputKeyboardProps}
+                      value={connectionUsername}
+                      onChange={(event) => setConnectionUsername(event.target.value)}
+                      placeholder="Username"
+                      aria-label="Username"
+                      autoCapitalize="none"
+                      className={cn(mobileConnectionInputClass, 'text-center')}
+                    />
+                    <input
+                      {...mobileInputKeyboardProps}
+                      value={connectionPassword}
+                      onChange={(event) => setConnectionPassword(event.target.value)}
+                      placeholder={t('mobile.connect.password.placeholder')}
+                      aria-label={t('mobile.connect.password.label')}
+                      type="password"
+                      autoCapitalize="none"
                       className={cn(mobileConnectionInputClass, 'text-center')}
                     />
                     <input

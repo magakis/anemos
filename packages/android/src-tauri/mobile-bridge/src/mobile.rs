@@ -4,7 +4,9 @@ use tauri::{
     AppHandle, Runtime,
 };
 
-use crate::models::{ProbeResult, ScanResult};
+use crate::models::{LegacySettings, ProbeResult, ScanResult};
+
+// ANEMOS-PATCH: forward Chamber capability calls to the origin-gated Android plugin.
 
 const PLUGIN_IDENTIFIER: &str = "ai.opencode.mobilebridge";
 
@@ -37,6 +39,42 @@ impl<R: Runtime> MobileBridge<R> {
             .map_err(Into::into)
     }
 
+    pub fn open_link(&self, url: String) -> crate::Result<bool> {
+        self.0
+            .run_mobile_plugin("openLink", OpenLinkPayload { url })
+            .map_err(Into::into)
+    }
+
+    pub fn notify(
+        &self,
+        title: String,
+        description: Option<String>,
+        href: Option<String>,
+        kind: Option<String>,
+        require_hidden: bool,
+        generic: bool,
+    ) -> crate::Result<bool> {
+        self.0
+            .run_mobile_plugin(
+                "notify",
+                NotifyPayload {
+                    title,
+                    description,
+                    href,
+                    kind,
+                    require_hidden,
+                    generic,
+                },
+            )
+            .map_err(Into::into)
+    }
+
+    pub fn haptic(&self, style: String) -> crate::Result<()> {
+        self.0
+            .run_mobile_plugin("haptic", HapticPayload { style })
+            .map_err(Into::into)
+    }
+
     pub fn select_ui(&self, id: String) -> crate::Result<()> {
         self.0
             .run_mobile_plugin("selectUI", UISelectionPayload { id })
@@ -54,6 +92,12 @@ impl<R: Runtime> MobileBridge<R> {
         self.0
             .run_mobile_plugin::<ServerURLResponse, _>("getDefaultServerUrl", ())
             .map(|result| result.url)
+            .map_err(Into::into)
+    }
+
+    pub fn read_legacy_settings(&self) -> crate::Result<LegacySettings> {
+        self.0
+            .run_mobile_plugin("readLegacySettings", ())
             .map_err(Into::into)
     }
 
@@ -88,6 +132,29 @@ impl<R: Runtime> MobileBridge<R> {
 struct SharePayload {
     text: Option<String>,
     url: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct OpenLinkPayload {
+    url: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct NotifyPayload {
+    title: String,
+    description: Option<String>,
+    href: Option<String>,
+    kind: Option<String>,
+    require_hidden: bool,
+    generic: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct HapticPayload {
+    style: String,
 }
 
 #[derive(Serialize)]

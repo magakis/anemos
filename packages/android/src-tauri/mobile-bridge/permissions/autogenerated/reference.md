@@ -11,9 +11,13 @@ Default permissions for the mobile bridge plugin
 - `allow-scan-network`
 - `allow-cancel-scan`
 - `allow-share`
+- `allow-open-link`
+- `allow-notify`
+- `allow-haptic`
 - `allow-select-ui`
 - `allow-get-selected-ui`
 - `allow-get-default-server-url`
+- `allow-read-legacy-settings`
 - `allow-set-default-server-url`
 - `allow-get-chamber-server-url`
 - `allow-set-chamber-server-url`

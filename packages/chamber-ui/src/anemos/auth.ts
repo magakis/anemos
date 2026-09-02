@@ -1,9 +1,29 @@
+// ANEMOS-PATCH: derive direct-instance Basic credentials for runtime requests.
+
 export interface AnemosTokenProvider {
   getToken(): string | null;
   setToken(value: string | null): void;
 }
 
 const AUTH_TOKEN_STORAGE_KEY = 'anemos.authToken';
+
+const encodeBase64 = (value: string): string => {
+  const bytes = new TextEncoder().encode(value);
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.slice(index, index + 0x8000));
+  }
+  return btoa(binary);
+};
+
+// ANEMOS-PATCH: derive the Basic header used by direct OpenCode instances from
+// the credentials saved with the instance metadata.
+export const deriveBasicAuthorization = (username?: unknown, password?: unknown): string | null => {
+  const normalizedUsername = typeof username === 'string' ? username.trim() : '';
+  const normalizedPassword = typeof password === 'string' ? password : '';
+  if (!normalizedUsername && !normalizedPassword) return null;
+  return `Basic ${encodeBase64(`${normalizedUsername || 'opencode'}:${normalizedPassword}`)}`;
+};
 
 const normalizeToken = (value: unknown): string | null => {
   if (typeof value !== 'string') return null;

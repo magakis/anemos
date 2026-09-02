@@ -28,6 +28,8 @@ import { adoptRelayTunnel, isRelayModeActive } from '@/lib/relay/runtime-tunnel'
 import { createRelayTunnelClient } from '@/lib/relay/tunnel-client';
 import { addRuntimeProxyHeaders, runtimeFetch } from '@/lib/runtime-fetch';
 import { getRuntimeApiBaseUrl, getRuntimeKey, switchRuntimeEndpoint } from '@/lib/runtime-switch';
+import { deriveBasicAuthorization, localStorageTokenProvider } from '@/anemos/auth';
+import { getRuntimeAuthorizationHeaderSync, setRuntimeAuthorizationHeader } from '@/lib/runtime-auth';
 
 import { recordMobileConnectDebug } from './mobileConnectionDebug';
 
@@ -128,6 +130,8 @@ export type MobilePendingConnection = {
   id: string;
   label: string;
   candidates: MobileTransportCandidate[];
+  // ANEMOS-PATCH: retain the username while the password unlock prompt is shown.
+  username?: string;
   // Present when the password unlock must ride the relay tunnel.
   relay?: MobileRelayConfig;
   relayGrant?: string;
@@ -140,6 +144,8 @@ export type MobileConnectInput = {
   url?: string;
   candidates?: MobileTransportCandidate[];
   clientToken?: string;
+  username?: string;
+  password?: string;
   label?: string;
   relay?: MobileRelayConfig;
   relayGrant?: string;
@@ -276,6 +282,16 @@ const buildCandidatesFromInput = (input: MobileConnectInput): MobileTransportCan
   }
   if (input.relay) list.push({ kind: 'relay', relay: input.relay });
   return list;
+};
+
+const applyConnectionAuthorization = (connection: { username?: string; password?: string } | null | undefined): void => {
+  const authorization = deriveBasicAuthorization(connection?.username, connection?.password);
+  if (authorization || connection) {
+    setRuntimeAuthorizationHeader(authorization);
+    return;
+  }
+  const token = localStorageTokenProvider.getToken();
+  setRuntimeAuthorizationHeader(token ? `Basic ${token}` : null);
 };
 
 const parseRelayConfig = (value: unknown): MobileRelayConfig | null => {
@@ -825,17 +841,21 @@ export const loadMobileConnections = async (): Promise<MobileSavedConnection[]> 
       }
     }
   }
-  return readConnections();
+  // ANEMOS-PATCH: apply migrated/native credentials before the first app bootstrap request.
+  const connections = readConnections();
+  applyConnectionAuthorization(connections[0]);
+  return connections;
 };
 
 export const upsertMobileConnection = async (
-  connection: { id?: string; label: string; candidates: MobileTransportCandidate[]; clientToken?: string },
+  connection: { id?: string; label: string; candidates: MobileTransportCandidate[]; clientToken?: string; username?: string; password?: string },
 ): Promise<MobileSavedConnection[]> => {
   const next = upsertConnectionInList(readConnections(), connection);
   writeConnections(next);
   if (isCapacitorApp() && connection.clientToken) {
     await writeSecureToken(secureTokenKeyOf({ candidates: connection.candidates }), connection.clientToken);
   }
+  applyConnectionAuthorization(next[0]);
   return next;
 };
 
@@ -893,7 +913,8 @@ const probeConnectionCandidates = async (
   const probeDirectChain = async (): Promise<ProbeResult> => {
     for (const candidate of directList) {
       const url = normalizeConnectionUrl(candidate.url) || candidate.url;
-      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+      const authorization = token ? `Bearer ${token}` : getRuntimeAuthorizationHeaderSync();
+      const headers = authorization ? { Authorization: authorization } : undefined;
       // /health is unauthenticated by design — never send the bearer token to an
       // address whose identity has not been checked yet.
       const health = await requestWithTimeout(`${url}/health`, { method: 'GET' }, requestOptions);
@@ -1063,6 +1084,7 @@ export const autoConnectLastInstance = async (options?: { fast?: boolean; skipIf
   const candidate = readConnections()[0]; // sorted most-recent-first
   logConnect('auto-connect:start', { hasCandidate: Boolean(candidate), fast });
   if (!candidate) return { status: 'no-candidate' };
+  applyConnectionAuthorization(candidate);
 
   // The runtime transport authenticates with a bearer token when the server
   // issued one. A connection saved WITHOUT a token means its last successful
@@ -1100,12 +1122,15 @@ export const autoConnectLastInstance = async (options?: { fast?: boolean; skipIf
   }
   await upsertMobileConnection({ id: candidate.id, label: candidate.label, candidates: candidate.candidates }); // bump lastUsedAt (keeps token)
   switchToTransport(result.transport, token ?? null, { runtimeKey: secureTokenKeyOf(candidate) });
+  applyConnectionAuthorization(candidate);
   return { status: 'connected' };
 };
 
 export const validateMobileConnectionSession = async (input: {
   url: string;
   clientToken?: string | null;
+  username?: string | null;
+  password?: string | null;
 }, options?: { fast?: boolean }): Promise<boolean> => {
   let url = '';
   try {
@@ -1116,7 +1141,10 @@ export const validateMobileConnectionSession = async (input: {
   if (!url) return false;
 
   const token = input.clientToken?.trim() || undefined;
-  const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+  const authorization = token
+    ? `Bearer ${token}`
+    : deriveBasicAuthorization(input.username, input.password) || getRuntimeAuthorizationHeaderSync();
+  const headers = authorization ? { Authorization: authorization } : undefined;
   const requestOptions = options?.fast ? { totalTimeoutMs: MOBILE_FAST_PROBE_TIMEOUT_MS } : undefined;
 
   const health = await requestWithTimeout(`${url}/health`, { method: 'GET', headers }, requestOptions);
@@ -1266,6 +1294,7 @@ export const reprobeActiveConnection = async (options?: { fast?: boolean }): Pro
     logConnect('reprobe:no-token', { hasToken: true });
     return 'unreachable';
   }
+  applyConnectionAuthorization(active);
   logConnect('reprobe:start', { candidates: active.candidates.map((c) => c.kind), fast, hasToken: Boolean(token) });
 
   const currentIndex = active.candidates.findIndex(
@@ -1279,6 +1308,7 @@ export const reprobeActiveConnection = async (options?: { fast?: boolean }): Pro
   if (better.status === 'ok') {
     await upsertMobileConnection({ id: active.id, label: active.label, candidates: active.candidates });
     switchToTransport(better.transport, token ?? null, { runtimeKey: secureTokenKeyOf(active) });
+    applyConnectionAuthorization(active);
     return 'switched';
   }
   // The shared token was explicitly rejected — no transport will accept it.
@@ -1305,6 +1335,7 @@ export const reprobeActiveConnection = async (options?: { fast?: boolean }): Pro
   if (fallback.status === 'ok') {
     await upsertMobileConnection({ id: active.id, label: active.label, candidates: active.candidates });
     switchToTransport(fallback.transport, token ?? null, { runtimeKey: secureTokenKeyOf(active) });
+    applyConnectionAuthorization(active);
     return 'switched';
   }
   if (fallback.status === 'needs-login') return 'needs-login';
@@ -1477,7 +1508,14 @@ export const useMobileConnection = (onConnected: () => void): UseMobileConnectio
   }, [applyConnections]);
 
   // Persist metadata for a connection and reflect it in state immediately.
-  const persistMetadata = React.useCallback((draft: { id?: string; label: string; candidates: MobileTransportCandidate[]; clientToken?: string }) => {
+  const persistMetadata = React.useCallback((draft: {
+    id?: string;
+    label: string;
+    candidates: MobileTransportCandidate[];
+    clientToken?: string;
+    username?: string;
+    password?: string;
+  }) => {
     const next = upsertConnectionInList(connectionsRef.current, draft);
     applyConnections(next);
     writeConnections(next);
@@ -1497,7 +1535,11 @@ export const useMobileConnection = (onConnected: () => void): UseMobileConnectio
         ? connectionsRef.current.find((c) => c.id === input.id)
         : connectionsRef.current.find((c) => candidateSetsMatch(c.candidates, candidates));
       const label = input.label?.trim() || saved?.label || getConnectionLabel(connectionDisplayUrl({ candidates }));
+      // ANEMOS-PATCH: consume per-instance credentials as direct Basic auth.
+      const username = input.username ?? saved?.username;
+      const password = input.password ?? saved?.password;
       const grant = input.relayGrant;
+      applyConnectionAuthorization({ username, password });
 
       // Resolve a token: explicit input wins, otherwise read the saved one.
       let token = input.clientToken?.trim() || undefined;
@@ -1519,11 +1561,12 @@ export const useMobileConnection = (onConnected: () => void): UseMobileConnectio
         return;
       }
       if (result.status === 'needs-login') {
-        persistMetadata({ id: saved?.id, label, candidates });
+        persistMetadata({ id: saved?.id, label, candidates, username });
         setPendingConnection({
           id: saved?.id ?? crypto.randomUUID(),
           label,
           candidates,
+          username,
           relay: relayCandidateOf({ candidates }) ?? undefined,
           relayGrant: grant,
         });
@@ -1535,8 +1578,9 @@ export const useMobileConnection = (onConnected: () => void): UseMobileConnectio
       if (token && tokenIsNew && isCapacitorApp()) {
         await writeSecureToken(secureTokenKeyOf({ candidates }), token);
       }
-      persistMetadata({ id: saved?.id, label, candidates, clientToken: token });
+      persistMetadata({ id: saved?.id, label, candidates, clientToken: token, username, password });
       switchToTransport(result.transport, token ?? null, { runtimeKey: secureTokenKeyOf({ candidates }), grant });
+      applyConnectionAuthorization({ username, password });
       onConnected();
     } catch (error) {
       console.warn('[mobile-connect] connect threw', error);
@@ -1635,7 +1679,8 @@ export const useMobileConnection = (onConnected: () => void): UseMobileConnectio
     beginBusy('password');
     const operation = passwordOperationRef.current.begin();
     const isCurrentOperation = () => passwordOperationRef.current.isCurrent(operation);
-    const { id, label, candidates } = pendingConnection;
+    const { id, label, candidates, username } = pendingConnection;
+    applyConnectionAuthorization({ username, password });
     // A chosen relay transport owns an open tunnel; close it unless the switch
     // adopted it as the runtime tunnel.
     let chosen: LiveTransport | null = null;
@@ -1653,7 +1698,11 @@ export const useMobileConnection = (onConnected: () => void): UseMobileConnectio
       const loginInit = {
         method: 'POST',
         credentials: 'include' as const,
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          ...(getRuntimeAuthorizationHeaderSync() ? { Authorization: getRuntimeAuthorizationHeaderSync() } : {}),
+        },
         // Same dedupe key as pairing: re-authenticating after a token expires
         // reuses this phone's existing device record instead of duplicating it.
         body: JSON.stringify({ password, trustDevice: true, issueClientToken: true, clientLabel: 'OpenChamber Mobile', clientKind: 'mobile', devicePlatform: mobileDevicePlatform(), dedupeKey: mobileClientDedupeKey() }),
@@ -1678,9 +1727,10 @@ export const useMobileConnection = (onConnected: () => void): UseMobileConnectio
       // direct connection in a browser.
       if (!issuedToken) {
         if (chosen.kind === 'direct' && !isCapacitorApp()) {
-          persistMetadata({ id, label, candidates });
+          persistMetadata({ id, label, candidates, username, password });
           setPendingConnection(null);
           switchToTransport({ kind: 'direct', url: chosen.url }, null, { runtimeKey: secureTokenKeyOf({ candidates }) });
+          applyConnectionAuthorization({ username, password });
           onConnected();
           return;
         }
@@ -1695,7 +1745,7 @@ export const useMobileConnection = (onConnected: () => void): UseMobileConnectio
         if (!isCurrentOperation()) return;
       }
       if (!isCurrentOperation()) return;
-      persistMetadata({ id, label, candidates, clientToken: issuedToken });
+      persistMetadata({ id, label, candidates, clientToken: issuedToken, username, password });
       setPendingConnection(null);
       // A relay transport hands its live login tunnel to the runtime (adopted
       // inside switchToTransport) — closing it here would tear down the runtime.
@@ -1704,6 +1754,7 @@ export const useMobileConnection = (onConnected: () => void): UseMobileConnectio
         issuedToken,
         { runtimeKey: secureTokenKeyOf({ candidates }) },
       );
+      applyConnectionAuthorization({ username, password });
       adopted = chosen.kind === 'relay';
       if (!isCurrentOperation()) return;
       onConnected();
@@ -1748,6 +1799,8 @@ export const useMobileConnection = (onConnected: () => void): UseMobileConnectio
       return null;
     }
     const clientToken = input.clientToken?.trim() || undefined;
+    const username = input.username === undefined ? undefined : input.username.trim();
+    const password = input.password === undefined ? undefined : input.password;
     const label = input.label?.trim() || getConnectionLabel(connectionDisplayUrl({ candidates }));
     // Awaited token writes so "Save" truly persisted the secret before returning.
     if (isCapacitorApp()) {
@@ -1765,8 +1818,10 @@ export const useMobileConnection = (onConnected: () => void): UseMobileConnectio
         }
       }
     }
-    const next = persistMetadata({ id: input.id, label, candidates, clientToken });
-    return next.find((connection) => candidateSetsMatch(connection.candidates, candidates)) ?? null;
+    const next = persistMetadata({ id: input.id, label, candidates, clientToken, username, password });
+    const saved = next.find((connection) => candidateSetsMatch(connection.candidates, candidates)) ?? null;
+    if (saved && isActiveRuntimeConnection(saved)) applyConnectionAuthorization(saved);
+    return saved;
   }, [persistMetadata, t]);
 
   const removeConnection = React.useCallback(async (id: string): Promise<MobileSavedConnection | null> => {

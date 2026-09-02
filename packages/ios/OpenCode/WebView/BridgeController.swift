@@ -110,6 +110,13 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
   override init() {
     super.init()
     userContent.add(self, name: "opencode")
+    // ANEMOS-PATCH: mark only the local WKWebView pages; remote Chamber Full
+    // content must never receive the native shell identity.
+    userContent.addUserScript(WKUserScript(
+      source: "if ((location.protocol === 'tauri:' && location.host === 'localhost') || (location.protocol === 'http:' && location.host === 'tauri.localhost')) window.__ANEMOS_SHELL__ = 'ios';",
+      injectionTime: .atDocumentStart,
+      forMainFrameOnly: true,
+    ))
     platform.onEvent = { [weak self] type, payload in
       self?.sendEvent(type: type, payload: payload)
     }
@@ -121,6 +128,7 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
   func attach(to webView: WKWebView) {
     self.webView = webView
     webView.navigationDelegate = self
+    webView.uiDelegate = self
     platform.webView = webView
     gestures.attach(to: webView) { [weak self] type, payload in
       self?.sendEvent(type: type, payload: payload)
@@ -372,5 +380,22 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
 
   func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
     print("[OpenCode] Navigation failed: \(error.localizedDescription)")
+  }
+
+  // ANEMOS-PATCH: make window.open usable in WKWebView by routing external
+  // HTTP(S) targets to the existing native openLink bridge.
+  func webView(
+    _ webView: WKWebView,
+    createWebViewWith configuration: WKWebViewConfiguration,
+    for navigationAction: WKNavigationAction,
+    windowFeatures: WKWindowFeatures,
+  ) -> WKWebView? {
+    guard let url = navigationAction.request.url,
+          let scheme = url.scheme?.lowercased(),
+          scheme == "http" || scheme == "https" else {
+      return nil
+    }
+    platform.openLink(url.absoluteString)
+    return nil
   }
 }

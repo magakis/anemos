@@ -5,12 +5,15 @@
 // Google Play Services. iOS keeps the native ready-made scanner.
 
 import { parsePairingConnectionPayload, parsePairingConnectionPayloadString, type PairingConnectionPayload } from '@/lib/connectionPayload';
-import { isAnemosDeepLink } from '@/anemos/deep-links';
+import { isAnemosDeepLink, remapDeepLinkScheme } from '@/anemos/deep-links';
 
 export type MobileConnectionPayload = {
   url: string;
   clientToken?: string;
   label?: string;
+  // ANEMOS-PATCH: allow direct connect links to carry Basic credentials.
+  username?: string;
+  password?: string;
 };
 
 export type MobilePairingPayload = {
@@ -53,6 +56,28 @@ const isAndroid = (): boolean => {
   return capacitor?.getPlatform?.() === 'android';
 };
 
+const parseDirectDeepLink = (raw: string): MobileConnectionPayload | null => {
+  try {
+    const url = new URL(remapDeepLinkScheme(raw));
+    if (url.protocol !== 'opencode:' || url.hostname !== 'connect') return null;
+    const serverUrl = url.searchParams.get('url')?.trim();
+    if (!serverUrl || !/^https?:\/\//i.test(serverUrl)) return null;
+    const username = url.searchParams.get('username')?.trim() || undefined;
+    const password = url.searchParams.get('password') || undefined;
+    const clientToken = url.searchParams.get('token')?.trim() || undefined;
+    const label = url.searchParams.get('label')?.trim() || undefined;
+    return {
+      url: serverUrl,
+      ...(clientToken ? { clientToken } : {}),
+      ...(label ? { label } : {}),
+      ...(username ? { username } : {}),
+      ...(password ? { password } : {}),
+    };
+  } catch {
+    return null;
+  }
+};
+
 export const parseConnectionPayload = (raw: string): MobileConnectionPayload | MobilePairingPayload | null => {
   const trimmed = raw.trim();
   if (!trimmed) return null;
@@ -60,7 +85,7 @@ export const parseConnectionPayload = (raw: string): MobileConnectionPayload | M
   // ANEMOS-PATCH: accept both old OpenChamber and current opencode pairing links.
   if (isAnemosDeepLink(trimmed)) {
     const pairing = parsePairingConnectionPayload(trimmed);
-    return pairing ? { pairing } : null;
+    return pairing ? { pairing } : parseDirectDeepLink(trimmed);
   }
 
   if (/^https?:\/\//i.test(trimmed)) return { url: trimmed };

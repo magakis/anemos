@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import WebKit
+import UserNotifications
 
 final class PlatformBridge {
   weak var webView: WKWebView?
@@ -21,13 +22,10 @@ final class PlatformBridge {
   func handle(id: String, method: String, params: [String: Any], reply: @escaping (Any?, String?) -> Void) {
     switch method {
     case "openLink":
-      if let url = params["url"] as? String, let target = URL(string: url) {
-        DispatchQueue.main.async {
-          UIApplication.shared.open(target, options: [:], completionHandler: nil)
-        }
-      }
+      openLink(params["url"] as? String)
       reply(nil, nil)
     case "notify":
+      notify(params: params)
       reply(nil, nil)
     case "haptic":
       if let style = params["style"] as? String {
@@ -67,6 +65,8 @@ final class PlatformBridge {
         result["url"] = NSNull()
       }
       reply(result, nil)
+    case "readLegacySettings":
+      reply(config.readLegacySettings(), nil)
     case "getChamberServerUrl":
       var result: [String: Any] = [:]
       if let url = config.getChamberServerUrl() {
@@ -111,6 +111,41 @@ final class PlatformBridge {
       reply(config.storageLength(name: params["name"] as? String), nil)
     default:
       reply(nil, "Unknown method")
+    }
+  }
+
+  // ANEMOS-PATCH: route external links from Chamber's window.open through the
+  // same native opener used by explicit openLink bridge calls.
+  func openLink(_ value: String?) {
+    guard let value, let target = URL(string: value) else { return }
+    DispatchQueue.main.async {
+      UIApplication.shared.open(target, options: [:], completionHandler: nil)
+    }
+  }
+
+  // ANEMOS-PATCH: deliver Chamber completion notifications through iOS local
+  // notifications when the app is backgrounded; generic push probes stay silent.
+  private func notify(params: [String: Any]) {
+    guard params["generic"] as? Bool != true else { return }
+    if params["requireHidden"] as? Bool == true && UIApplication.shared.applicationState == .active { return }
+
+    let content = UNMutableNotificationContent()
+    content.title = params["title"] as? String ?? "OpenCode"
+    content.body = params["description"] as? String ?? ""
+    content.sound = .default
+    if let href = params["href"] as? String {
+      content.userInfo = ["href": href]
+    }
+
+    let request = UNNotificationRequest(
+      identifier: "anemos.\(UUID().uuidString)",
+      content: content,
+      trigger: nil,
+    )
+    let center = UNUserNotificationCenter.current()
+    center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+      guard granted else { return }
+      center.add(request, withCompletionHandler: nil)
     }
   }
 

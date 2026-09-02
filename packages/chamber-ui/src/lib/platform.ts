@@ -1,6 +1,6 @@
 import { isDesktopShell, isVSCodeRuntime } from '@/lib/desktop';
 
-export type AnemosShellPlatform = 'ios' | 'android';
+export type AnemosShellPlatform = 'ios' | 'android' | 'web';
 
 declare global {
   interface Window {
@@ -34,7 +34,7 @@ export const getAnemosShellPlatform = (): AnemosShellPlatform => {
     const platform = capacitor?.getPlatform?.();
     if (platform === 'ios' || platform === 'android') return platform;
   }
-  return 'android';
+  return 'web';
 };
 
 /** True when running inside any native mobile shell, not the web/PWA. */

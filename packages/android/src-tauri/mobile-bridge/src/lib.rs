@@ -3,6 +3,8 @@ use tauri::{
     Manager, Runtime,
 };
 
+// ANEMOS-PATCH: register the Chamber native capability and legacy-settings commands.
+
 mod commands;
 mod error;
 mod models;
@@ -13,7 +15,7 @@ mod desktop;
 mod mobile;
 
 pub use error::{Error, Result};
-pub use models::{ProbeResult, ScanResult};
+pub use models::{LegacySettings, ProbeResult, ScanResult};
 
 #[cfg(desktop)]
 pub use desktop::MobileBridge;
@@ -36,9 +38,13 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::scan_network,
             commands::cancel_scan,
             commands::share,
+            commands::open_link,
+            commands::notify,
+            commands::haptic,
             commands::select_ui,
             commands::get_selected_ui,
             commands::get_default_server_url,
+            commands::read_legacy_settings,
             commands::set_default_server_url,
             commands::get_chamber_server_url,
             commands::set_chamber_server_url,

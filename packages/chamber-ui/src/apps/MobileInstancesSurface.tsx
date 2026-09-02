@@ -27,6 +27,9 @@ export const MobileInstancesSurface: React.FC<{
   const [url, setUrl] = React.useState('');
   const [label, setLabel] = React.useState('');
   const [clientToken, setClientToken] = React.useState('');
+  // ANEMOS-PATCH: edit the Basic credentials saved with each instance.
+  const [username, setUsername] = React.useState('');
+  const [credentialPassword, setCredentialPassword] = React.useState('');
   const [password, setPassword] = React.useState('');
   // The manual add/edit form is hidden until asked for — the sheet leads with
   // the list of instances (with live status), not a wall of inputs.
@@ -47,6 +50,8 @@ export const MobileInstancesSurface: React.FC<{
     setUrl('');
     setLabel('');
     setClientToken('');
+    setUsername('');
+    setCredentialPassword('');
     setError(null);
     setFormOpen(false);
   }, [setError]);
@@ -56,10 +61,17 @@ export const MobileInstancesSurface: React.FC<{
     // The id is what makes this an EDIT: saveConnection uses it to preserve the
     // existing relay/https candidates (and the Keychain token they key) instead
     // of rebuilding the instance from the single URL field.
-    void saveConnection({ id: editingId ?? undefined, url, label, clientToken }).then((saved) => {
+    void saveConnection({
+      id: editingId ?? undefined,
+      url,
+      label,
+      clientToken,
+      username,
+      password: credentialPassword,
+    }).then((saved) => {
       if (saved) resetForm();
     });
-  }, [clientToken, editingId, label, resetForm, saveConnection, url]);
+  }, [clientToken, credentialPassword, editingId, label, resetForm, saveConnection, url, username]);
 
   const handlePasswordSubmit = React.useCallback((event: React.FormEvent) => {
     event.preventDefault();
@@ -165,7 +177,14 @@ export const MobileInstancesSurface: React.FC<{
                       onClick={() => {
                         if (isActive) return;
                         setConnectingId(connection.id);
-                        void connect({ id: connection.id, candidates: connection.candidates, clientToken: connection.clientToken, label: connection.label })
+                        void connect({
+                          id: connection.id,
+                          candidates: connection.candidates,
+                          clientToken: connection.clientToken,
+                          label: connection.label,
+                          username: connection.username,
+                          password: connection.password,
+                        })
                           .finally(() => setConnectingId(null));
                       }}
                       disabled={(isBusy && !isConnectingRow) || confirming}
@@ -209,6 +228,8 @@ export const MobileInstancesSurface: React.FC<{
                             setUrl(connectionDisplayUrl(connection));
                             setLabel(connection.label);
                             setClientToken(connection.clientToken || '');
+                            setUsername(connection.username || '');
+                            setCredentialPassword(connection.password || '');
                             setError(null);
                           }}
                           style={{ touchAction: 'manipulation' }}
@@ -300,6 +321,31 @@ export const MobileInstancesSurface: React.FC<{
                   className={inputClass}
                 />
                 <p className="px-1 typography-micro text-muted-foreground">{t('mobile.connect.token.hint')}</p>
+              </label>
+              <label className="block space-y-1.5">
+                <span className="block px-1 typography-ui-label text-foreground">Username</span>
+                <input
+                  {...mobileInputKeyboardProps}
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="Username"
+                  aria-label="Username"
+                  autoCapitalize="none"
+                  className={inputClass}
+                />
+              </label>
+              <label className="block space-y-1.5">
+                <span className="block px-1 typography-ui-label text-foreground">{t('mobile.connect.password.label')}</span>
+                <input
+                  {...mobileInputKeyboardProps}
+                  value={credentialPassword}
+                  onChange={(event) => setCredentialPassword(event.target.value)}
+                  placeholder={t('mobile.connect.password.placeholder')}
+                  aria-label={t('mobile.connect.password.label')}
+                  type="password"
+                  autoCapitalize="none"
+                  className={inputClass}
+                />
               </label>
               {error ? <p className="px-1 typography-small text-[var(--status-error)]">{error}</p> : null}
               <Button type="submit" size="lg" className="mt-1 h-12 w-full">

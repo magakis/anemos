@@ -11,6 +11,22 @@ final class ServerConfig {
     defaults.string(forKey: defaultServerKey) ?? storageGet(name: "settings.dat", key: "defaultServerUrl")
   }
 
+  // ANEMOS-PATCH: expose the old settings store to the Chamber migration before
+  // the new instance list is written.
+  func readLegacySettings() -> [String: String] {
+    let keys = ["defaultServerUrl", "defaultServerUsername", "defaultServerPassword"]
+    var result = [String: String]()
+    for key in keys {
+      let value = storageGet(name: "settings.dat", key: key)
+        ?? defaults.string(forKey: "opencode.settings.dat:\(key)")
+        ?? defaults.string(forKey: key)
+      if let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        result[key] = value
+      }
+    }
+    return result
+  }
+
   func setDefaultServerUrl(_ url: String?) {
     if let url {
       defaults.set(url, forKey: defaultServerKey)

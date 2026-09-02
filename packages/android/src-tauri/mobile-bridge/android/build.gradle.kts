@@ -35,5 +35,7 @@ android {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.9.0")
+    // ANEMOS-PATCH: document-start shell markers must run before Chamber's bundle.
+    implementation("androidx.webkit:webkit:1.14.0")
     implementation(project(":tauri-android"))
 }
