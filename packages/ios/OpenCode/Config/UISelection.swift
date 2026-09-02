@@ -3,13 +3,11 @@ import Foundation
 enum UISelection: String {
   case chamberFull = "1"
   case classic = "2"
-  case chamber = "3"
 
   var fileName: String {
     switch self {
     case .chamberFull: return "chamber-full.html"
     case .classic: return "classic.html"
-    case .chamber: return "chamber.html"
     }
   }
 

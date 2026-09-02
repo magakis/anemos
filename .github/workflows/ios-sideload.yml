@@ -29,10 +29,10 @@ jobs:
         run: |
           test -f packages/ios/WebAssets/selector.html
           test -f packages/ios/WebAssets/classic.html
-          test -f packages/ios/WebAssets/chamber.html
           test -d packages/ios/WebAssets/assets/selector
           test -d packages/ios/WebAssets/assets/classic
-          test -d packages/ios/WebAssets/assets/chamber
+          test ! -e packages/ios/WebAssets/chamber.html
+          test ! -e packages/ios/WebAssets/assets/chamber
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -58,10 +58,10 @@ jobs:
         run: |
           test -f packages/ios/build/Release-iphoneos/Anemos.app/WebAssets/selector.html
           test -f packages/ios/build/Release-iphoneos/Anemos.app/WebAssets/classic.html
-          test -f packages/ios/build/Release-iphoneos/Anemos.app/WebAssets/chamber.html
           test -d packages/ios/build/Release-iphoneos/Anemos.app/WebAssets/assets/selector
           test -d packages/ios/build/Release-iphoneos/Anemos.app/WebAssets/assets/classic
-          test -d packages/ios/build/Release-iphoneos/Anemos.app/WebAssets/assets/chamber
+          test ! -e packages/ios/build/Release-iphoneos/Anemos.app/WebAssets/chamber.html
+          test ! -e packages/ios/build/Release-iphoneos/Anemos.app/WebAssets/assets/chamber
 
       - name: Package .ipa (unsigned — on-device signing by SideStore)
         run: |

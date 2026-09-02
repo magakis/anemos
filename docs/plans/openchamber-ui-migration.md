@@ -769,3 +769,48 @@ Static origin-policy and source-gate checks are signed off by the harness; real 
 - **Track C — URL policy and permissions:** MAJOR-3 URL policy and MINOR-3
   permissions TOMLs are being implemented in parallel by Agent C across the
   native server configuration, selector, Android bridge, and permission files.
+
+## Rev 3 — UI 3 on hold
+
+The user directive for Rev 3 is to ship only **UI 1 — Chamber Full** (the
+configured remote Chamber server) and **UI 2 — Classic** (direct opencode),
+with the selector. UI 3 — Anemos Chamber is on hold, not deleted: its vendored
+source, package scripts, tests, and documentation remain parked in
+`packages/chamber-ui` for cheap revival.
+
+### Removed from the shipped shells
+
+- The Anemos Chamber selector card and UI 3 server label were removed from
+  `packages/shared/selector/selector.html`.
+- iOS and Android no longer accept or route the remembered `chamber` selection;
+  an existing value falls back to the selector, while deep-link and push-tap
+  handling falls back to Classic and never opens UI 1.
+- The shell Vite inputs and build scripts no longer build or copy `chamber.html`
+  or `assets/chamber/`; the generated shell assets contain only the selector,
+  Classic, and the remote Chamber Full route.
+
+### Parked for revival
+
+`packages/chamber-ui` keeps its own `dev`, `build`, `typecheck`, `test`, and
+`test:e2e` scripts and remains covered by Turbo typecheck. Its independent
+package build and source tests are not part of the shipped shell build chain.
+
+### Exact revival checklist
+
+1. Restore the Anemos Chamber card and its `data-ui="3"` selection behavior in
+   `packages/shared/selector/selector.html`, including the UI 3 server label.
+2. Restore the UI 3 routing target in `packages/ios/OpenCode/Config/UISelection.swift`,
+   `packages/ios/OpenCode/WebView/BridgeController.swift`, and
+   `packages/android/src-tauri/mobile-bridge/android/src/main/java/MobileBridgePlugin.kt`;
+   reinstate the remembered-selection and deep-link rules for the local Chamber
+   page.
+3. Restore the shell build-chain copy step and scripts in
+   `packages/ios/package.json`, `packages/android/package.json`,
+   `packages/ios/scripts/copy-chamber.mjs`, and
+   `packages/android/scripts/copy-chamber.mjs`; restore the shell-to-`@openchamber/ui`
+   build dependency in `turbo.json`.
+4. Build `packages/chamber-ui`, then rebuild both shells so
+   `chamber.html` and `assets/chamber/` return to `packages/ios/WebAssets/` and
+   `packages/android/dist/`; verify both local Chamber routes and their assets.
+5. Re-run the parked package's source tests and the shell/browser/device gates
+   before treating UI 3 as shipped again.

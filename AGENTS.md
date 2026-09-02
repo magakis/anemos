@@ -114,7 +114,7 @@ To start your own backend instead: `opencode serve --port 4096` and drop the env
 
 Open `http://127.0.0.1:4445`, enable the DevTools device toolbar, and pick an iPhone preset. Don't manually restart the app or server during debugging — Vite HMR handles reloads.
 
-## Three-UI Mobile Architecture
+## Two-UI Mobile Architecture (UI 3 parked)
 
 The iOS and Android shells ship one navigation-based bundle with a local
 `selector.html` and exactly one WebView runtime:
@@ -124,18 +124,21 @@ The iOS and Android shells ship one navigation-based bundle with a local
   are origin-gated away from it.
 - **UI 2 — Classic:** the existing Solid app in `packages/app`, unchanged and
   permanently retained; it talks to the opencode server.
-- **UI 3 — Anemos Chamber:** the vendored `packages/chamber-ui` direct-connect
-  surface; it also talks to the opencode server and is the active development
-  target.
+- **UI 3 — Anemos Chamber (parked):** the vendored `packages/chamber-ui`
+  direct-connect surface remains in the repository with its package scripts,
+  tests, and docs, but is not built into or routed by either shipped shell.
 
-Launch routing honors the remembered selection and otherwise opens Classic.
+Launch routing honors a remembered Chamber Full or Classic selection; an invalid
+or parked selection falls back to the selector, which highlights Classic.
 The native four-finger swipe-up gesture (with four-finger double-tap
 fallback) returns from any UI, including remote UI 1, to the selector. Build
 with `ANEMOS_SELECTOR=0` to route directly to Classic and disable the selector
 recognizers. UI 2 work is frozen except deliberate bug fixes: after shell or
-UI 3 changes, `git diff --stat packages/app` must remain empty. Route future
-feature work to UI 3; UI 2 is the compatibility floor, and UI 1 follows the
-user's upstream Chamber server.
+parked UI 3 changes, `git diff --stat packages/app` must remain empty. UI 3's
+hold and revival procedure are recorded in
+[`docs/plans/openchamber-ui-migration.md`](docs/plans/openchamber-ui-migration.md#rev-3--ui-3-on-hold).
+UI 2 is the compatibility floor, and UI 1 follows the user's upstream Chamber
+server.
 
 ### Verify before pushing
 

@@ -179,14 +179,6 @@
       <h1>Select interface</h1>
         <p>Choose the Anemos experience to open next time.</p>
         <div class="cards" role="list" aria-label="Anemos interfaces">
-          <button class="card" data-ui="3" data-select="3" type="button" role="listitem">
-            <span class="name">Anemos Chamber</span>
-            <span class="server" data-server="3">Classic / Anemos Chamber → loading…</span>
-          </button>
-          <button class="card" data-ui="2" data-select="2" type="button" role="listitem">
-            <span class="name">Classic</span>
-            <span class="server" data-server="2">Classic / Anemos Chamber → loading…</span>
-          </button>
           <div class="card" data-ui="1" role="listitem">
             <button class="card-action" data-select="1" type="button">
               <span class="name">Chamber Full</span>
@@ -205,6 +197,10 @@
             <span class="hint" id="chamber-hint" role="status" aria-live="polite">HTTPS is preferred. HTTP is limited to local and Tailscale addresses.</span>
             <span class="probe" id="chamber-probe" role="status" aria-live="polite">Not checked</span>
           </div>
+          <button class="card" data-ui="2" data-select="2" type="button" role="listitem">
+            <span class="name">Classic</span>
+            <span class="server" data-server="2">Classic → loading…</span>
+          </button>
         </div>
         <span class="state" id="state" role="status" aria-live="polite"></span>
         <footer class="gesture-hint">Switch anytime: swipe up with four fingers (or double-tap with four fingers) in any interface to return here.</footer>
@@ -355,7 +351,7 @@
         };
 
         const select = async (id) => {
-          if (id !== "1" && id !== "2" && id !== "3") return;
+          if (id !== "1" && id !== "2") return;
           if (id === "1") {
             if (!(await persistChamberUrl()) || !(await probeChamberUrl())) {
               setState("Set a reachable Chamber server before opening Chamber Full.", true);
@@ -385,7 +381,7 @@
         const initialize = async () => {
           try {
             const selected = unwrap(await call("getSelectedUI"), "id");
-            const remembered = selected === "1" || selected === "2" || selected === "3" ? selected : "2";
+            const remembered = selected === "1" || selected === "2" ? selected : "2";
             cards.forEach((card) => card.classList.toggle("selected", card.dataset.ui === remembered));
           } catch {
             cards.find((card) => card.dataset.ui === "2")?.classList.add("selected");
@@ -395,11 +391,11 @@
             const server = unwrap(await call("getDefaultServerUrl"), "url");
             const label = typeof server === "string" && server ? server : "Not configured";
             document.querySelectorAll("[data-server]").forEach((element) => {
-              element.textContent = `Classic / Anemos Chamber → ${label}`;
+              element.textContent = `Classic → ${label}`;
             });
           } catch {
             document.querySelectorAll("[data-server]").forEach((element) => {
-              element.textContent = "Classic / Anemos Chamber → Not configured";
+              element.textContent = "Classic → Not configured";
             });
           }
 

@@ -9,11 +9,11 @@
       "outputs": ["dist/**"]
     },
     "@opencode-ai/ios#build": {
-      "dependsOn": ["@openchamber/ui#build"],
+      "dependsOn": [],
       "outputs": ["WebAssets/**"]
     },
     "@opencode-ai/android#build": {
-      "dependsOn": ["@openchamber/ui#build"],
+      "dependsOn": [],
       "outputs": ["dist/**"]
     },
     "@opencode-ai/app#test": {

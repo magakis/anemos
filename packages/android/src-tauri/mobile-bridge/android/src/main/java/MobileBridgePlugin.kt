@@ -301,7 +301,7 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
 
         val args = invoke.parseArgs(UISelectionArgs::class.java)
         val selection = args.id
-        if (selection != "1" && selection != "2" && selection != "3") {
+        if (selection != "1" && selection != "2") {
             invoke.reject("Unsupported UI")
             return
         }
@@ -316,7 +316,7 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
             if (selection == "1") {
                 if (!loadChamberPage()) webView?.loadUrl(localUrl(SELECTOR_PAGE))
             } else {
-                webView?.loadUrl(localUrl(pageFor(selection)))
+                webView?.loadUrl(localUrl(CLASSIC_PAGE))
             }
         }
     }
@@ -436,23 +436,11 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
         if (!selectorEnabled) return CLASSIC_PAGE
         val selected = selectionPreferences.getString(SELECTED_UI_KEY, null)
         if (selected == "1" && chamberServerUri() != null) return CHAMBER_FULL_PAGE
-        return selected?.let(::pageFor) ?: SELECTOR_PAGE
+        if (selected == "2") return CLASSIC_PAGE
+        return SELECTOR_PAGE
     }
 
-    private fun deepLinkTarget(): String {
-        return when (selectionPreferences.getString(SELECTED_UI_KEY, null)) {
-            "2" -> CLASSIC_PAGE
-            "3" -> CHAMBER_PAGE
-            else -> CHAMBER_PAGE
-        }
-    }
-
-    private fun pageFor(selection: String): String {
-        return when (selection) {
-            "3" -> CHAMBER_PAGE
-            else -> CLASSIC_PAGE
-        }
-    }
+    private fun deepLinkTarget(): String = CLASSIC_PAGE
 
     private fun localUrl(page: String): String = "http://tauri.localhost/$page"
 
@@ -667,7 +655,6 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
         const val RESET_UI_EXTRA = "reset-ui"
         const val SELECTOR_PAGE = "selector.html"
         const val CLASSIC_PAGE = "classic.html"
-        const val CHAMBER_PAGE = "chamber.html"
         const val CHAMBER_FULL_PAGE = "chamber-full.html"
         const val LEGACY_SETTINGS_STORE = "opencode.settings.dat"
         const val NOTIFICATION_CHANNEL_ID = "anemos"

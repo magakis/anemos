@@ -4,6 +4,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import type { Plugin } from "vite"
+import { createSelectorConfigPlugin } from "../shared/selector/vite-plugin"
 
 const packageDirectory = path.dirname(fileURLToPath(import.meta.url))
 const selectorHtml = path.resolve(packageDirectory, "selector.html")
@@ -21,7 +22,7 @@ const localSelectorPlugin = (): Plugin => ({
 
 export default defineConfig({
   root: packageDirectory,
-  plugins: [localSelectorPlugin(), appPlugin],
+  plugins: [localSelectorPlugin(), createSelectorConfigPlugin(process.env.ANEMOS_SELECTOR !== "0"), appPlugin],
   publicDir: "../app/public",
   base: "./",
   server: {
@@ -37,7 +38,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         classic: path.resolve(packageDirectory, "classic.html"),
-        // ANEMOS-PATCH: shell Vite owns only local entries; Chamber is copied post-build.
         selector: selectorHtml,
       },
       output: {

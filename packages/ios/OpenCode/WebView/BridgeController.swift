@@ -227,7 +227,7 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
 
   private func handleDeepLink(_ url: URL) {
     guard url.scheme == "opencode" else { return }
-    let target = UISelection.local(rawValue: platform.selectedUI()) ?? .chamber
+    let target = UISelection.local(rawValue: platform.selectedUI()) ?? .classic
     if currentPage == target.fileName {
       injectDeepLink(url)
       return
@@ -368,7 +368,7 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
       handleDeepLink(url)
     }
     guard isLocalPage(webView.url) else { return }
-    let target = UISelection.local(rawValue: platform.selectedUI()) ?? .chamber
+    let target = UISelection.local(rawValue: platform.selectedUI()) ?? .classic
     if currentPage == target.fileName, !pendingDeepLinks.isEmpty {
       let links = pendingDeepLinks
       pendingDeepLinks = []

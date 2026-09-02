@@ -7,9 +7,7 @@
   "scripts": {
     "typecheck": "tsgo -b",
     "dev": "vite",
-    "prebuild": "bun run --cwd ../chamber-ui build",
-    "copy-chamber": "node scripts/copy-chamber.mjs",
-    "build": "bun run typecheck && vite build && bun run copy-chamber",
+    "build": "bun run typecheck && vite build",
     "preview": "vite preview",
     "tauri": "tauri"
   },

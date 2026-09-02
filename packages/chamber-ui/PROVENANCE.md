@@ -22,6 +22,13 @@ navigation to the user's configured Chamber server URL; no upstream code from
 this package runs in that surface. UI 3 is the vendored direct-connect surface
 documented below, while UI 2 remains the separate Classic application.
 
+## Rev 3 hold note
+
+This package is parked as of this Rev 3 hold commit and is not shipped or
+routed by the iOS or Android shells. Its source, package scripts, tests, and
+provenance remain in the repository for cheap revival. The last verified state
+was the blank-screen fix in `3741959081`, render-verified.
+
 ## Local changes ledger
 
 | Phase | Local divergence | Scope |
