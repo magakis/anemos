@@ -78,13 +78,13 @@ final class PlatformBridge {
     case "setChamberServerUrl":
       let value = params["url"] as? String
       guard config.setChamberServerUrl(value) else {
-        reply(nil, "Invalid Chamber server URL")
+        reply(nil, ServerConfig.invalidChamberServerURLMessage)
         return
       }
       reply(nil, nil)
     case "probeChamberServerUrl":
       guard let value = params["url"] as? String, let url = ServerConfig.validChamberServerURL(value) else {
-        reply(nil, "Invalid Chamber server URL")
+        reply(nil, ServerConfig.invalidChamberServerURLMessage)
         return
       }
       probe(url: url, reply: reply)

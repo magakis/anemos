@@ -6,6 +6,7 @@ final class ServerConfig {
   private let chamberServerKey = "opencode.chamberServerUrl"
   private let selectedUIKey = "opencode.selectedUI"
   private let storagePrefix = "opencode.storage."
+  static let invalidChamberServerURLMessage = "Plain http is only allowed for local addresses (hostname, LAN/Tailscale IP, .local/.ts.net/.lan/.internal/.home.arpa names) — use https otherwise."
 
   func getDefaultServerUrl() -> String? {
     defaults.string(forKey: defaultServerKey) ?? storageGet(name: "settings.dat", key: "defaultServerUrl")
@@ -136,7 +137,15 @@ final class ServerConfig {
     let unbracketed = normalized.hasPrefix("[") && normalized.hasSuffix("]")
       ? String(normalized.dropFirst().dropLast())
       : normalized
-    if unbracketed == "localhost" || unbracketed == "127.0.0.1" || unbracketed == "::1" || unbracketed.hasSuffix(".local") {
+    if unbracketed == "localhost"
+      || unbracketed == "127.0.0.1"
+      || unbracketed == "::1"
+      || unbracketed.hasSuffix(".local")
+      || unbracketed.hasSuffix(".ts.net")
+      || unbracketed.hasSuffix(".lan")
+      || unbracketed.hasSuffix(".internal")
+      || unbracketed.hasSuffix(".home.arpa")
+      || (!unbracketed.contains(".") && !unbracketed.contains(":")) {
       return true
     }
     return isPrivateIPv4(unbracketed) || isAllowedIPv6(unbracketed)

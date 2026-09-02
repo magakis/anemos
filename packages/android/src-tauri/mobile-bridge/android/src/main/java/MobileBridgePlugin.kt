@@ -378,7 +378,7 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
         }
         val uri = chamberServerUri(raw)
         if (uri == null) {
-            invoke.reject("Invalid Chamber server URL")
+            invoke.reject(INVALID_CHAMBER_SERVER_URL_MESSAGE)
             return
         }
         configPreferences.edit().putString(CHAMBER_SERVER_URL_KEY, uri.toString()).apply()
@@ -391,7 +391,7 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
         val args = invoke.parseArgs(ServerUrlArgs::class.java)
         val raw = args.url
         if (raw.isNullOrBlank() || chamberServerUri(raw) == null) {
-            invoke.reject("Invalid Chamber server URL")
+            invoke.reject(INVALID_CHAMBER_SERVER_URL_MESSAGE)
             return
         }
         probeExecutor.submit {
@@ -501,7 +501,16 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
         } else {
             normalized
         }
-        if (unbracketed == "localhost" || unbracketed == "127.0.0.1" || unbracketed == "::1" || unbracketed.endsWith(".local")) return true
+        if (unbracketed == "localhost"
+            || unbracketed == "127.0.0.1"
+            || unbracketed == "::1"
+            || unbracketed.endsWith(".local")
+            || unbracketed.endsWith(".ts.net")
+            || unbracketed.endsWith(".lan")
+            || unbracketed.endsWith(".internal")
+            || unbracketed.endsWith(".home.arpa")
+            || (!unbracketed.contains(".") && !unbracketed.contains(":"))
+        ) return true
         return isPrivateIPv4(unbracketed) || isAllowedIPv6(unbracketed)
     }
 
@@ -708,6 +717,7 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
         const val SELECTED_UI_KEY = "selectedUI"
         const val DEFAULT_SERVER_URL_KEY = "defaultServerUrl"
         const val CHAMBER_SERVER_URL_KEY = "chamberServerUrl"
+        const val INVALID_CHAMBER_SERVER_URL_MESSAGE = "Plain http is only allowed for local addresses (hostname, LAN/Tailscale IP, .local/.ts.net/.lan/.internal/.home.arpa names) — use https otherwise."
         const val RESET_UI_EXTRA = "reset-ui"
         const val SELECTOR_PAGE = "selector.html"
         const val CLASSIC_PAGE = "classic.html"

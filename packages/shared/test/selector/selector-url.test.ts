@@ -26,12 +26,17 @@ describe("selector Chamber URL validation", () => {
     "http://192.168.1.20:42449/",
     "http://[fc00::1]:42449/",
     "http://foo.local:42449/",
+    "http://optiplex/",
+    "http://optiplex:42448/",
+    "http://foo-bar.tailnet.ts.net/",
+    "http://nas.lan/",
+    "http://x.internal/",
     "https://example.com/",
   ])("accepts %s", (value) => {
     expect(parseChamberUrl(value).error).toBeUndefined()
   })
 
-  test.each(["http://example.com/", "http://8.8.8.8:42449/"])("rejects %s", (value) => {
-    expect(parseChamberUrl(value).error).toContain("use HTTPS")
+  test.each(["http://example.com/", "http://github.com/", "http://8.8.8.8:42449/"])("rejects %s", (value) => {
+    expect(parseChamberUrl(value).error).toContain("use https")
   })
 })

@@ -164,6 +164,14 @@
       .error {
         color: #f39a9a;
       }
+
+      .gesture-hint {
+        margin: 20px 0 0;
+        color: #817777;
+        font-size: 12px;
+        line-height: 1.45;
+        text-align: center;
+      }
     </style>
   </head>
   <body>
@@ -199,6 +207,7 @@
           </div>
         </div>
         <span class="state" id="state" role="status" aria-live="polite"></span>
+        <footer class="gesture-hint">Switch anytime: swipe up with four fingers (or double-tap with four fingers) in any interface to return here.</footer>
     </main>
     <script>
       (() => {
@@ -321,6 +330,11 @@
             unbracketed === "127.0.0.1" ||
             unbracketed === "::1" ||
             unbracketed.endsWith(".local") ||
+            unbracketed.endsWith(".ts.net") ||
+            unbracketed.endsWith(".lan") ||
+            unbracketed.endsWith(".internal") ||
+            unbracketed.endsWith(".home.arpa") ||
+            (!unbracketed.includes(".") && !unbracketed.includes(":")) ||
             isPrivateIPv4(unbracketed) ||
             isAllowedIPv6(unbracketed)
           );
@@ -340,7 +354,7 @@
           }
           if (url.protocol === "https:") return { url: url.href, secure: true };
           if (url.protocol === "http:" && isAllowedHttpHost(url.hostname)) return { url: url.href, secure: false };
-          return { error: "HTTP is allowed only for a local/Tailscale address; use HTTPS for other hosts." };
+          return { error: "Plain http is only allowed for local addresses (hostname, LAN/Tailscale IP, .local/.ts.net/.lan/.internal/.home.arpa names) — use https otherwise." };
         };
 
         const updateChamberUrlState = () => {
