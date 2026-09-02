@@ -111,17 +111,64 @@ final class ServerConfig {
     if let port = components.port, !(1...65535).contains(port) { return nil }
 
     if scheme == "https" { return url }
-    guard scheme == "http", isPrivateIPv4(host) else { return nil }
+    guard scheme == "http", isAllowedHttpHost(host) else { return nil }
     return url
   }
 
+  static func isAllowedHttpHost(_ host: String) -> Bool {
+    let normalized = host.lowercased()
+    let unbracketed = normalized.hasPrefix("[") && normalized.hasSuffix("]")
+      ? String(normalized.dropFirst().dropLast())
+      : normalized
+    if unbracketed == "localhost" || unbracketed == "127.0.0.1" || unbracketed == "::1" || unbracketed.hasSuffix(".local") {
+      return true
+    }
+    return isPrivateIPv4(unbracketed) || isAllowedIPv6(unbracketed)
+  }
+
   private static func isPrivateIPv4(_ host: String) -> Bool {
-    let octets = host.split(separator: ".").compactMap { Int($0) }
+    let parts = host.split(separator: ".", omittingEmptySubsequences: false)
+    guard parts.count == 4,
+          parts.allSatisfy({ part in
+            !part.isEmpty && part.allSatisfy { "0123456789".contains($0) }
+          }) else { return false }
+    let octets = parts.compactMap { Int($0) }
     guard octets.count == 4, octets.allSatisfy({ (0...255).contains($0) }) else { return false }
     return octets[0] == 10
-      || octets[0] == 127
-      || (octets[0] == 169 && octets[1] == 254)
       || (octets[0] == 172 && (16...31).contains(octets[1]))
       || (octets[0] == 192 && octets[1] == 168)
+      || (octets[0] == 100 && (64...127).contains(octets[1]))
+  }
+
+  private static func isAllowedIPv6(_ host: String) -> Bool {
+    guard host.contains(":") else { return false }
+    let sections = host.components(separatedBy: "::")
+    guard sections.count <= 2 else { return false }
+
+    func groups(_ section: String) -> [String]? {
+      if section.isEmpty { return [] }
+      let values = section.split(separator: ":", omittingEmptySubsequences: false).map(String.init)
+      guard values.allSatisfy({ value in
+        !value.isEmpty && value.count <= 4 && value.allSatisfy { "0123456789abcdef".contains($0) }
+      }) else { return nil }
+      return values
+    }
+
+    guard let left = groups(sections[0]) else { return false }
+    let right: [String]
+    if sections.count == 2 {
+      guard let parsedRight = groups(sections[1]) else { return false }
+      right = parsedRight
+    } else {
+      right = []
+    }
+    let count = left.count + right.count
+    if sections.count == 1 {
+      guard count == 8 else { return false }
+    } else {
+      guard count < 8 else { return false }
+    }
+    guard let first = left.first ?? right.first, let firstValue = Int(first, radix: 16) else { return false }
+    return (firstValue & 0xfe00) == 0xfc00 || (firstValue & 0xffc0) == 0xfe80
   }
 }

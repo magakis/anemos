@@ -194,7 +194,7 @@
               spellcheck="false"
               placeholder="https://chamber.example.com"
             />
-            <span class="hint" id="chamber-hint" role="status" aria-live="polite">HTTPS is preferred. HTTP is limited to LAN IPs.</span>
+            <span class="hint" id="chamber-hint" role="status" aria-live="polite">HTTPS is preferred. HTTP is limited to local and Tailscale addresses.</span>
             <span class="probe" id="chamber-probe" role="status" aria-live="polite">Not checked</span>
           </div>
         </div>
@@ -284,10 +284,45 @@
           if (octets.some((octet) => octet < 0 || octet > 255)) return false;
           return (
             octets[0] === 10 ||
-            octets[0] === 127 ||
-            (octets[0] === 169 && octets[1] === 254) ||
             (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
-            (octets[0] === 192 && octets[1] === 168)
+            (octets[0] === 192 && octets[1] === 168) ||
+            (octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127)
+          );
+        };
+
+        const isAllowedIPv6 = (host) => {
+          if (!host.includes(":")) return false;
+          const sections = host.split("::");
+          if (sections.length > 2) return false;
+          const groups = (section) => {
+            if (!section) return [];
+            const values = section.split(":");
+            if (values.some((value) => !/^[0-9a-f]{1,4}$/i.test(value))) return null;
+            return values;
+          };
+          const left = groups(sections[0]);
+          const right = groups(sections.length === 2 ? sections[1] : "");
+          if (!left || !right) return false;
+          const count = left.length + right.length;
+          if (sections.length === 1 ? count !== 8 : count >= 8) return false;
+          const first = left[0] || right[0];
+          if (!first) return false;
+          const firstValue = Number.parseInt(first, 16);
+          return (firstValue & 0xfe00) === 0xfc00 || (firstValue & 0xffc0) === 0xfe80;
+        };
+
+        const isAllowedHttpHost = (host) => {
+          const normalized = host.toLowerCase();
+          const unbracketed = normalized.startsWith("[") && normalized.endsWith("]")
+            ? normalized.slice(1, -1)
+            : normalized;
+          return (
+            unbracketed === "localhost" ||
+            unbracketed === "127.0.0.1" ||
+            unbracketed === "::1" ||
+            unbracketed.endsWith(".local") ||
+            isPrivateIPv4(unbracketed) ||
+            isAllowedIPv6(unbracketed)
           );
         };
 
@@ -298,14 +333,14 @@
           try {
             url = new URL(input);
           } catch {
-            return { error: "Enter a valid https:// URL or a LAN http:// URL." };
+            return { error: "Enter a valid https:// URL or a local http:// URL." };
           }
           if (!url.hostname || url.username || url.password || (url.port && (Number(url.port) < 1 || Number(url.port) > 65535))) {
             return { error: "Enter a valid server URL without credentials." };
           }
           if (url.protocol === "https:") return { url: url.href, secure: true };
-          if (url.protocol === "http:" && isPrivateIPv4(url.hostname)) return { url: url.href, secure: false };
-          return { error: "HTTP is allowed only for a private LAN IP; use HTTPS for other hosts." };
+          if (url.protocol === "http:" && isAllowedHttpHost(url.hostname)) return { url: url.href, secure: false };
+          return { error: "HTTP is allowed only for a local/Tailscale address; use HTTPS for other hosts." };
         };
 
         const updateChamberUrlState = () => {
