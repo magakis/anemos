@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit",
     "dev": "vite",
     "build": "vite build",
-    "test": "bun test src/",
+    "test": "bun test src/anemos/ src/apps/mobileQrScan.test.ts src/lib/i18n/parity.test.ts ../shared/test/selector/selector-url.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report e2e/playwright-report"

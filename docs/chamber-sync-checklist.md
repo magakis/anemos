@@ -97,6 +97,7 @@ been re-applied and all gates below pass.
 
 Run the focused package tests from the repository root using Bun's `--cwd`
 option. Run the e2e smoke against a real v2-capable `opencode serve` backend.
+Anemos gates do not run vendored upstream suites; a sync may run those separately with their own runner.
 
 - [ ] Install/update dependencies with the repository's locked Bun version:
       `bun install --frozen-lockfile`
