@@ -70,7 +70,7 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | unde
 
 async function publish(kind: Kind, sessionID: string, directory: string, title: string, body: string) {
   const meta = KIND_META[kind]
-  const deepLink = `opencode://open-session?directory=${encodeURIComponent(directory)}&id=${encodeURIComponent(sessionID)}`
+  const deepLink = `opencode://session/${encodeURIComponent(sessionID)}?dir=${encodeURIComponent(directory)}`
   const res = await fetch(`${NTFY_URL}/${NTFY_TOPIC}`, {
     method: "POST",
     headers: {

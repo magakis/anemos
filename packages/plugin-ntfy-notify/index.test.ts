@@ -89,8 +89,8 @@ describe("ntfy-notify plugin", () => {
     expect(headers.Title).toBe("anemos")
     expect(headers.Priority).toBe("default")
     expect(headers.Tags).toBe("white_check_mark")
-    expect(headers.Click).toBe("opencode://open-session?directory=%2Ftmp%2Fproj&id=s1")
-    expect(headers.Actions).toBe("view, Open Anemos, opencode://open-session?directory=%2Ftmp%2Fproj&id=s1, clear=true")
+    expect(headers.Click).toBe("opencode://session/s1?dir=%2Ftmp%2Fproj")
+    expect(headers.Actions).toBe("view, Open Anemos, opencode://session/s1?dir=%2Ftmp%2Fproj, clear=true")
     expect(call.init.body).toBe("proj — Fix the bug")
   })
 
@@ -151,7 +151,7 @@ describe("ntfy-notify plugin", () => {
       evt("session.idle", { sessionID: "s1" }),
     ])
     const headers = publishes[0].init.headers as Record<string, string>
-    expect(headers.Click).toBe("opencode://open-session?directory=%2Ftmp%2Fproj&id=s1")
+    expect(headers.Click).toBe("opencode://session/s1?dir=%2Ftmp%2Fproj")
     expect(publishes[0].init.body).toBe("proj — Fix the bug")
   })
 
@@ -161,9 +161,9 @@ describe("ntfy-notify plugin", () => {
       evt("session.idle", { sessionID: "s1" }),
     ])
     const headers = publishes[0].init.headers as Record<string, string>
-    expect(headers.Click).toBe("opencode://open-session?directory=%2Fsrv%2Fother-project&id=s1")
+    expect(headers.Click).toBe("opencode://session/s1?dir=%2Fsrv%2Fother-project")
     expect(headers.Actions).toBe(
-      "view, Open Anemos, opencode://open-session?directory=%2Fsrv%2Fother-project&id=s1, clear=true",
+      "view, Open Anemos, opencode://session/s1?dir=%2Fsrv%2Fother-project, clear=true",
     )
     expect(publishes[0].init.body).toBe("other-project — Fix the bug")
   })
@@ -175,7 +175,7 @@ describe("ntfy-notify plugin", () => {
       evt("session.idle", { sessionID: "s1" }),
     ])
     const headers = publishes[0].init.headers as Record<string, string>
-    expect(headers.Click).toBe("opencode://open-session?directory=%2Fsrv%2Fsecond&id=s1")
+    expect(headers.Click).toBe("opencode://session/s1?dir=%2Fsrv%2Fsecond")
   })
 
   test("URL-encodes the sessionID in the Click header", async () => {
@@ -184,9 +184,9 @@ describe("ntfy-notify plugin", () => {
       evt("session.idle", { sessionID: "abc/def?x=1&y=2" }),
     ])
     const headers = publishes[0].init.headers as Record<string, string>
-    expect(headers.Click).toBe("opencode://open-session?directory=%2Ftmp%2Fproj&id=abc%2Fdef%3Fx%3D1%26y%3D2")
+    expect(headers.Click).toBe("opencode://session/abc%2Fdef%3Fx%3D1%26y%3D2?dir=%2Ftmp%2Fproj")
     expect(headers.Actions).toBe(
-      "view, Open Anemos, opencode://open-session?directory=%2Ftmp%2Fproj&id=abc%2Fdef%3Fx%3D1%26y%3D2, clear=true",
+      "view, Open Anemos, opencode://session/abc%2Fdef%3Fx%3D1%26y%3D2?dir=%2Ftmp%2Fproj, clear=true",
     )
   })
 
