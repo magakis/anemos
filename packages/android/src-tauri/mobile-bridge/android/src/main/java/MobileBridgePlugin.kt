@@ -134,14 +134,32 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
 
         val deepLink = extractDeepLink(activity.intent)
         webView.post {
-            val target = if (deepLink != null) deepLinkTarget() else initialPage()
-            deepLink?.let { pendingDeepLinks.addLast(it) }
-            if (target == CHAMBER_FULL_PAGE && !loadChamberPage(webView)) {
-                webView.loadUrl(localUrl(SELECTOR_PAGE))
-            } else if (target != CHAMBER_FULL_PAGE) {
-                webView.loadUrl(localUrl(target))
+            val selected = selectionPreferences.getString(SELECTED_UI_KEY, null)
+            val sessionLink = deepLink?.let(::parseSessionLink)
+            if (selected == "1" && sessionLink != null) {
+                val base = chamberServerUri()
+                if (base == null) {
+                    webView.loadUrl(localUrl(SELECTOR_PAGE))
+                } else {
+                    webView.loadUrl(chamberSessionUri(base, sessionLink.sessionId).toString())
+                }
+            } else {
+                val target = if (deepLink != null) deepLinkTarget() else initialPage()
+                val link = deepLink?.let { raw ->
+                    if (target == CLASSIC_PAGE && Uri.parse(raw).host?.lowercase() == "session") {
+                        parseSessionLink(raw)?.let(::legacyOpenSessionURL) ?: raw
+                    } else {
+                        raw
+                    }
+                }
+                link?.let { pendingDeepLinks.addLast(it) }
+                if (target == CHAMBER_FULL_PAGE && !loadChamberPage(webView)) {
+                    webView.loadUrl(localUrl(SELECTOR_PAGE))
+                } else if (target != CHAMBER_FULL_PAGE) {
+                    webView.loadUrl(localUrl(target))
+                }
+                if (deepLink != null) main.postDelayed({ deliverPendingDeepLinks(target) }, 500L)
             }
-            if (deepLink != null) main.postDelayed({ deliverPendingDeepLinks(target) }, 500L)
             activity.intent?.data = null
         }
     }
@@ -620,14 +638,65 @@ class MobileBridgePlugin(private val activity: Activity) : Plugin(activity) {
         return candidates.firstOrNull { it.startsWith("opencode://") }
     }
 
+    private data class SessionLink(val sessionId: String, val directory: String?)
+
+    private fun parseSessionLink(raw: String): SessionLink? {
+        val uri = Uri.parse(raw)
+        return when (uri.host?.lowercase()) {
+            "session" -> {
+                val id = uri.pathSegments.firstOrNull() ?: uri.getQueryParameter("id")
+                if (id.isNullOrEmpty()) null else SessionLink(id, uri.getQueryParameter("dir"))
+            }
+            "open-session" -> {
+                val id = uri.getQueryParameter("id")
+                if (id.isNullOrEmpty()) null else SessionLink(id, uri.getQueryParameter("directory"))
+            }
+            else -> null
+        }
+    }
+
+    private fun chamberSessionUri(base: Uri, sessionId: String): Uri {
+        val builder = base.buildUpon().clearQuery()
+        for (name in base.queryParameterNames) {
+            if (name == "session" || name == "surface") continue
+            for (value in base.queryParameters(name)) builder.appendQueryParameter(name, value)
+        }
+        builder.appendQueryParameter("session", sessionId)
+        builder.appendQueryParameter("surface", "mobile")
+        return builder.build()
+    }
+
+    private fun legacyOpenSessionURL(link: SessionLink): String? {
+        val directory = link.directory ?: return null
+        return "opencode://open-session?directory=" + Uri.encode(directory) + "&id=" + Uri.encode(link.sessionId)
+    }
+
     private fun openDeepLink(url: String) {
+        val selected = selectionPreferences.getString(SELECTED_UI_KEY, null)
+        if (selected == "1") {
+            val link = parseSessionLink(url)
+            if (link != null) {
+                val base = chamberServerUri()
+                if (base == null) {
+                    navigateToSelector()
+                    return
+                }
+                webView?.post { webView?.loadUrl(chamberSessionUri(base, link.sessionId).toString()) }
+                return
+            }
+        }
         val view = webView ?: return
         val target = deepLinkTarget()
+        val link = if (target == CLASSIC_PAGE && Uri.parse(url).host?.lowercase() == "session") {
+            parseSessionLink(url)?.let(::legacyOpenSessionURL) ?: url
+        } else {
+            url
+        }
         if (view.url?.endsWith("/$target") == true) {
-            injectDeepLink(url)
+            injectDeepLink(link)
             return
         }
-        pendingDeepLinks.addLast(url)
+        pendingDeepLinks.addLast(link)
         view.post { view.loadUrl(localUrl(target)) }
         main.postDelayed({ deliverPendingDeepLinks(target) }, 500L)
     }

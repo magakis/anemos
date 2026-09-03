@@ -225,15 +225,82 @@ final class BridgeController: NSObject, WKScriptMessageHandler, WKNavigationDele
     return webView?.url?.pathComponents.last
   }
 
+  private struct SessionLink {
+    let sessionID: String
+    let directory: String?
+  }
+
+  /// Extracts a session target from canonical (`opencode://session/<id>?dir=`)
+  /// and legacy (`opencode://open-session?directory=&id=`) links. Nil for non-session links.
+  private static func parseSessionLink(_ url: URL) -> SessionLink? {
+    guard let host = url.host?.lowercased() else { return nil }
+    let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+    func param(_ name: String) -> String? { query.first { $0.name == name }?.value }
+    switch host {
+    case "session":
+      let encodedPath = URLComponents(url: url, resolvingAgainstBaseURL: false)?.percentEncodedPath ?? ""
+      let pathID = encodedPath.split(separator: "/").first { !$0.isEmpty }.flatMap { $0.removingPercentEncoding }
+      guard let id = pathID ?? param("id"), !id.isEmpty else { return nil }
+      return SessionLink(sessionID: id, directory: param("dir"))
+    case "open-session":
+      guard let id = param("id"), !id.isEmpty else { return nil }
+      return SessionLink(sessionID: id, directory: param("directory"))
+    default:
+      return nil
+    }
+  }
+
+  /// `<chamberUrl>?session=<id>&surface=mobile`, preserving any existing query params.
+  /// surface=mobile pins the mobile surface and disables the viewport-watcher reload
+  /// (runtimeSurface.ts) — the remote page is not an Anemos native shell.
+  private static func chamberSessionURL(base: URL, sessionID: String) -> URL? {
+    guard var comps = URLComponents(url: base, resolvingAgainstBaseURL: false) else { return nil }
+    var items = comps.queryItems ?? []
+    items.removeAll { $0.name == "session" || $0.name == "surface" }
+    items.append(URLQueryItem(name: "session", value: sessionID))
+    items.append(URLQueryItem(name: "surface", value: "mobile"))
+    comps.queryItems = items
+    return comps.url
+  }
+
+  /// Legacy wire format for the frozen Classic app, which only parses `open-session`.
+  private static func legacyOpenSessionURL(from link: SessionLink) -> URL? {
+    let queryValueAllowed = CharacterSet.urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&+=?/"))
+    guard let dir = link.directory?.addingPercentEncoding(withAllowedCharacters: queryValueAllowed),
+          let id = link.sessionID.addingPercentEncoding(withAllowedCharacters: queryValueAllowed)
+    else { return nil }
+    return URL(string: "opencode://open-session?directory=\(dir)&id=\(id)")
+  }
+
   private func handleDeepLink(_ url: URL) {
     guard url.scheme == "opencode" else { return }
-    let target = UISelection.local(rawValue: platform.selectedUI()) ?? .classic
-    if currentPage == target.fileName {
-      injectDeepLink(url)
+
+    // Chamber Full is a remote origin — the only sanctioned entry point is the loaded URL.
+    if let link = Self.parseSessionLink(url),
+       UISelection.stored(rawValue: platform.selectedUI()) == .chamberFull {
+      guard let base = platform.chamberServerURL(),
+            let target = Self.chamberSessionURL(base: base, sessionID: link.sessionID) else {
+        navigate(to: .chamberFull) // existing guard falls back to selector.html
+        return
+      }
+      webView?.load(URLRequest(url: target))
       return
     }
 
-    pendingDeepLinks.append(url)
+    // ANEMOS-PATCH: UI 3 removed — Classic is the local deep-link surface and the
+    // fallback for missing/stale selections (it parses session links after translation).
+    let target = UISelection.local(rawValue: platform.selectedUI()) ?? .classic
+    var link = url
+    if target == .classic, url.host?.lowercased() == "session",
+       let parsed = Self.parseSessionLink(url), let legacy = Self.legacyOpenSessionURL(from: parsed) {
+      link = legacy
+    }
+    if currentPage == target.fileName {
+      injectDeepLink(link)
+      return
+    }
+
+    pendingDeepLinks.append(link)
     navigate(to: target)
   }
 
